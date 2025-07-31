@@ -1,0 +1,29 @@
+# Core dependencies
+httpx==0.25.2
+aiohttp==3.9.1
+lxml==4.9.3
+pydantic==2.5.2
+python-dotenv==1.0.0
+supabase==2.3.0
+
+# Playwright for JavaScript-heavy sites
+playwright==1.40.0
+
+# Additional utilities
+asyncio-throttle==1.0.2
+fake-useragent==1.4.0
+
+# Development dependencies (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+
+# Production dependencies
+gunicorn==21.2.0
+uvicorn==0.24.0
+
+# Monitoring and logging
+structlog==23.2.0
+prometheus-client==0.19.0
