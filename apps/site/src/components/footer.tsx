@@ -63,16 +63,19 @@ export function Footer() {
 
             {/* Social Links */}
             <div className="flex space-x-4">
-              {socialLinks.map((social) => (
-                <button
-                  key={social.name}
-                  onClick={handleLinkClick}
-                  className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:border-emerald-400/50 transition-colors duration-200 hover:shadow-emerald-400/20 shadow-lg"
-                  aria-label={social.name}
-                >
-                  <social.icon className="w-5 h-5" />
-                </button>
-              ))}
+              {socialLinks.map((social) => {
+                const IconComponent = social.icon;
+                return (
+                  <button
+                    key={social.name}
+                    onClick={handleLinkClick}
+                    className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:border-emerald-400/50 transition-colors duration-200 hover:shadow-emerald-400/20 shadow-lg"
+                    aria-label={social.name}
+                  >
+                    {IconComponent && <IconComponent className="w-5 h-5" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

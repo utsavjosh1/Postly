@@ -11,12 +11,10 @@ import {
   Trash2,
   MessageCircle,
   Search,
-  Bell,
   ArrowRight,
   Star,
   CheckCircle,
   TrendingUp,
-  Shield,
   Clock,
   Upload,
   FileText,
@@ -25,11 +23,76 @@ import {
 } from "lucide-react";
 import { BetaSignupModal } from "@/components/beta-signup-modal";
 
+const FEATURES = [
+  {
+    icon: "Upload",
+    title: "AI RESUME ANALYSIS",
+    description:
+      "Upload your resume and let our AI match you with the perfect job opportunities based on your skills and experience.",
+    features: ["Resume parsing", "Skill extraction", "Personalized matches"],
+    isInteractive: true,
+  },
+  {
+    icon: "FileText",
+    title: "JOB LISTING & SOCIAL",
+    description:
+      "List your jobs and get automatic tweets from our social handles to reach millions of potential candidates.",
+    features: ["Auto-posting", "Social reach", "Tweet integration"],
+    isInteractive: true,
+  },
+  {
+    icon: "Bot",
+    title: "AI BOT INTEGRATION",
+    description:
+      "Discord bot with intelligent job matching and automated posting to your server channels.",
+    features: ["Smart filtering", "Real-time updates", "Custom commands"],
+    isInteractive: false,
+  },
+  {
+    icon: "Database",
+    title: "MILLIONS OF JOBS",
+    description:
+      "Access to over 2.8M+ job listings from major platforms, updated in real-time.",
+    features: [
+      "LinkedIn integration",
+      "Indeed scraping",
+      "Remote opportunities",
+    ],
+    isInteractive: false,
+  },
+  {
+    icon: "Trash2",
+    title: "AUTO CLEANUP",
+    description:
+      "Intelligent deletion system that removes expired and filled positions automatically.",
+    features: ["Expired job removal", "Duplicate detection", "Clean channels"],
+    isInteractive: false,
+  },
+  {
+    icon: "Search",
+    title: "SMART SEARCH",
+    description:
+      "Advanced filtering by location, salary, experience level, and custom criteria.",
+    features: ["Location-based", "Salary ranges", "Experience levels"],
+    isInteractive: false,
+  },
+];
+
 export default function HomePage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState(0);
   const [showBetaModal, setShowBetaModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Icon mapping
+  const iconMap = {
+    Upload,
+    FileText,
+    Bot,
+    Database,
+    Trash2,
+    Search,
+  } as const;
 
   // Ensure client-side only rendering for dynamic content
   useEffect(() => {
@@ -45,7 +108,7 @@ export default function HomePage() {
       "CLEANING OLD LISTINGS...",
       "OPTIMIZING RESULTS...",
     ],
-    [],
+    []
   );
 
   // Glitch effect (client-side only)
@@ -183,100 +246,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {[
-              {
-                icon: Upload,
-                title: "AI RESUME ANALYSIS",
-                description:
-                  "Upload your resume and let our AI match you with the perfect job opportunities based on your skills and experience.",
-                features: [
-                  "Resume parsing",
-                  "Skill extraction",
-                  "Personalized matches",
-                ],
-                isInteractive: true,
-              },
-              {
-                icon: FileText,
-                title: "JOB LISTING & SOCIAL",
-                description:
-                  "List your jobs and get automatic tweets from our social handles to reach millions of potential candidates.",
-                features: ["Auto-posting", "Social reach", "Tweet integration"],
-                isInteractive: true,
-              },
-              {
-                icon: Bot,
-                title: "AI BOT INTEGRATION",
-                description:
-                  "Discord bot with intelligent job matching and automated posting to your server channels.",
-                features: [
-                  "Smart filtering",
-                  "Real-time updates",
-                  "Custom commands",
-                ],
-                isInteractive: false,
-              },
-              {
-                icon: Database,
-                title: "MILLIONS OF JOBS",
-                description:
-                  "Access to over 2.8M+ job listings from major platforms, updated in real-time.",
-                features: [
-                  "LinkedIn integration",
-                  "Indeed scraping",
-                  "Remote opportunities",
-                ],
-                isInteractive: false,
-              },
-              {
-                icon: Trash2,
-                title: "AUTO CLEANUP",
-                description:
-                  "Intelligent deletion system that removes expired and filled positions automatically.",
-                features: [
-                  "Expired job removal",
-                  "Duplicate detection",
-                  "Clean channels",
-                ],
-                isInteractive: false,
-              },
-              {
-                icon: Search,
-                title: "SMART SEARCH",
-                description:
-                  "Advanced filtering by location, salary, experience level, and custom criteria.",
-                features: [
-                  "Location-based",
-                  "Salary ranges",
-                  "Experience levels",
-                ],
-                isInteractive: false,
-              },
-              {
-                icon: Bell,
-                title: "INSTANT ALERTS",
-                description:
-                  "Real-time notifications for new opportunities matching your preferences.",
-                features: [
-                  "Discord pings",
-                  "Email alerts",
-                  "Mobile notifications",
-                ],
-                isInteractive: false,
-              },
-              {
-                icon: Shield,
-                title: "VERIFIED LISTINGS",
-                description:
-                  "All job postings are verified and filtered to ensure legitimacy and quality.",
-                features: [
-                  "Spam protection",
-                  "Quality control",
-                  "Trusted sources",
-                ],
-                isInteractive: false,
-              },
-            ].map((feature) => (
+            {FEATURES.map((feature) => (
               <div
                 key={feature.title}
                 className={`bg-slate-900/50 border border-emerald-400/20 rounded-lg p-8 shadow-lg backdrop-blur-sm group ${
@@ -294,7 +264,18 @@ export default function HomePage() {
                         : "bg-emerald-400/10 group-hover:bg-emerald-400/20"
                     }`}
                   >
-                    <feature.icon className="w-6 h-6 text-emerald-400" />
+                    {(() => {
+                      const IconComponent =
+                        iconMap[feature.icon as keyof typeof iconMap];
+                      // Ensure IconComponent exists before rendering
+                      if (!IconComponent) {
+                        console.warn(`Icon "${feature.icon}" not found in iconMap`);
+                        return <div className="w-6 h-6 bg-emerald-400/20 rounded" />;
+                      }
+                      return (
+                        <IconComponent className="w-6 h-6 text-emerald-400" />
+                      );
+                    })()}
                   </div>
                   <h3 className="text-emerald-400 font-mono font-bold text-lg">
                     {feature.title}

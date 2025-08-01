@@ -2,8 +2,9 @@ import express from "express";
 import cors from "cors";
 import session from "express-session";
 import passport from "passport";
+
 import { config } from "./config/env";
-import "./config/passport"; // Initialize passport strategies
+import "./config/passport"; 
 import authRoutes from "./routes/auth.route";
 import prismaAuthRoutes from "./routes/prisma-auth.route";
 import googleAuthRoutes from "./routes/google-auth.route";

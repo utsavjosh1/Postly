@@ -57,3 +57,5 @@ gcp-key.json
 
 # Supabase
 .supabase/
+
+test.json
