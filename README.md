@@ -38,6 +38,7 @@ jobbot/
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - **Runtime**: Bun (fast JavaScript runtime)
 - **Framework**: Express.js with TypeScript
 - **Authentication**: Supabase Auth + JWT
@@ -46,6 +47,7 @@ jobbot/
 - **Database**: Supabase PostgreSQL
 
 ### Frontend
+
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: CSS with inline styles (customizable)
@@ -53,6 +55,7 @@ jobbot/
 - **Routing**: React Router DOM
 
 ### Infrastructure
+
 - **Deployment**: Google Cloud Platform
 - **Server**: Cloud Run (containerized)
 - **Frontend**: Firebase Hosting
@@ -62,11 +65,13 @@ jobbot/
 ## 🚦 Quick Start
 
 ### Prerequisites
+
 - [Bun](https://bun.sh/) runtime
 - [Supabase](https://supabase.com/) account
 - [Google Cloud](https://cloud.google.com/) account (for deployment)
 
 ### 1. Clone and Setup
+
 ```bash
 git clone <your-repo>
 cd jobbot
@@ -91,6 +96,7 @@ cp apps/web/.env.example apps/web/.env
 ### 3. Environment Configuration
 
 #### Root `.env`:
+
 ```env
 # Supabase Configuration
 SUPABASE_URL=your_supabase_project_url
@@ -107,6 +113,7 @@ NODE_ENV=development
 ```
 
 #### `apps/web/.env`:
+
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -127,6 +134,7 @@ bun run dev:web     # Web app on http://localhost:5173
 ## 🔐 Authentication Features
 
 ### User Management
+
 - **Registration**: Email + password with profile data
 - **Login**: Secure session management
 - **Profile Updates**: Edit user information
@@ -134,6 +142,7 @@ bun run dev:web     # Web app on http://localhost:5173
 - **Session Handling**: Automatic token refresh
 
 ### Security Features
+
 - **Row Level Security**: Supabase RLS policies
 - **Rate Limiting**: Configurable limits per endpoint
 - **JWT Validation**: Custom JWT + Supabase token verification
@@ -144,6 +153,7 @@ bun run dev:web     # Web app on http://localhost:5173
 ### API Endpoints
 
 #### Authentication Routes (`/api/auth`)
+
 - `POST /register` - User registration
 - `POST /login` - User login
 - `POST /logout` - User logout
@@ -155,6 +165,7 @@ bun run dev:web     # Web app on http://localhost:5173
 - `GET /health` - Auth service health check
 
 #### User Routes (`/api/users`)
+
 - `GET /` - Get all users (with optional auth)
 - `GET /me` - Get current user (protected)
 
@@ -165,6 +176,7 @@ bun run dev:web     # Web app on http://localhost:5173
 See `GCP_DEPLOYMENT.md` for detailed deployment instructions.
 
 #### Quick Deploy:
+
 ```bash
 # Server (Cloud Run)
 cd apps/server
@@ -200,7 +212,8 @@ bun run format       # Format all code
 ## 📊 Project Structure Details
 
 ### Server (`apps/server`)
-- **config/**: Environment variables and Supabase client setup  
+
+- **config/**: Environment variables and Supabase client setup
 - **controllers/**: Request handlers with validation
 - **middlewares/**: Authentication, security, and error handling
 - **routes/**: API route definitions
@@ -208,12 +221,14 @@ bun run format       # Format all code
 - **types/**: TypeScript type definitions
 
 ### Web App (`apps/web`)
+
 - **components/**: Reusable React components
 - **context/**: React Context for state management
 - **config/**: Environment and configuration
 - **types/**: TypeScript type definitions
 
 ### Shared (`packages/`)
+
 - **ui/**: Shared UI components
 - **eslint-config/**: Shared ESLint configuration
 - **typescript-config/**: Shared TypeScript configuration
@@ -221,6 +236,7 @@ bun run format       # Format all code
 ## 🔧 Configuration
 
 ### Supabase Setup
+
 1. Create project at [supabase.com](https://supabase.com)
 2. Run the provided SQL schema
 3. Configure authentication settings
@@ -228,6 +244,7 @@ bun run format       # Format all code
 5. Get API keys from project settings
 
 ### Security Configuration
+
 - **CORS**: Configure allowed origins in production
 - **Rate Limiting**: Adjust limits based on your needs
 - **JWT Secret**: Use a strong, unique secret in production
@@ -238,7 +255,7 @@ bun run format       # Format all code
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable  
+4. Add tests if applicable
 5. Run linting and formatting
 6. Submit a pull request
 
@@ -255,5 +272,6 @@ This project is licensed under the MIT License.
 ---
 
 Built with ❤️ using React, Express.js, Supabase, and deployed on GCP.
+
 - [ESLint](https://eslint.org/) for code linting
 - [Prettier](https://prettier.io) for code formatting

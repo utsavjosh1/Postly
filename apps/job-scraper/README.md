@@ -56,24 +56,28 @@ job-scraper/
 ### Local Development Setup
 
 1. **Clone the repository**
+
 ```bash
 git clone <repository-url>
 cd job-scraper
 ```
 
 2. **Create virtual environment**
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
 3. **Install dependencies**
+
 ```bash
 pip install -r requirements.txt
 playwright install chromium
 ```
 
 4. **Configure environment**
+
 ```bash
 cp .env.example .env
 # Edit .env with your Supabase credentials
@@ -260,6 +264,7 @@ PORT=8080
 ### Search Keywords
 
 Default tech keywords (configurable in `config.py`):
+
 - python, javascript, developer, ML, react, aws
 - software engineer, frontend, backend, fullstack
 - data scientist, devops, cloud, typescript, node.js
@@ -351,6 +356,7 @@ MIT License - see LICENSE file for details.
 ### Common Issues
 
 1. **Playwright Installation Issues**
+
 ```bash
 # Reinstall Playwright
 playwright uninstall
@@ -358,16 +364,19 @@ playwright install chromium
 ```
 
 2. **Supabase Connection Errors**
+
 - Verify SUPABASE_URL and SUPABASE_KEY
 - Check network connectivity
 - Ensure database table exists
 
 3. **Rate Limiting**
+
 - Increase delays in configuration
 - Reduce concurrent requests
 - Check for IP blocking
 
 4. **Memory Issues on Cloud Run**
+
 - Increase memory allocation
 - Reduce concurrent requests
 - Optimize batch sizes

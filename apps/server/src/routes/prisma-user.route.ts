@@ -1,6 +1,12 @@
 import { Router } from "express";
-import { getPrismaUsers, getCurrentPrismaUser } from "../controllers/prisma-user.controller";
-import { prismaAuthenticate, prismaOptionalAuth } from "../middlewares/prisma-auth.middleware";
+import {
+  getPrismaUsers,
+  getCurrentPrismaUser,
+} from "../controllers/prisma-user.controller";
+import {
+  prismaAuthenticate,
+  prismaOptionalAuth,
+} from "../middlewares/prisma-auth.middleware";
 
 const router = Router();
 

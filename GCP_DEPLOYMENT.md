@@ -40,6 +40,7 @@ firebase deploy --only hosting
 ## Environment Variables Setup
 
 ### Server Environment Variables (Cloud Run):
+
 - `NODE_ENV=production`
 - `SUPABASE_URL=your_production_supabase_url`
 - `SUPABASE_ANON_KEY=your_production_anon_key`
@@ -48,6 +49,7 @@ firebase deploy --only hosting
 - `PORT=8080` (Cloud Run uses port 8080)
 
 ### Web App Environment Variables:
+
 - `VITE_SUPABASE_URL=your_production_supabase_url`
 - `VITE_SUPABASE_ANON_KEY=your_production_anon_key`
 - `VITE_API_BASE_URL=https://your-cloud-run-service-url/api`

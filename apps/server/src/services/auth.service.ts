@@ -21,8 +21,9 @@ export class AuthService {
       const { email, password, full_name, username } = data;
 
       // Check if user already exists by email
-      const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      
+      const { data: userList, error: listError } =
+        await supabaseAdmin.auth.admin.listUsers();
+
       if (listError) {
         return {
           user: null,
@@ -31,8 +32,8 @@ export class AuthService {
         };
       }
 
-      const existingUser = userList.users.find(user => user.email === email);
-      
+      const existingUser = userList.users.find((user) => user.email === email);
+
       if (existingUser) {
         return {
           user: null,
@@ -42,16 +43,17 @@ export class AuthService {
       }
 
       // Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name,
-          username,
-          role: "user",
-        },
-      });
+      const { data: authData, error: authError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name,
+            username,
+            role: "user",
+          },
+        });
 
       if (authError || !authData.user) {
         return {
@@ -78,10 +80,11 @@ export class AuthService {
       }
 
       // Sign in the user to get session
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (signInError || !signInData.session) {
         return {
@@ -122,10 +125,11 @@ export class AuthService {
     try {
       const { email, password } = data;
 
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (authError || !authData.session || !authData.user) {
         return {
@@ -146,7 +150,8 @@ export class AuthService {
         user: {
           id: authData.user.id,
           email: authData.user.email!,
-          full_name: profile?.full_name || authData.user.user_metadata?.full_name,
+          full_name:
+            profile?.full_name || authData.user.user_metadata?.full_name,
           username: profile?.username || authData.user.user_metadata?.username,
           avatar_url: profile?.avatar_url,
           website: profile?.website,
@@ -172,10 +177,12 @@ export class AuthService {
   }
 
   // Logout user
-  static async logout(token: string): Promise<{ success: boolean; error?: string }> {
+  static async logout(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabaseAdmin.auth.admin.signOut(token);
-      
+
       if (error) {
         return { success: false, error: error.message };
       }
@@ -215,7 +222,8 @@ export class AuthService {
         user: {
           id: authData.user.id,
           email: authData.user.email!,
-          full_name: profile?.full_name || authData.user.user_metadata?.full_name,
+          full_name:
+            profile?.full_name || authData.user.user_metadata?.full_name,
           username: profile?.username || authData.user.user_metadata?.username,
           avatar_url: profile?.avatar_url,
           website: profile?.website,
@@ -243,7 +251,10 @@ export class AuthService {
   // Get user by token
   static async getUserByToken(token: string): Promise<User | null> {
     try {
-      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      const {
+        data: { user },
+        error,
+      } = await supabaseAdmin.auth.getUser(token);
 
       if (error || !user) {
         return null;
@@ -274,7 +285,10 @@ export class AuthService {
   }
 
   // Update user profile
-  static async updateProfile(userId: string, data: UpdateProfileRequest): Promise<{
+  static async updateProfile(
+    userId: string,
+    data: UpdateProfileRequest,
+  ): Promise<{
     user: User | null;
     error?: string;
   }> {
@@ -303,15 +317,13 @@ export class AuthService {
       }
 
       // Update user metadata in Supabase Auth
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        {
+      const { data: authData, error: authError } =
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
           user_metadata: {
             username,
             full_name,
           },
-        }
-      );
+        });
 
       if (authError) {
         console.error("Auth metadata update error:", authError);
@@ -340,7 +352,10 @@ export class AuthService {
   }
 
   // Change password
-  static async changePassword(userId: string, data: ChangePasswordRequest): Promise<{
+  static async changePassword(
+    userId: string,
+    data: ChangePasswordRequest,
+  ): Promise<{
     success: boolean;
     error?: string;
   }> {

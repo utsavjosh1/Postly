@@ -10,14 +10,14 @@ export interface AuthenticatedRequest extends Request {
 export const authenticate = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).json({ 
-        error: "Missing or invalid authorization header" 
+      res.status(401).json({
+        error: "Missing or invalid authorization header",
       });
       return;
     }
@@ -25,8 +25,11 @@ export const authenticate = async (
     const token = authHeader.substring(7); // Remove "Bearer " prefix
 
     // Try to verify with Supabase first
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (error || !user) {
       // Fallback to JWT verification if using custom JWT
       try {
@@ -35,11 +38,11 @@ export const authenticate = async (
           id: `jwt_${decoded.sub || decoded.userId}`,
           email: decoded.email,
           supabase_user_id: decoded.sub || decoded.userId,
-          provider: decoded.provider || 'email'
+          provider: decoded.provider || "email",
         };
       } catch (jwtError) {
-        res.status(401).json({ 
-          error: "Invalid token" 
+        res.status(401).json({
+          error: "Invalid token",
         });
         return;
       }
@@ -48,24 +51,28 @@ export const authenticate = async (
         id: `supabase_${user.id}`,
         email: user.email!,
         supabase_user_id: user.id,
-        provider: user.user_metadata?.provider || 'email'
+        provider: user.user_metadata?.provider || "email",
       };
     }
 
     next();
   } catch (error) {
     console.error("Authentication error:", error);
-    res.status(500).json({ 
-      error: "Internal server error during authentication" 
+    res.status(500).json({
+      error: "Internal server error during authentication",
     });
   }
 };
 
 export const authorize = (roles: string[] = []) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  return (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): void => {
     if (!req.user) {
-      res.status(401).json({ 
-        error: "Authentication required" 
+      res.status(401).json({
+        error: "Authentication required",
       });
       return;
     }
@@ -74,7 +81,9 @@ export const authorize = (roles: string[] = []) => {
     // For now, just check if user is authenticated
     if (roles.length > 0) {
       // Placeholder for role checking - currently allows all authenticated users
-      console.log(`Role check requested for roles: ${roles.join(', ')}, but not implemented yet`);
+      console.log(
+        `Role check requested for roles: ${roles.join(", ")}, but not implemented yet`,
+      );
     }
 
     next();
@@ -84,11 +93,11 @@ export const authorize = (roles: string[] = []) => {
 export const optionalAuth = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       // No auth header, continue without user
       next();
@@ -96,16 +105,19 @@ export const optionalAuth = async (
     }
 
     const token = authHeader.substring(7);
-    
+
     // Try to verify with Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (!error && user) {
       req.user = {
         id: `supabase_${user.id}`,
         email: user.email!,
         supabase_user_id: user.id,
-        provider: user.user_metadata?.provider || 'email'
+        provider: user.user_metadata?.provider || "email",
       };
     }
 

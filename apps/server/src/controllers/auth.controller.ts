@@ -9,9 +9,15 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one lowercase letter, one uppercase letter, and one number"),
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one lowercase letter, one uppercase letter, and one number",
+    ),
   full_name: z.string().min(1, "Full name is required").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .optional(),
 });
 
 const loginSchema = z.object({
@@ -20,7 +26,10 @@ const loginSchema = z.object({
 });
 
 const updateProfileSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .optional(),
   full_name: z.string().min(1, "Full name cannot be empty").optional(),
   avatar_url: z.string().url("Invalid URL format").optional(),
   website: z.string().url("Invalid URL format").optional(),
@@ -31,7 +40,10 @@ const changePasswordSchema = z.object({
   new_password: z
     .string()
     .min(8, "Password must be at least 8 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one lowercase letter, one uppercase letter, and one number"),
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one lowercase letter, one uppercase letter, and one number",
+    ),
 });
 
 const resetPasswordSchema = z.object({
@@ -200,7 +212,10 @@ export class AuthController {
   }
 
   // Get current user profile
-  static async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getProfile(
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -243,7 +258,10 @@ export class AuthController {
   }
 
   // Update user profile
-  static async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async updateProfile(
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -254,7 +272,10 @@ export class AuthController {
       }
 
       const validatedData = updateProfileSchema.parse(req.body);
-      const result = await AuthService.updateProfile(req.user.id, validatedData);
+      const result = await AuthService.updateProfile(
+        req.user.id,
+        validatedData,
+      );
 
       if (result.error) {
         res.status(400).json({
@@ -288,7 +309,10 @@ export class AuthController {
   }
 
   // Change password
-  static async changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async changePassword(
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -299,7 +323,10 @@ export class AuthController {
       }
 
       const validatedData = changePasswordSchema.parse(req.body);
-      const result = await AuthService.changePassword(req.user.id, validatedData);
+      const result = await AuthService.changePassword(
+        req.user.id,
+        validatedData,
+      );
 
       if (!result.success) {
         res.status(400).json({
@@ -332,7 +359,10 @@ export class AuthController {
   }
 
   // Request password reset
-  static async requestPasswordReset(req: Request, res: Response): Promise<void> {
+  static async requestPasswordReset(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
     try {
       const validatedData = resetPasswordSchema.parse(req.body);
       const result = await AuthService.requestPasswordReset(validatedData);

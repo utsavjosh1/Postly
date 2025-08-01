@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "../generated/prisma";
 
 declare global {
   // Allow global `var` declarations
@@ -9,13 +9,13 @@ declare global {
 export const prisma =
   globalThis.prisma ??
   new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'],
+    log: ["query", "info", "warn", "error"],
   });
 
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;
 
 // Handle graceful shutdown
-process.on('beforeExit', async () => {
+process.on("beforeExit", async () => {
   await prisma.$disconnect();
 });
 

@@ -44,26 +44,29 @@ export const generalRateLimit = rateLimit({
 
 // CORS configuration
 export const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+  origin: function (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
       "http://localhost:3000",
       "http://localhost:5173",
       "http://localhost:4173",
       "https://your-frontend-domain.com", // Replace with your actual frontend domain
     ];
-    
+
     if (config.NODE_ENV === "development") {
       // In development, allow any origin
       return callback(null, true);
     }
-    
+
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
+
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -84,7 +87,7 @@ export const errorHandler = (
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   console.error("Error:", err);
 
@@ -129,7 +132,8 @@ export const errorHandler = (
   // Default error
   res.status(err.status || 500).json({
     success: false,
-    error: config.NODE_ENV === "production" ? "Internal Server Error" : err.message,
+    error:
+      config.NODE_ENV === "production" ? "Internal Server Error" : err.message,
     ...(config.NODE_ENV === "development" && { stack: err.stack }),
   });
 };

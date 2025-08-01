@@ -2,10 +2,13 @@ import type { Request, Response } from "express";
 import { getAllUsersWithPrisma } from "../services/prisma-user.service";
 import type { PrismaAuthenticatedRequest } from "../middlewares/prisma-auth.middleware";
 
-export const getPrismaUsers = async (req: PrismaAuthenticatedRequest, res: Response) => {
+export const getPrismaUsers = async (
+  req: PrismaAuthenticatedRequest,
+  res: Response,
+) => {
   try {
     const users = await getAllUsersWithPrisma();
-    
+
     res.status(200).json({
       success: true,
       data: { users },
@@ -21,7 +24,10 @@ export const getPrismaUsers = async (req: PrismaAuthenticatedRequest, res: Respo
 };
 
 // Get current user info (authenticated user only)
-export const getCurrentPrismaUser = (req: PrismaAuthenticatedRequest, res: Response) => {
+export const getCurrentPrismaUser = (
+  req: PrismaAuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       res.status(401).json({

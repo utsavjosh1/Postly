@@ -1,14 +1,14 @@
-import { Router } from 'express';
-import { GoogleAuthController } from '../controllers/google-auth.controller';
+import { Router } from "express";
+import { GoogleAuthController } from "../controllers/google-auth.controller";
 import {
   requireAuth,
   requireGuest,
   oauthSecurityHeaders,
   oauthErrorHandler,
   validateOAuthCallback,
-  handleOAuthSuccess
-} from '../middlewares/oauth.middleware';
-import { authRateLimit } from '../middlewares/security.middleware';
+  handleOAuthSuccess,
+} from "../middlewares/oauth.middleware";
+import { authRateLimit } from "../middlewares/security.middleware";
 
 const router = Router();
 
@@ -19,11 +19,11 @@ const router = Router();
  * @rateLimit authRateLimit (stricter limit for auth endpoints)
  */
 router.get(
-  '/google',
+  "/google",
   authRateLimit,
   oauthSecurityHeaders,
   requireGuest,
-  GoogleAuthController.initiateGoogleAuth
+  GoogleAuthController.initiateGoogleAuth,
 );
 
 /**
@@ -33,12 +33,12 @@ router.get(
  * @rateLimit authRateLimit
  */
 router.get(
-  '/google/callback',
+  "/google/callback",
   authRateLimit,
   oauthSecurityHeaders,
   validateOAuthCallback,
   handleOAuthSuccess,
-  GoogleAuthController.handleGoogleCallback
+  GoogleAuthController.handleGoogleCallback,
 );
 
 /**
@@ -46,33 +46,21 @@ router.get(
  * @desc    Get current user from Google OAuth session
  * @access  Private (requires Google OAuth session)
  */
-router.get(
-  '/google/user',
-  requireAuth,
-  GoogleAuthController.getCurrentUser
-);
+router.get("/google/user", requireAuth, GoogleAuthController.getCurrentUser);
 
 /**
  * @route   POST /api/auth/google/logout
  * @desc    Logout from Google OAuth session
  * @access  Private (requires Google OAuth session)
  */
-router.post(
-  '/google/logout',
-  requireAuth,
-  GoogleAuthController.logout
-);
+router.post("/google/logout", requireAuth, GoogleAuthController.logout);
 
 /**
  * @route   POST /api/auth/google/unlink
  * @desc    Unlink Google account from user profile
  * @access  Private (requires authentication)
  */
-router.post(
-  '/google/unlink',
-  requireAuth,
-  GoogleAuthController.unlinkGoogle
-);
+router.post("/google/unlink", requireAuth, GoogleAuthController.unlinkGoogle);
 
 /**
  * @route   GET /api/auth/connections
@@ -80,9 +68,9 @@ router.post(
  * @access  Private (requires authentication)
  */
 router.get(
-  '/connections',
+  "/connections",
   requireAuth,
-  GoogleAuthController.getConnectionStatus
+  GoogleAuthController.getConnectionStatus,
 );
 
 // Apply OAuth-specific error handler

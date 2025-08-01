@@ -5,7 +5,7 @@ import type { AuthenticatedRequest } from "../middlewares/auth.middleware";
 export const getUsers = (req: AuthenticatedRequest, res: Response) => {
   try {
     const users = getAllUsers();
-    
+
     res.status(200).json({
       success: true,
       data: { users },

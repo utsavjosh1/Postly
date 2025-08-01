@@ -10,13 +10,13 @@ export const supabaseAdmin = createClient(
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
+  },
 );
 
 // Create Supabase client for client-side operations (using anon key)
 export const supabase = createClient(
   config.SUPABASE_URL,
-  config.SUPABASE_ANON_KEY
+  config.SUPABASE_ANON_KEY,
 );
 
 export type Database = {

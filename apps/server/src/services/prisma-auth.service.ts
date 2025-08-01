@@ -68,14 +68,14 @@ export class PrismaAuthService {
         sub: profile.id,
         user_id: profile.id,
         email: profile.email,
-        role: 'user',
-        provider: 'email'
+        role: "user",
+        provider: "email",
       };
 
       const accessToken = jwt.sign(tokenPayload, config.JWT_SECRET, {
-        expiresIn: config.JWT_EXPIRES_IN || '7d',
-        issuer: 'jobbot-auth',
-        subject: profile.id
+        expiresIn: config.JWT_EXPIRES_IN || "7d",
+        issuer: "jobbot-auth",
+        subject: profile.id,
       } as jwt.SignOptions);
 
       return {
@@ -116,7 +116,10 @@ export class PrismaAuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(password, profile.password_hash);
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        profile.password_hash,
+      );
       if (!isPasswordValid) {
         return {
           user: null,
@@ -130,14 +133,14 @@ export class PrismaAuthService {
         sub: profile.id,
         user_id: profile.id,
         email: profile.email,
-        role: 'user',
-        provider: 'email'
+        role: "user",
+        provider: "email",
       };
 
       const accessToken = jwt.sign(tokenPayload, config.JWT_SECRET, {
-        expiresIn: config.JWT_EXPIRES_IN || '7d',
-        issuer: 'jobbot-auth',
-        subject: profile.id
+        expiresIn: config.JWT_EXPIRES_IN || "7d",
+        issuer: "jobbot-auth",
+        subject: profile.id,
       } as jwt.SignOptions);
 
       return {
@@ -160,7 +163,9 @@ export class PrismaAuthService {
   }
 
   // Logout user
-  static async logout(token: string): Promise<{ success: boolean; error?: string }> {
+  static async logout(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // In a production app, you might want to blacklist the token
       // For now, we'll just return success
@@ -180,7 +185,10 @@ export class PrismaAuthService {
       const { refresh_token } = data;
 
       // Verify the refresh token
-      const decoded = jwt.verify(refresh_token, config.JWT_SECRET) as TokenPayload;
+      const decoded = jwt.verify(
+        refresh_token,
+        config.JWT_SECRET,
+      ) as TokenPayload;
 
       // Get user profile
       const profile = await prisma.profile.findUnique({
@@ -200,14 +208,14 @@ export class PrismaAuthService {
         sub: profile.id,
         user_id: profile.id,
         email: profile.email,
-        role: 'user',
-        provider: decoded.provider || 'email'
+        role: "user",
+        provider: decoded.provider || "email",
       };
 
       const accessToken = jwt.sign(tokenPayload, config.JWT_SECRET, {
-        expiresIn: config.JWT_EXPIRES_IN || '7d',
-        issuer: 'jobbot-auth',
-        subject: profile.id
+        expiresIn: config.JWT_EXPIRES_IN || "7d",
+        issuer: "jobbot-auth",
+        subject: profile.id,
       } as jwt.SignOptions);
 
       return {
@@ -250,7 +258,10 @@ export class PrismaAuthService {
   }
 
   // Update user profile
-  static async updateProfile(userId: string, data: UpdateProfileRequest): Promise<{
+  static async updateProfile(
+    userId: string,
+    data: UpdateProfileRequest,
+  ): Promise<{
     user: User | null;
     error?: string;
   }> {
@@ -281,7 +292,10 @@ export class PrismaAuthService {
   }
 
   // Change password
-  static async changePassword(userId: string, data: ChangePasswordRequest): Promise<{
+  static async changePassword(
+    userId: string,
+    data: ChangePasswordRequest,
+  ): Promise<{
     success: boolean;
     error?: string;
   }> {
@@ -301,7 +315,10 @@ export class PrismaAuthService {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(current_password, profile.password_hash);
+      const isCurrentPasswordValid = await bcrypt.compare(
+        current_password,
+        profile.password_hash,
+      );
       if (!isCurrentPasswordValid) {
         return {
           success: false,
@@ -353,7 +370,7 @@ export class PrismaAuthService {
       // 1. Generate a password reset token
       // 2. Store it with expiration
       // 3. Send reset email
-      
+
       return { success: true };
     } catch (error) {
       console.error("Password reset request error:", error);
@@ -368,11 +385,11 @@ export class PrismaAuthService {
   static async getAllUsers(): Promise<User[]> {
     try {
       const profiles = await prisma.profile.findMany({
-        orderBy: { created_at: 'desc' },
+        orderBy: { created_at: "desc" },
         take: 100, // Limit to prevent performance issues
       });
 
-      return profiles.map(profile => this.profileToUser(profile));
+      return profiles.map((profile) => this.profileToUser(profile));
     } catch (error) {
       console.error("Get all users error:", error);
       return [];

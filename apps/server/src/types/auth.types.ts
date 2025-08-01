@@ -8,7 +8,7 @@ export interface User {
   created_at: string;
   updated_at?: string;
   role?: string;
-  provider?: 'email' | 'google';
+  provider?: "email" | "google";
 }
 
 export interface AuthResponse {
@@ -73,7 +73,7 @@ export interface TokenPayload {
   user_id: string;
   email: string;
   role: UserRole;
-  provider?: 'email' | 'google';
+  provider?: "email" | "google";
   iat?: number;
   exp?: number;
 }

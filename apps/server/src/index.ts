@@ -29,18 +29,21 @@ app.use(cors(corsOptions));
 app.use(generalRateLimit);
 
 // Session configuration for OAuth
-app.use(session({
-  secret: config.SESSION_SECRET || 'fallback-dev-secret-please-set-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true, // Prevent XSS
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax' // CSRF protection
-  },
-  name: 'jobbot.sid' // Custom session name
-}));
+app.use(
+  session({
+    secret:
+      config.SESSION_SECRET || "fallback-dev-secret-please-set-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: config.NODE_ENV === "production", // HTTPS only in production
+      httpOnly: true, // Prevent XSS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: "lax", // CSRF protection
+    },
+    name: "jobbot.sid", // Custom session name
+  }),
+);
 
 // Initialize Passport and session
 app.use(passport.initialize());
@@ -83,7 +86,7 @@ app.use("/api/users", prismaUserRoutes);
 if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
   app.use("/api/auth", googleAuthRoutes);
 } else {
-  console.warn('🚫 Google OAuth routes not mounted - missing configuration');
+  console.warn("🚫 Google OAuth routes not mounted - missing configuration");
 }
 
 // 404 handler
