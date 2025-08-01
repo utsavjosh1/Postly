@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     removeConsole: false,
   },
   // experimental: {
-    // reactStrictMode: false,
+  // reactStrictMode: false,
   // }
 };
 

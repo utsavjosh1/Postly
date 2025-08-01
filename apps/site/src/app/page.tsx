@@ -108,7 +108,7 @@ export default function HomePage() {
       "CLEANING OLD LISTINGS...",
       "OPTIMIZING RESULTS...",
     ],
-    []
+    [],
   );
 
   // Glitch effect (client-side only)
@@ -269,8 +269,12 @@ export default function HomePage() {
                         iconMap[feature.icon as keyof typeof iconMap];
                       // Ensure IconComponent exists before rendering
                       if (!IconComponent) {
-                        console.warn(`Icon "${feature.icon}" not found in iconMap`);
-                        return <div className="w-6 h-6 bg-emerald-400/20 rounded" />;
+                        console.warn(
+                          `Icon "${feature.icon}" not found in iconMap`,
+                        );
+                        return (
+                          <div className="w-6 h-6 bg-emerald-400/20 rounded" />
+                        );
                       }
                       return (
                         <IconComponent className="w-6 h-6 text-emerald-400" />
