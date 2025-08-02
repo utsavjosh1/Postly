@@ -8,18 +8,9 @@ import {
   Wifi,
   Database,
   Users,
-  Trash2,
   MessageCircle,
-  Search,
   ArrowRight,
-  Star,
   CheckCircle,
-  TrendingUp,
-  Clock,
-  Upload,
-  FileText,
-  Twitter,
-  Linkedin,
 } from "lucide-react";
 import { BetaSignupModal } from "@/components/beta-signup-modal";
 
@@ -68,14 +59,6 @@ const FEATURES = [
     features: ["Expired job removal", "Duplicate detection", "Clean channels"],
     isInteractive: false,
   },
-  {
-    icon: "Search",
-    title: "SMART SEARCH",
-    description:
-      "Advanced filtering by location, salary, experience level, and custom criteria.",
-    features: ["Location-based", "Salary ranges", "Experience levels"],
-    isInteractive: false,
-  },
 ];
 
 export default function HomePage() {
@@ -86,12 +69,9 @@ export default function HomePage() {
 
   // Icon mapping
   const iconMap = {
-    Upload,
-    FileText,
     Bot,
     Database,
-    Trash2,
-    Search,
+    Users,
   } as const;
 
   // Ensure client-side only rendering for dynamic content
@@ -245,7 +225,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
@@ -313,297 +293,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI Resume Analysis Section */}
+      {/* How It Works Section */}
       <section className="relative z-10 py-20 px-6 bg-slate-900/30">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [AI_RESUME_MATCHER]
+              [HOW_IT_WORKS]
             </h2>
             <p className="text-xl text-slate-400 font-mono max-w-3xl mx-auto">
-              Upload your resume and get AI-powered job recommendations tailored
-              to your skills
+              Get started in 3 simple steps
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="bg-slate-900/80 border border-emerald-400/30 rounded-lg p-8 backdrop-blur-sm">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-emerald-400 font-mono font-bold text-xl mb-4">
-                    HOW IT WORKS
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-emerald-400/20 border border-emerald-400/30 rounded flex items-center justify-center mt-1">
-                        <span className="text-emerald-400 font-mono text-sm">
-                          1
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="text-slate-300 font-mono font-bold mb-1">
-                          Upload Resume
-                        </h4>
-                        <p className="text-slate-400 font-mono text-sm">
-                          Upload your PDF or DOCX resume securely
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-emerald-400/20 border border-emerald-400/30 rounded flex items-center justify-center mt-1">
-                        <span className="text-emerald-400 font-mono text-sm">
-                          2
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="text-slate-300 font-mono font-bold mb-1">
-                          AI Analysis
-                        </h4>
-                        <p className="text-slate-400 font-mono text-sm">
-                          Our AI extracts skills, experience, and preferences
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-emerald-400/20 border border-emerald-400/30 rounded flex items-center justify-center mt-1">
-                        <span className="text-emerald-400 font-mono text-sm">
-                          3
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="text-slate-300 font-mono font-bold mb-1">
-                          Perfect Matches
-                        </h4>
-                        <p className="text-slate-400 font-mono text-sm">
-                          Get curated job recommendations from 2.8M+ listings
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-emerald-400 font-mono text-2xl font-bold">1</span>
                 </div>
-                <div className="flex flex-col justify-center">
-                  <div
-                    className="border-2 border-dashed border-emerald-400/30 rounded-lg p-8 text-center hover:border-emerald-400/50 transition-colors cursor-pointer"
-                    onClick={handleBetaAccess}
-                  >
-                    <Upload className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-                    <h4 className="text-emerald-400 font-mono font-bold mb-2">
-                      DRAG & DROP RESUME
-                    </h4>
-                    <p className="text-slate-400 font-mono text-sm mb-4">
-                      Supports PDF, DOCX formats
-                    </p>
-                    <button
-                      onClick={handleBetaAccess}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 rounded transition-colors"
-                    >
-                      TRY AI MATCHING
-                    </button>
-                  </div>
-                </div>
+                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">ADD BOT</h3>
+                <p className="text-slate-400 font-mono text-sm">
+                  Invite our Discord bot to your server with one click
+                </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Media Integration Section */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [SOCIAL_REACH]
-            </h2>
-            <p className="text-xl text-slate-400 font-mono max-w-3xl mx-auto">
-              List your jobs and get automatic promotion across our social media
-              channels
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-slate-900/80 border border-emerald-400/30 rounded-lg p-8 backdrop-blur-sm">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-emerald-400 font-mono font-bold text-xl mb-6">
-                    AUTOMATIC PROMOTION
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-4 bg-slate-800/50 rounded-lg">
-                      <Twitter className="w-8 h-8 text-blue-400" />
-                      <div>
-                        <h4 className="text-slate-300 font-mono font-bold">
-                          Twitter/X
-                        </h4>
-                        <p className="text-slate-400 font-mono text-sm">
-                          50K+ followers
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-4 bg-slate-800/50 rounded-lg">
-                      <Linkedin className="w-8 h-8 text-blue-600" />
-                      <div>
-                        <h4 className="text-slate-300 font-mono font-bold">
-                          LinkedIn
-                        </h4>
-                        <p className="text-slate-400 font-mono text-sm">
-                          25K+ connections
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-emerald-400 font-mono text-2xl font-bold">2</span>
                 </div>
-                <div className="flex flex-col justify-center">
-                  <div className="bg-slate-800/50 border border-emerald-400/30 rounded-lg p-6">
-                    <h4 className="text-emerald-400 font-mono font-bold mb-4">
-                      SAMPLE TWEET
-                    </h4>
-                    <div className="bg-slate-900 p-4 rounded border-l-4 border-emerald-400">
-                      <p className="text-slate-300 font-mono text-sm mb-3">
-                        🚀 NEW JOB ALERT!
-                        <br />
-                        Senior Frontend Developer at TechCorp
-                        <br />
-                        💰 $120k-$150k • 📍 Remote
-                        <br />
-                        #React #TypeScript #RemoteWork
-                      </p>
-                      <div className="flex items-center space-x-4 text-slate-500 font-mono text-xs">
-                        <span>🔄 125 Retweets</span>
-                        <span>❤️ 89 Likes</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleBetaAccess}
-                      className="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 rounded transition-colors"
-                    >
-                      LIST YOUR JOB
-                    </button>
-                  </div>
-                </div>
+                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">SET FILTERS</h3>
+                <p className="text-slate-400 font-mono text-sm">
+                  Configure job preferences and skills you&apos;re looking for
+                </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="relative z-10 py-20 px-6 bg-slate-900/30">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [SYSTEM_METRICS]
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              {
-                icon: Database,
-                value: "2.8M+",
-                label: "ACTIVE JOBS",
-                description: "Updated every minute",
-              },
-              {
-                icon: Users,
-                value: "50K+",
-                label: "DISCORD USERS",
-                description: "Across 500+ servers",
-              },
-              {
-                icon: TrendingUp,
-                value: "95%",
-                label: "MATCH ACCURACY",
-                description: "AI-powered precision",
-              },
-              {
-                icon: Clock,
-                value: "< 30s",
-                label: "RESPONSE TIME",
-                description: "Lightning fast results",
-              },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center group">
-                <div className="w-16 h-16 bg-emerald-400/10 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-400/20 transition-colors">
-                  <stat.icon className="w-8 h-8 text-emerald-400" />
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-emerald-400 font-mono text-2xl font-bold">3</span>
                 </div>
-                <div className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-lg font-bold text-slate-300 font-mono mb-1">
-                  {stat.label}
-                </div>
-                <div className="text-sm text-slate-500 font-mono">
-                  {stat.description}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Discord Integration Preview */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [DISCORD_INTEGRATION]
-            </h2>
-            <p className="text-xl text-slate-400 font-mono max-w-3xl mx-auto">
-              Seamlessly integrates with your Discord server for automated job
-              posting
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-slate-900/80 border border-emerald-400/30 rounded-lg p-8 font-mono backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <MessageCircle className="w-6 h-6 text-emerald-400" />
-                  <span className="text-emerald-400 font-bold">
-                    #job-postings
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-slate-400 text-sm">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span>LIVE</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-slate-800/50 border-l-4 border-emerald-400 p-4 rounded">
-                  <div className="flex items-start space-x-3">
-                    <Bot className="w-8 h-8 text-emerald-400 mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-emerald-400 font-bold">
-                          PostlyBot
-                        </span>
-                        <span className="bg-emerald-400/20 text-emerald-400 px-2 py-1 rounded text-xs">
-                          BOT
-                        </span>
-                        <span className="text-slate-500 text-sm">just now</span>
-                      </div>
-                      <div className="text-slate-300 text-sm">
-                        <strong>🚀 New Job Alert!</strong>
-                        <br />
-                        <strong>Senior Frontend Developer</strong> - TechCorp
-                        Inc.
-                        <br />
-                        💰 $120k - $150k • 📍 Remote • ⏰ Full-time
-                        <br />
-                        React, TypeScript, Next.js required
-                      </div>
-                      <div className="flex space-x-2 mt-3">
-                        <button className="bg-emerald-500 text-slate-900 px-3 py-1 rounded text-xs font-bold">
-                          APPLY NOW
-                        </button>
-                        <button className="bg-slate-700 text-slate-300 px-3 py-1 rounded text-xs">
-                          SAVE JOB
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">GET JOBS</h3>
+                <p className="text-slate-400 font-mono text-sm">
+                  Receive instant job matches posted directly to your Discord
+                </p>
               </div>
             </div>
           </div>
@@ -614,11 +343,10 @@ export default function HomePage() {
       <section className="relative z-10 py-20 px-6 border-t border-emerald-400/20">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl md:text-6xl font-bold text-emerald-400 font-mono mb-6">
-            READY TO REVOLUTIONIZE HIRING?
+            GET STARTED
           </h2>
-          <p className="text-xl text-slate-400 font-mono mb-12 max-w-3xl mx-auto">
-            Join thousands of Discord communities already using POSTLY to
-            streamline their job discovery process
+          <p className="text-xl text-slate-400 font-mono mb-12 max-w-2xl mx-auto">
+            Join the Discord job revolution today
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -626,15 +354,10 @@ export default function HomePage() {
               onClick={handleBetaAccess}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-12 py-6 border border-emerald-400 shadow-lg transition-all duration-200 hover:shadow-emerald-400/20 rounded-lg text-lg flex items-center justify-center space-x-3"
             >
-              <Star className="w-6 h-6" />
-              <span>START BETA TRIAL</span>
+              <Bot className="w-6 h-6" />
+              <span>START NOW</span>
               <ArrowRight className="w-6 h-6" />
             </button>
-          </div>
-
-          <div className="mt-8 text-slate-500 font-mono text-sm">
-            ✨ FREE during beta • No credit card required • Setup in under 2
-            minutes
           </div>
         </div>
       </section>
