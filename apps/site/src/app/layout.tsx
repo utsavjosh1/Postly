@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { JobBotHeader } from "@/components/job-bot-header";
 import { Footer } from "@/components/footer";
+import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,11 +31,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="min-h-screen bg-slate-950 overflow-x-hidden flex flex-col">
-          <JobBotHeader />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen bg-slate-950 overflow-x-hidden flex flex-col">
+            <JobBotHeader />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

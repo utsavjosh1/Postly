@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Bot, Menu, X, Wifi, Lock } from "lucide-react";
 import { BetaSignupModal } from "./beta-signup-modal";
+import { AuthButton } from "./auth-button";
 
 export function JobBotHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -72,8 +73,9 @@ export function JobBotHeader() {
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="hidden lg:block">
+          {/* Auth Button & CTA Button */}
+          <div className="hidden lg:flex items-center gap-4">
+            <AuthButton />
             <Button
               onClick={scrollToSection}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 border border-emerald-400 shadow-lg transition-colors duration-200"
