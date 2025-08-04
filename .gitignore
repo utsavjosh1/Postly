@@ -58,4 +58,8 @@ gcp-key.json
 # Supabase
 .supabase/
 
+# Prisma generated files
+packages/db/src/generated/
+**/prisma/generated/
+
 test.json
