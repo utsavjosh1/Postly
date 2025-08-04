@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Bot, Menu, X, Wifi, Lock } from "lucide-react";
-import { BetaSignupModal } from "./beta-signup-modal";
+import { Bot, Menu, X, Wifi } from "lucide-react";
 import { AuthButton } from "./auth-button";
+import { useRouter } from "next/navigation";
+import { useAuth } from "./auth-provider";
 
 export function JobBotHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showBetaModal, setShowBetaModal] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
 
   // Scroll detection
   useEffect(() => {
@@ -18,9 +20,13 @@ export function JobBotHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToSection = () => {
-    // Prevent navigation - show beta modal instead
-    setShowBetaModal(true);
+  const handleGetStarted = () => {
+    if (user) {
+      router.push("/dashboard");
+    } else {
+      // Scroll to features section or just navigate to dashboard
+      router.push("/dashboard");
+    }
     setIsMenuOpen(false);
   };
 
@@ -41,7 +47,7 @@ export function JobBotHeader() {
             </div>
             <div className="text-center">
               <h1 className="text-2xl font-bold text-emerald-400 font-mono tracking-wider">
-                POSTLY
+                JOBBOT
               </h1>
               <div className="text-xs text-emerald-300/70 font-mono flex items-center justify-center space-x-2">
                 <Wifi className="w-3 h-3" />
@@ -54,21 +60,17 @@ export function JobBotHeader() {
           <nav className="hidden lg:flex items-center justify-center space-x-8 flex-1">
             {[
               { label: "FEATURES", id: "features" },
-              { label: "PRICING", id: "pricing" },
-              { label: "TERMINAL", id: "terminal" },
+              { label: "DASHBOARD", id: "dashboard" },
+              { label: "JOBS", id: "jobs" },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={scrollToSection}
+                onClick={handleGetStarted}
                 className="text-slate-300 hover:text-emerald-400 transition-colors duration-200 font-mono text-sm tracking-wide py-2 px-3 relative group"
               >
                 <span className="flex items-center space-x-2">
                   <span>[{item.label}]</span>
-                  <Lock className="w-3 h-3 opacity-50" />
                 </span>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-emerald-400 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-mono whitespace-nowrap">
-                  BETA ACCESS REQUIRED
-                </div>
               </button>
             ))}
           </nav>
@@ -77,11 +79,11 @@ export function JobBotHeader() {
           <div className="hidden lg:flex items-center gap-4">
             <AuthButton />
             <Button
-              onClick={scrollToSection}
+              onClick={handleGetStarted}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 border border-emerald-400 shadow-lg transition-colors duration-200"
             >
               <Bot className="w-4 h-4 mr-2" />
-              JOIN BETA ACCESS
+              {user ? "DASHBOARD" : "GET STARTED"}
             </Button>
           </div>
 
@@ -105,35 +107,31 @@ export function JobBotHeader() {
             <nav className="flex flex-col space-y-4">
               {[
                 { label: "FEATURES", id: "features" },
-                { label: "PRICING", id: "pricing" },
-                { label: "TERMINAL", id: "terminal" },
+                { label: "DASHBOARD", id: "dashboard" },
+                { label: "JOBS", id: "jobs" },
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={scrollToSection}
+                  onClick={handleGetStarted}
                   className="text-slate-300 hover:text-emerald-400 transition-colors duration-200 font-mono text-sm tracking-wide py-2 text-left flex items-center justify-between"
                 >
                   <span>[{item.label}]</span>
-                  <Lock className="w-3 h-3 opacity-50" />
                 </button>
               ))}
+              <div className="pt-4">
+                <AuthButton />
+              </div>
               <Button
-                onClick={scrollToSection}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 border border-emerald-400 shadow-lg mt-4 transition-colors duration-200"
+                onClick={handleGetStarted}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-6 py-3 border border-emerald-400 shadow-lg transition-colors duration-200"
               >
                 <Bot className="w-4 h-4 mr-2" />
-                JOIN BETA ACCESS
+                {user ? "DASHBOARD" : "GET STARTED"}
               </Button>
             </nav>
           </div>
         )}
       </div>
-
-      {/* Beta Signup Modal */}
-      <BetaSignupModal
-        isOpen={showBetaModal}
-        onClose={() => setShowBetaModal(false)}
-      />
     </header>
   );
 }

@@ -9,9 +9,6 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
 
-  // Database Configuration
-  DATABASE_URL: z.string().url("Invalid database URL"),
-
   // JWT Configuration
   JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),

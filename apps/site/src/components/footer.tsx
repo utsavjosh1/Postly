@@ -1,11 +1,10 @@
 "use client";
 
 import { Briefcase, Github, Twitter, MessageCircle, Lock } from "lucide-react";
-import { useState } from "react";
-import { BetaSignupModal } from "./beta-signup-modal";
+import { useRouter } from "next/navigation";
 
 export function Footer() {
-  const [showBetaModal, setShowBetaModal] = useState(false);
+  const router = useRouter();
   const footerSections = [
     {
       title: "PRODUCT",
@@ -33,7 +32,7 @@ export function Footer() {
 
   const handleLinkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setShowBetaModal(true);
+    router.push("/dashboard");
   };
 
   return (
@@ -114,12 +113,6 @@ export function Footer() {
           </div>
         </div>
       </div>
-
-      {/* Beta Signup Modal */}
-      <BetaSignupModal
-        isOpen={showBetaModal}
-        onClose={() => setShowBetaModal(false)}
-      />
     </footer>
   );
 }

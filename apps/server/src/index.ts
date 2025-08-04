@@ -85,7 +85,7 @@ const server = app.listen(PORT, () => {
   console.log(`
 🚀 Server running on http://localhost:${PORT}
 📚 Environment: ${config.NODE_ENV}
-� Database: ${config.DATABASE_URL ? "✅ Connected" : "❌ Missing"}
+📦 Database: Managed by @repo/db package
 🔑 JWT Secret: ${config.JWT_SECRET ? "✅ Configured" : "❌ Missing"}
 🔐 Session Secret: ${config.SESSION_SECRET ? "✅ Configured" : "⚠️  Using fallback (set in production)"}
 🌐 Google OAuth: ${config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET ? "✅ Configured" : "⚠️  Not configured (required for auth)"}
