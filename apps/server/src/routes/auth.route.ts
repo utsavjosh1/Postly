@@ -64,7 +64,7 @@ router.post("/logout", (req: Request, res: Response) => {
         return res.status(500).json({ error: "Session cleanup failed" });
       }
       
-      res.clearCookie("jobbot.sid");
+      res.clearCookie(config.SESSION_COOKIE_NAME);
       res.json({ message: "Logout successful" });
     });
   });

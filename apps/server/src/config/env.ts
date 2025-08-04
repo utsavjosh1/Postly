@@ -35,6 +35,7 @@ const envSchema = z.object({
   // GCP Configuration
   GCP_PROJECT_ID: z.string().optional(),
   GCP_REGION: z.string().default("us-central1"),
+  SESSION_COOKIE_NAME: z.string().default("jobbot.sid"),
 });
 
 type Env = z.infer<typeof envSchema>;
