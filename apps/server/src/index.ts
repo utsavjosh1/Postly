@@ -5,11 +5,7 @@ import passport from "passport";
 
 import { config } from "./config/env";
 import "./config/passport";
-import authRoutes from "./routes/auth.route";
-import prismaAuthRoutes from "./routes/prisma-auth.route";
-import googleAuthRoutes from "./routes/google-auth.route";
-import userRoutes from "./routes/user.route";
-import prismaUserRoutes from "./routes/prisma-user.route";
+import  authRoutes from "./routes/auth.route";
 import {
   securityHeaders,
   authRateLimit,
@@ -74,21 +70,8 @@ app.get("/health", (_, res) => {
   });
 });
 
-// API routes
-// Supabase routes (legacy)
-app.use("/api/auth/supabase", authRateLimit, authRoutes);
-app.use("/api/users/supabase", userRoutes);
-
-// Prisma routes (new ORM-based routes)
-app.use("/api/auth", authRateLimit, prismaAuthRoutes);
-app.use("/api/users", prismaUserRoutes);
-
-// Google OAuth routes (only if configured)
-if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
-  app.use("/api/auth", googleAuthRoutes);
-} else {
-  console.warn("🚫 Google OAuth routes not mounted - missing configuration");
-}
+// API routes - Clean Prisma-based authentication
+app.use("/api/auth", authRateLimit, authRoutes);
 
 // 404 handler
 app.use("*", notFoundHandler);
@@ -102,10 +85,10 @@ const server = app.listen(PORT, () => {
   console.log(`
 🚀 Server running on http://localhost:${PORT}
 📚 Environment: ${config.NODE_ENV}
-🔒 Supabase URL: ${config.SUPABASE_URL ? "✅ Configured" : "❌ Missing"}
+📦 Database: Managed by @repo/db package
 🔑 JWT Secret: ${config.JWT_SECRET ? "✅ Configured" : "❌ Missing"}
 🔐 Session Secret: ${config.SESSION_SECRET ? "✅ Configured" : "⚠️  Using fallback (set in production)"}
-🌐 Google OAuth: ${config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET ? "✅ Configured" : "⚠️  Not configured (optional)"}
+🌐 Google OAuth: ${config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET ? "✅ Configured" : "⚠️  Not configured (required for auth)"}
 🎯 Frontend URL: ${config.FRONTEND_URL}
   `);
 });
