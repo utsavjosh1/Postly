@@ -38,11 +38,11 @@ export function JobBotHeader() {
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg border border-emerald-300/50">
               <Bot className="w-6 h-6 text-slate-900" />
             </div>
-            <div>
+            <div className="text-center">
               <h1 className="text-2xl font-bold text-emerald-400 font-mono tracking-wider">
                 POSTLY
               </h1>
-              <div className="text-xs text-emerald-300/70 font-mono flex items-center space-x-2">
+              <div className="text-xs text-emerald-300/70 font-mono flex items-center justify-center space-x-2">
                 <Wifi className="w-3 h-3" />
                 <span>ONLINE</span>
               </div>
@@ -50,7 +50,7 @@ export function JobBotHeader() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center justify-center space-x-8 flex-1">
             {[
               { label: "FEATURES", id: "features" },
               { label: "PRICING", id: "pricing" },
