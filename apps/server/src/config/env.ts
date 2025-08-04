@@ -4,7 +4,7 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.string().default("3001"),
+  PORT: z.string().default("8000"),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -22,7 +22,7 @@ const envSchema = z.object({
   GOOGLE_CALLBACK_URL: z
     .string()
     .url("Invalid Google callback URL")
-    .default("http://localhost:3001/api/auth/google/callback"),
+    .default("http://localhost:8000/api/auth/google/callback"),
 
   // Session Configuration
   SESSION_SECRET: z
