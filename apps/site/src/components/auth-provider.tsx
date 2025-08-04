@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -30,13 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/user`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
         credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        if (data.authenticated) {
+          setUser(data.user);
+        }
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -56,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
       setUser(null);
+      // Redirect to home page after logout
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
     }
