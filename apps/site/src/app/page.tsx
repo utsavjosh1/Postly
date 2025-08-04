@@ -5,7 +5,6 @@ import {
   Bot,
   Terminal,
   Cpu,
-  Wifi,
   Database,
   Users,
   MessageCircle,
@@ -16,47 +15,35 @@ import { BetaSignupModal } from "@/components/beta-signup-modal";
 
 const FEATURES = [
   {
-    icon: "Upload",
-    title: "AI RESUME ANALYSIS",
+    icon: "Database",
+    title: "2.8M+ Job Listings",
     description:
-      "Upload your resume and let our AI match you with the perfect job opportunities based on your skills and experience.",
-    features: ["Resume parsing", "Skill extraction", "Personalized matches"],
-    isInteractive: true,
-  },
-  {
-    icon: "FileText",
-    title: "JOB LISTING & SOCIAL",
-    description:
-      "List your jobs and get automatic tweets from our social handles to reach millions of potential candidates.",
-    features: ["Auto-posting", "Social reach", "Tweet integration"],
-    isInteractive: true,
+      "Real-time access to millions of opportunities from top job boards, companies, and recruiters worldwide.",
+    features: ["Live data sync", "Global coverage", "Premium listings"],
+    isInteractive: false,
   },
   {
     icon: "Bot",
-    title: "AI BOT INTEGRATION",
+    title: "AI-Powered Matching",
     description:
-      "Discord bot with intelligent job matching and automated posting to your server channels.",
-    features: ["Smart filtering", "Real-time updates", "Custom commands"],
-    isInteractive: false,
+      "Advanced algorithms analyze your profile and match you with positions that fit your skills, experience, and career goals.",
+    features: ["Smart recommendations", "Skill-based matching", "Career progression"],
+    isInteractive: true,
   },
   {
-    icon: "Database",
-    title: "MILLIONS OF JOBS",
+    icon: "MessageCircle",
+    title: "Smart Hiring Dashboard",
     description:
-      "Access to over 2.8M+ job listings from major platforms, updated in real-time.",
-    features: [
-      "LinkedIn integration",
-      "Indeed scraping",
-      "Remote opportunities",
-    ],
-    isInteractive: false,
+      "Post jobs, filter candidates, and get AI-matched profiles tailored to your hiring needs — all from one intuitive dashboard.",
+    features: ["Candidate fit scores", "Instant filtering", "Secure contact system"],
+    isInteractive: true,
   },
   {
-    icon: "Trash2",
-    title: "AUTO CLEANUP",
+    icon: "Users",
+    title: "Trusted by 50K+ Users",
     description:
-      "Intelligent deletion system that removes expired and filled positions automatically.",
-    features: ["Expired job removal", "Duplicate detection", "Clean channels"],
+      "Join thousands of professionals who've found their dream jobs through our platform. Verified companies, real opportunities.",
+    features: ["Verified employers", "Success stories", "Community support"],
     isInteractive: false,
   },
 ];
@@ -67,31 +54,29 @@ export default function HomePage() {
   const [showBetaModal, setShowBetaModal] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Icon mapping
   const iconMap = {
     Bot,
     Database,
     Users,
+    MessageCircle,
   } as const;
 
-  // Ensure client-side only rendering for dynamic content
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const phases = useMemo(
     () => [
-      "SCANNING JOB BOARDS...",
-      "FILTERING OPPORTUNITIES...",
+      "INDEXING NEW OPPORTUNITIES...",
+      "ANALYZING JOB REQUIREMENTS...",
+      "UPDATING MARKET DATA...",
       "MATCHING CANDIDATES...",
-      "POSTING TO DISCORD...",
-      "CLEANING OLD LISTINGS...",
-      "OPTIMIZING RESULTS...",
+      "VERIFYING EMPLOYERS...",
+      "OPTIMIZING SEARCH RESULTS...",
     ],
-    [],
+    []
   );
 
-  // Glitch effect (client-side only)
   useEffect(() => {
     if (!mounted) return;
 
@@ -115,87 +100,77 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 relative overflow-hidden">
-      {/* Animated Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 via-transparent to-teal-500/20" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative z-10 pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
-          {/* Status Bar */}
-          <div className="mb-8 flex items-center justify-center space-x-6 text-sm font-mono">
+      <section className="relative z-10 pt-32 pb-20 px-6 lg:px-8">
+        <div className="container mx-auto max-w-6xl text-center">
+          <div className="mb-8 flex items-center justify-center space-x-6 text-xs font-mono text-slate-500">
             <div className="flex items-center space-x-2">
-              <Wifi className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400">SYSTEM ONLINE</span>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+              <span>LIVE</span>
             </div>
-            <div className="w-1 h-4 bg-slate-600" />
+            <div className="w-px h-3 bg-slate-700" />
             <div className="flex items-center space-x-2">
-              <Database className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400">2,847,392 JOBS</span>
+              <Database className="w-3 h-3" />
+              <span>2,847,392 ACTIVE JOBS</span>
             </div>
-            <div className="w-1 h-4 bg-slate-600" />
+            <div className="w-px h-3 bg-slate-700" />
             <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400">50K+ USERS</span>
+              <Users className="w-3 h-3" />
+              <span>50K+ PROFESSIONALS</span>
             </div>
           </div>
 
-          {/* Main Heading */}
-          <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold font-mono tracking-wider mb-6 text-emerald-400">
-              HIRING MADE SIMPLE
+          <div className="mb-12 space-y-6">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
+              Smarter Hiring. Better Jobs.
+              <br />
+              <span className="text-emerald-400">AI-Matched in Seconds</span>
             </h1>
-            <p className="text-xl md:text-2xl text-slate-400 font-mono max-w-4xl mx-auto leading-relaxed">
-              Automated job discovery for Discord communities.{" "}
-              <span className="text-emerald-400">Smart AI matching</span>,
-              instant posting, seamless applications. Built for the modern job
-              seeker.
+            <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+              Whether you&apos;re hiring top talent or searching for your next big opportunity — our AI does the heavy lifting. Real-time insights, smart matchmaking, and a global network at your fingertips.
             </p>
           </div>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <button
               onClick={handleBetaAccess}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-8 py-4 border border-emerald-400 shadow-lg transition-all duration-200 hover:shadow-emerald-400/20 rounded-lg flex items-center justify-center space-x-3"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold px-8 py-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-3"
             >
-              <Bot className="w-5 h-5" />
-              <span>JOIN BETA ACCESS</span>
-              <ArrowRight className="w-5 h-5" />
+              <span>Find a Job</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={handleBetaAccess}
-              className="bg-transparent border-2 border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 font-mono font-bold px-8 py-4 transition-all duration-200 rounded-lg flex items-center justify-center space-x-3"
+              className="bg-transparent border border-slate-600 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 font-semibold px-8 py-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-3"
             >
-              <MessageCircle className="w-5 h-5" />
-              <span>ADD TO DISCORD</span>
+              <MessageCircle className="w-4 h-4" />
+              <span>Post a Job</span>
             </button>
           </div>
 
-          {/* Live Processing Display */}
-          <div className="max-w-2xl mx-auto mb-20">
-            <div className="bg-slate-900/80 border border-emerald-400/30 rounded-lg p-6 font-mono backdrop-blur-sm">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-emerald-400 text-sm flex items-center space-x-2">
+                <span className="text-slate-400 text-sm flex items-center space-x-2">
                   <Terminal className="w-4 h-4" />
-                  <span>PROCESSING...</span>
+                  <span>Live Data Processing</span>
                 </span>
-                <span className="text-emerald-400 text-sm">
+                <span className="text-emerald-400 text-sm font-mono">
                   {Math.round(loadingProgress)}%
                 </span>
               </div>
 
-              <div className="w-full bg-slate-800 rounded-full h-3 mb-4 overflow-hidden">
+              <div className="w-full bg-slate-800 rounded-full h-2 mb-4 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-3 rounded-full transition-all duration-300 relative"
+                  className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${loadingProgress}%` }}
-                >
-                  <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                </div>
+                />
               </div>
 
-              <div className="text-slate-400 text-sm leading-relaxed h-5 overflow-hidden">
+              <div className="text-slate-500 text-sm h-5 overflow-hidden">
                 <div
                   className="transition-transform duration-500 ease-in-out"
                   style={{ transform: `translateY(-${currentPhase * 20}px)` }}
@@ -213,15 +188,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="relative z-10 py-20 px-6 border-t border-emerald-400/20">
-        <div className="container mx-auto">
+      <section className="relative z-10 py-20 px-6 lg:px-8 border-t border-slate-800">
+        <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [CORE_FEATURES]
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Built for Job Seekers & Recruiters Alike
             </h2>
-            <p className="text-xl text-slate-400 font-mono max-w-3xl mx-auto">
-              Powered by advanced AI algorithms and millions of job listings
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              AI-powered tools that make hiring fast and job searching effortless — trusted by 50K+ professionals and employers worldwide.
             </p>
           </div>
 
@@ -229,140 +203,108 @@ export default function HomePage() {
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className={`bg-slate-900/50 border border-emerald-400/20 rounded-lg p-8 shadow-lg backdrop-blur-sm group ${
+                className={`bg-slate-900/30 border border-slate-800 rounded-lg p-8 backdrop-blur-sm group transition-all duration-300 ${
                   feature.isInteractive
-                    ? "hover:border-emerald-400/50 hover:shadow-emerald-400/10 cursor-pointer transition-all duration-300"
-                    : ""
+                    ? "hover:bg-slate-900/50 hover:border-emerald-400/30 cursor-pointer"
+                    : "hover:bg-slate-900/40"
                 }`}
                 onClick={feature.isInteractive ? handleBetaAccess : undefined}
               >
                 <div className="flex items-center mb-6">
-                  <div
-                    className={`w-12 h-12 border border-emerald-400/30 rounded-lg flex items-center justify-center mr-4 transition-colors ${
-                      feature.isInteractive
-                        ? "bg-emerald-400/20 group-hover:bg-emerald-400/30"
-                        : "bg-emerald-400/10 group-hover:bg-emerald-400/20"
-                    }`}
-                  >
+                  <div className="w-12 h-12 bg-emerald-400/10 border border-emerald-400/20 rounded-lg flex items-center justify-center mr-4 group-hover:bg-emerald-400/20 transition-colors">
                     {(() => {
-                      const IconComponent =
-                        iconMap[feature.icon as keyof typeof iconMap];
-                      // Ensure IconComponent exists before rendering
+                      const IconComponent = iconMap[feature.icon as keyof typeof iconMap];
                       if (!IconComponent) {
-                        console.warn(
-                          `Icon "${feature.icon}" not found in iconMap`,
-                        );
-                        return (
-                          <div className="w-6 h-6 bg-emerald-400/20 rounded" />
-                        );
+                        return <div className="w-6 h-6 bg-emerald-400/20 rounded" />;
                       }
-                      return (
-                        <IconComponent className="w-6 h-6 text-emerald-400" />
-                      );
+                      return <IconComponent className="w-6 h-6 text-emerald-400" />;
                     })()}
                   </div>
-                  <h3 className="text-emerald-400 font-mono font-bold text-lg">
-                    {feature.title}
-                  </h3>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold text-lg">{feature.title}</h3>
+                  </div>
                   {feature.isInteractive && (
-                    <ArrowRight className="w-4 h-4 text-emerald-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
                   )}
                 </div>
-                <p className="text-slate-400 font-mono text-sm mb-6 leading-relaxed">
+                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
                   {feature.description}
                 </p>
                 <ul className="space-y-2">
                   {feature.features.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center text-slate-500 font-mono text-xs"
-                    >
-                      <CheckCircle className="w-3 h-3 text-emerald-400 mr-2" />
+                    <li key={i} className="flex items-center text-slate-500 text-sm">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mr-3 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
-                {feature.isInteractive && (
-                  <div className="mt-4 text-emerald-400 font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    Click to try in beta →
-                  </div>
-                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="relative z-10 py-20 px-6 bg-slate-900/30">
-        <div className="container mx-auto">
+      <section className="relative z-10 py-20 px-6 lg:px-8 bg-slate-900/20">
+        <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono mb-6">
-              [HOW_IT_WORKS]
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              How It Works
             </h2>
-            <p className="text-xl text-slate-400 font-mono max-w-3xl mx-auto">
-              Get started in 3 simple steps
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Get started in three simple steps
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400 font-mono text-2xl font-bold">1</span>
-                </div>
-                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">ADD BOT</h3>
-                <p className="text-slate-400 font-mono text-sm">
-                  Invite our Discord bot to your server with one click
-                </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-400/10 border border-emerald-400/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-emerald-400 text-2xl font-bold">1</span>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400 font-mono text-2xl font-bold">2</span>
-                </div>
-                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">SET FILTERS</h3>
-                <p className="text-slate-400 font-mono text-sm">
-                  Configure job preferences and skills you&apos;re looking for
-                </p>
+              <h3 className="text-white font-semibold text-xl mb-3">Create Profile</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Upload your resume and set your job preferences. Our AI analyzes your skills and experience.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-400/10 border border-emerald-400/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-emerald-400 text-2xl font-bold">2</span>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-emerald-400/20 border border-emerald-400/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400 font-mono text-2xl font-bold">3</span>
-                </div>
-                <h3 className="text-emerald-400 font-mono font-bold text-xl mb-3">GET JOBS</h3>
-                <p className="text-slate-400 font-mono text-sm">
-                  Receive instant job matches posted directly to your Discord
-                </p>
+              <h3 className="text-white font-semibold text-xl mb-3">Get Matched</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Receive personalized job recommendations from our database of 2.8M+ opportunities.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-400/10 border border-emerald-400/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-emerald-400 text-2xl font-bold">3</span>
               </div>
+              <h3 className="text-white font-semibold text-xl mb-3">Apply & Connect</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Apply directly through our platform and connect with hiring managers instantly.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="relative z-10 py-20 px-6 border-t border-emerald-400/20">
-        <div className="container mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-bold text-emerald-400 font-mono mb-6">
-            GET STARTED
+      <section className="relative z-10 py-20 px-6 lg:px-8 border-t border-slate-800">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+            Ready to Match Smarter?
           </h2>
-          <p className="text-xl text-slate-400 font-mono mb-12 max-w-2xl mx-auto">
-            Join the Discord job revolution today
+          <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto">
+            Join our growing network of professionals and recruiters — where AI meets opportunity.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button
-              onClick={handleBetaAccess}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-mono font-bold px-12 py-6 border border-emerald-400 shadow-lg transition-all duration-200 hover:shadow-emerald-400/20 rounded-lg text-lg flex items-center justify-center space-x-3"
-            >
-              <Bot className="w-6 h-6" />
-              <span>START NOW</span>
-              <ArrowRight className="w-6 h-6" />
-            </button>
-          </div>
+          <button
+            onClick={handleBetaAccess}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold px-8 py-4 rounded-lg transition-all duration-200 inline-flex items-center space-x-2"
+          >
+            <span>Get Started Today</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 
-      {/* Beta Signup Modal */}
       <BetaSignupModal
         isOpen={showBetaModal}
         onClose={() => setShowBetaModal(false)}

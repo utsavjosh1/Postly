@@ -56,9 +56,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-slate-400 font-mono text-sm leading-relaxed mb-8 max-w-md">
-              Automated job discovery for Discord communities. Smart AI
-              matching, instant posting, seamless applications. Built for the
-              modern job seeker.
+              Professional job search platform connecting millions of opportunities with top talent. Advanced filtering, real-time updates, seamless applications.
             </p>
 
             {/* Social Links */}
@@ -106,12 +104,12 @@ export function Footer() {
         <div className="border-t border-slate-800 mt-16 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-slate-400 font-mono text-sm">
-              © {new Date().getFullYear()} POSTLY • BUILT FOR JOB SEEKERS
+              © {new Date().getFullYear()} POSTLY • PROFESSIONAL JOB PLATFORM
             </p>
             <div className="flex items-center space-x-6 text-slate-400 font-mono text-sm">
-              <span>Made with ❤️ for Discord</span>
+              <span>Trusted by professionals</span>
               <div className="w-1 h-1 bg-slate-600 rounded-full" />
-              <span>Open Source</span>
+              <span>Enterprise ready</span>
             </div>
           </div>
         </div>
