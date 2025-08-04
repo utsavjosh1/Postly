@@ -7,14 +7,15 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
-  // Add these debug options temporarily
-  productionBrowserSourceMaps: true,
+  output: 'standalone',
+  distDir: '.next',
+  generateEtags: false,
+  poweredByHeader: false,
+  // Remove debug options for production
+  productionBrowserSourceMaps: false,
   compiler: {
-    removeConsole: false,
+    removeConsole: process.env.NODE_ENV === 'production',
   },
-  // experimental: {
-  // reactStrictMode: false,
-  // }
 };
 
 export default nextConfig;
