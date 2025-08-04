@@ -1,6 +1,6 @@
-import { PrismaAuthService } from "./prisma-auth.service";
+import { AuthService } from "./auth.service";
 import type { User } from "../types/auth.types";
 
 export const getAllUsersWithPrisma = async (): Promise<User[]> => {
-  return await PrismaAuthService.getAllUsers();
+  return await AuthService.getAllUsers();
 };

@@ -2,6 +2,7 @@ import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 import { prisma } from "../config/prisma";
 import { config } from "../config/env";
+import type { User as PrismaUser } from "@repo/db";
 import type {
   AuthResponse,
   User,
@@ -15,17 +16,17 @@ import type {
 } from "../types/auth.types";
 
 export class PrismaAuthService {
-  // Helper function to convert Profile to User
-  private static profileToUser(profile: any): User {
+  // Helper function to convert Prisma User to API User
+  private static prismaUserToUser(user: PrismaUser): User {
     return {
-      id: profile.id,
-      email: profile.email,
-      full_name: profile.full_name || undefined,
-      username: profile.username || undefined,
-      avatar_url: profile.avatar_url || undefined,
-      website: profile.website || undefined,
-      created_at: profile.created_at.toISOString(),
-      updated_at: profile.updated_at?.toISOString(),
+      id: user.id,
+      email: user.email,
+      full_name: user.name || undefined,
+      username: undefined, // Not in current schema
+      avatar_url: user.avatar || undefined,
+      website: undefined, // Not in current schema
+      created_at: user.createdAt.toISOString(),
+      updated_at: user.updatedAt?.toISOString(),
       role: "user",
     };
   }
@@ -36,7 +37,7 @@ export class PrismaAuthService {
       const { email, password, full_name, username } = data;
 
       // Check if user already exists by email
-      const existingUser = await prisma.profile.findUnique({
+      const existingUser = await prisma.user.findUnique({
         where: { email },
       });
 
@@ -51,23 +52,19 @@ export class PrismaAuthService {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Create user profile
-      const profile = await prisma.profile.create({
+      // Create user
+      const user = await prisma.user.create({
         data: {
           email,
-          full_name,
-          username,
-          password_hash: hashedPassword,
-          created_at: new Date(),
-          updated_at: new Date(),
+          name: full_name,
         },
       });
 
       // Generate JWT token
       const tokenPayload: TokenPayload = {
-        sub: profile.id,
-        user_id: profile.id,
-        email: profile.email,
+        sub: user.id,
+        user_id: user.id,
+        email: user.email,
         role: "user",
         provider: "email",
       };
@@ -75,11 +72,11 @@ export class PrismaAuthService {
       const accessToken = jwt.sign(tokenPayload, config.JWT_SECRET, {
         expiresIn: config.JWT_EXPIRES_IN || "7d",
         issuer: "jobbot-auth",
-        subject: profile.id,
+        subject: user.id,
       } as jwt.SignOptions);
 
       return {
-        user: this.profileToUser(profile),
+        user: this.prismaUserToUser(user),
         session: {
           access_token: accessToken,
           refresh_token: accessToken, // For simplicity, using same token
