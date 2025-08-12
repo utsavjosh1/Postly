@@ -37,7 +37,9 @@ export const FILTER_OPTIONS = {
 export const RECRUIT_LANES = ['New', 'Screen', 'Interview', 'Offer', 'Hired'] as const;
 
 export const AI_SUGGESTIONS = [
-  'Senior React + GraphQL • realtime UI performance',
-  'Rust backend • streaming systems • AWS',
-  'Full‑stack Next.js • design systems • a11y',
+  'Marketing Manager • growth strategy • team leadership',
+  'Sales Director • B2B relationships • revenue growth',
+  'Project Manager • stakeholder coordination • delivery',
+  'Data Analyst • insights • business intelligence',
+  'HR Manager • talent acquisition • culture building',
 ] as const;

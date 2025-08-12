@@ -12,74 +12,63 @@ export const HowDiagram: React.FC = () => {
   };
 
   return (
-    <section id="how" className="mx-auto max-w-[1440px] px-6 py-14">
-      <div className="rounded-2xl border border-border bg-white/[0.05] backdrop-blur-xl p-6">
-        <div className="flex items-center gap-2 text-primary">
-          <GitBranch className="w-4 h-4" />
-          <div className="text-sm font-medium">How it works</div>
+    <section id="how" className="mx-auto max-w-[1440px] px-6 py-16">
+      <div className="rounded-2xl border border-border/25 bg-card/60 backdrop-blur-xl p-8 shadow-lg hover:shadow-xl transition-all duration-500 group">
+        <div className="flex items-center gap-2.5 text-primary mb-8">
+          <GitBranch className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+          <div className="text-sm font-semibold">How it works</div>
         </div>
 
-        <div className="mt-8 relative">
-          <svg className="absolute inset-0 pointer-events-none" width="100%" height="220">
+        <div className="relative">
+          <svg className="absolute inset-0 pointer-events-none" width="100%" height="240">
             <defs>
               <linearGradient id="g" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.6" />
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.8" />
               </linearGradient>
             </defs>
             <path 
               d="M 180 80 C 330 10, 450 10, 600 80" 
               stroke="url(#g)" 
-              strokeWidth="2" 
+              strokeWidth="2.5" 
               fill="none" 
-              opacity="0.7" 
+              opacity="0.9" 
             />
             <path 
               d="M 600 80 C 740 150, 860 150, 1000 80" 
               stroke="url(#g)" 
-              strokeWidth="2" 
+              strokeWidth="2.5" 
               fill="none" 
-              opacity="0.7" 
+              opacity="0.9" 
             />
           </svg>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {HOW_IT_WORKS_STEPS.map(({ iconName, title, desc }, idx) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {HOW_IT_WORKS_STEPS.map(({ iconName, title, desc }, index) => {
               const Icon = iconMap[iconName as keyof typeof iconMap];
               return (
                 <div
                   key={title}
-                  className="rounded-xl border border-border bg-popover p-5 text-center hover:bg-white/[0.06] transition animate-slide-up"
-                  style={{ animationDelay: `${idx * 60}ms` }}
+                  className="rounded-xl border border-border/25 bg-background/60 hover:bg-background/80 p-6 text-center hover:shadow-md transition-all duration-300 animate-slide-up backdrop-blur-sm group/step"
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="mx-auto h-10 w-10 rounded-full flex items-center justify-center border border-border bg-secondary">
+                  <div className="mx-auto h-12 w-12 rounded-full flex items-center justify-center border border-primary/25 bg-primary/8 shadow-sm group-hover/step:shadow-md transition-all duration-300 group-hover/step:scale-110">
                     <Icon className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="mt-3 text-sm font-medium">{title}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
-                  {idx === 1 && (
-                    <div className="mt-3 flex justify-center gap-2">
-                      {['React','Rust','AWS','Impact'].map((tech) => (
-                        <span 
-                          key={tech} 
-                          className="text-[11px] rounded-full border border-border bg-secondary px-2 py-0.5"
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="mt-4 text-sm font-semibold text-foreground">{title}</div>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3 justify-center">
-          {['AI‑driven', 'Project‑based', 'Real‑impact', 'Zero‑fluff'].map((tag) => (
+        <div className="mt-8 flex flex-wrap items-center gap-3 justify-center">
+          {['AI‑driven', 'Project‑based', 'Real‑impact', 'Zero‑fluff'].map((tag, index) => (
             <span 
               key={tag} 
-              className="text-xs rounded-full border border-border bg-secondary px-3 py-1"
+              className="text-xs rounded-lg border border-primary/20 bg-primary/8 text-primary px-3 py-1.5 font-medium shadow-sm hover:shadow-md transition-all duration-200 animate-slide-up backdrop-blur-sm"
+              style={{ animationDelay: `${index * 50 + 300}ms` }}
             >
               {tag}
             </span>
