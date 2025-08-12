@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -27,6 +27,69 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { login } = useAuth();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const googleButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Focus management
+  useEffect(() => {
+    if (isOpen) {
+      // Focus the close button when modal opens
+      closeButtonRef.current?.focus();
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore body scroll
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+  
+  // Keyboard event handling
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // ESC key to close modal
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      
+      // Tab key for focus trap
+      if (event.key === 'Tab') {
+        const focusableElements = modalRef.current?.querySelectorAll(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        if (!focusableElements || focusableElements.length === 0) return;
+        
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+        
+        if (event.shiftKey) {
+          // Shift + Tab (backwards)
+          if (document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab (forwards)
+          if (document.activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
   
   if (!isOpen) return null;
 
@@ -45,13 +108,21 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in"
       onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby="modal-description"
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
-      <div className="relative bg-card/95 border border-border/50 rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-scale-in backdrop-blur-sm">
+      <div 
+        ref={modalRef}
+        className="relative bg-card/95 border border-border/50 rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-scale-in backdrop-blur-sm"
+      >
         <button
+          ref={closeButtonRef}
           onClick={onClose}
-          className="absolute top-3 right-3 p-1.5 rounded-md hover:bg-muted/40 transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/40 flex items-center justify-center"
-          aria-label="Close modal"
+          className="absolute top-3 right-3 p-1.5 rounded-md hover:bg-muted/40 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-card flex items-center justify-center"
+          aria-label="Close login modal"
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -61,17 +132,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className="h-12 w-12 mx-auto rounded-full bg-primary/8 flex items-center justify-center mb-3 ring-1 ring-primary/10">
               <LogIn className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="text-xl font-medium text-card-foreground mb-1.5">Welcome to Postly</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <h2 id="modal-title" className="text-xl font-medium text-card-foreground mb-1.5">Welcome to Postly</h2>
+            <p id="modal-description" className="text-sm text-muted-foreground leading-relaxed">
               Sign in to upload your resume and discover opportunities that match your skills
             </p>
           </div>
           
           <button
+            ref={googleButtonRef}
             onClick={handleGoogleLogin}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-5 py-3 flex items-center justify-center gap-2.5 transition-all duration-300 font-medium text-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-card group"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-5 py-3 flex items-center justify-center gap-2.5 transition-all duration-300 font-medium text-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-card group"
+            aria-label="Sign in with Google"
           >
-            <svg className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -82,11 +155,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           
           <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
             By continuing, you agree to our{' '}
-            <button className="text-primary hover:underline focus:outline-none focus:underline transition-colors">
+            <button 
+              className="text-primary hover:underline focus:outline-none focus:underline focus:ring-1 focus:ring-primary/40 rounded transition-colors"
+              tabIndex={0}
+              aria-label="View terms of service"
+            >
               terms
             </button>
             {' '}and{' '}
-            <button className="text-primary hover:underline focus:outline-none focus:underline transition-colors">
+            <button 
+              className="text-primary hover:underline focus:outline-none focus:underline focus:ring-1 focus:ring-primary/40 rounded transition-colors"
+              tabIndex={0}
+              aria-label="View privacy policy"
+            >
               privacy policy
             </button>
           </p>
@@ -100,14 +181,65 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 const UserDropdown: React.FC = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  
+  // Handle keyboard navigation for dropdown
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      
+      if (event.key === 'Tab' && !event.shiftKey) {
+        // Tab key - close dropdown and move to next element
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   if (!user) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+          if (e.key === 'ArrowDown' && !isOpen) {
+            e.preventDefault();
+            setIsOpen(true);
+          }
+        }}
         className="flex items-center gap-2 p-2 rounded-xl border border-border/25 bg-background/60 hover:bg-secondary/50 hover:border-border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/30 backdrop-blur-sm shadow-sm group"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label={`User menu for ${user.name || user.email}`}
       >
         <Avatar className="w-6 h-6 border border-primary/20">
           <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
@@ -121,28 +253,35 @@ const UserDropdown: React.FC = () => {
       </button>
 
       {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-full mt-2 w-56 z-50 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl p-2">
-            <div className="px-3 py-2 border-b border-border/20 mb-2">
-              <p className="text-sm font-medium text-foreground">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-            <button
-              onClick={() => {
+        <div 
+          className="absolute right-0 top-full mt-2 w-56 z-50 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl p-2"
+          role="menu"
+          aria-label="User menu"
+        >
+          <div className="px-3 py-2 border-b border-border/20 mb-2" role="presentation">
+            <p className="text-sm font-medium text-foreground">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <button
+            onClick={() => {
+              logout();
+              setIsOpen(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
                 logout();
                 setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/40 rounded-lg transition-colors duration-200"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
-          </div>
-        </>
+              }
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/40 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            role="menuitem"
+            aria-label="Sign out of your account"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
       )}
     </div>
   );

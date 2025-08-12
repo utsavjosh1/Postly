@@ -18,7 +18,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+let API_BASE_URL: string | undefined = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXT_PUBLIC_API_URL environment variable must be set in production.");
+  } else {
+    API_BASE_URL = "http://localhost:8000";
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
