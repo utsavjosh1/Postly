@@ -5,8 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "bun run tsx src/index.ts",
-    "build": "tsc",
-    "start": "bun run dist/index.js"
+    "build": "tsc --noEmit false --outDir dist",
+    "start": "bun run dist/index.js",
+    "docker:build": "docker build -t jobbot-server .",
+    "docker:run": "docker run -p 8000:8000 --env-file .env jobbot-server"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
@@ -32,13 +34,17 @@
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
+    "@repo/db": "*",
     "@supabase/supabase-js": "^2.53.0",
+    "@types/express-validator": "^2.20.33",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "4.19.2",
     "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
+    "express-slow-down": "^3.0.0",
+    "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",

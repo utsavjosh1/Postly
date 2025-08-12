@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { JobBotHeader } from "@/components/job-bot-header";
-import { Footer } from "@/components/footer";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { AmbientBackground } from "@/components/layout/AmbientBackground";
+import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeScript } from "@/components/theme-script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,15 +30,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="min-h-screen bg-slate-950 overflow-x-hidden flex flex-col">
-          <JobBotHeader />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <ThemeScript storageKey="postly-theme" />
+        <ThemeProvider defaultTheme="dark" storageKey="postly-theme">
+          <AuthProvider>
+            <div className="min-h-screen bg-background text-foreground font-sans">
+              <AmbientBackground />
+              <Header />
+              <main>{children}</main>
+              <Footer />
+            </div>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
