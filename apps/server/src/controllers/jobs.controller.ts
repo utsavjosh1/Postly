@@ -264,12 +264,11 @@ class Jobs {
         prisma.job.count().catch(() => 0),
         prisma.job.groupBy({
           by: ["workType"],
-          _count: { _all: true },
-          where: { workType: { not: null } },
+          _count: { workType: true },
         }).catch(() => []),
         prisma.job.groupBy({
           by: ["seniorityLevel"],
-          _count: { _all: true },
+          _count: { seniorityLevel: true },
           where: { seniorityLevel: { not: null } },
         }).catch(() => []),
         prisma.job.count({
@@ -296,7 +295,7 @@ class Jobs {
         workTypeDistribution: workTypeStats.reduce(
           (acc, item) => {
             if (item.workType) {
-              acc[item.workType] = item._count._all;
+              acc[item.workType] = item._count.workType || 0;
             }
             return acc;
           },
@@ -305,7 +304,7 @@ class Jobs {
         seniorityDistribution: seniorityStats.reduce(
           (acc, item) => {
             if (item.seniorityLevel) {
-              acc[item.seniorityLevel] = item._count._all;
+              acc[item.seniorityLevel] = item._count.seniorityLevel || 0;
             }
             return acc;
           },

@@ -3,7 +3,7 @@
 import Image from "next/image"
 
 const sponsors = [
-  { name: "Tailwind CSS", logo: "/tailwind-css-logo.png" },
+  { name: "Vercel", logo: "/vercel.svg" },
 ]
 
 const mysterySponsors = [
