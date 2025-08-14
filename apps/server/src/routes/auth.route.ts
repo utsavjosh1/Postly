@@ -6,7 +6,11 @@ import { config } from "../config/env";
 const router = Router();
 
 // Auth middleware to check if user is authenticated
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+export const requireAuth = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   if (req.isAuthenticated()) {
     return next();
   }
@@ -35,7 +39,7 @@ router.get(
   "/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
-  })
+  }),
 );
 
 router.get(
@@ -47,7 +51,7 @@ router.get(
     // Successful authentication
     console.log("✅ Google OAuth successful for user:", req.user?.email);
     res.redirect(`${config.FRONTEND_URL}/dashboard`);
-  }
+  },
 );
 
 // Logout
@@ -57,13 +61,13 @@ router.post("/logout", (req: Request, res: Response) => {
       console.error("Logout error:", err);
       return res.status(500).json({ error: "Logout failed" });
     }
-    
+
     req.session.destroy((sessionErr) => {
       if (sessionErr) {
         console.error("Session destroy error:", sessionErr);
         return res.status(500).json({ error: "Session cleanup failed" });
       }
-      
+
       res.clearCookie(config.SESSION_COOKIE_NAME);
       res.json({ message: "Logout successful" });
     });
@@ -75,7 +79,7 @@ router.get("/me", requireAuth, (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: "User not found" });
   }
-  
+
   res.json({
     user: {
       id: req.user.id,
@@ -88,10 +92,10 @@ router.get("/me", requireAuth, (req: Request, res: Response) => {
 
 // Test route
 router.get("/test", (req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     message: "Auth routes working!",
     authenticated: req.isAuthenticated(),
-    session: req.sessionID
+    session: req.sessionID,
   });
 });
 

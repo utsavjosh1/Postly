@@ -7,12 +7,14 @@ A comprehensive database schema for a universal hiring platform built with Prism
 ### Core Models
 
 #### 🏢 **Company**
+
 - Complete company information with metadata
 - Support for public/private companies
 - Industry categorization
 - Employee count and founding year
 
 #### 💼 **Job**
+
 - Comprehensive job details with flexible fields
 - Support for all job types (Full-time, Part-time, Contract, etc.)
 - Work arrangements (Remote, Onsite, Hybrid, Flexible)
@@ -21,11 +23,13 @@ A comprehensive database schema for a universal hiring platform built with Prism
 - Full-text search capabilities
 
 #### 🛠️ **Skill**
+
 - Normalized skill management
 - Many-to-many relationship with jobs and users
 - Skill categorization support
 
 #### 👤 **User & Profiles**
+
 - OAuth authentication support (existing)
 - Comprehensive user profiles with preferences
 - Job application tracking
@@ -81,31 +85,31 @@ bun run scripts/import-jobs.ts ../sima/outputs/hiring-cafe-api-jobs.json
 ### 3. Use in Your Application
 
 ```typescript
-import { PrismaClient } from '@repo/db';
+import { PrismaClient } from "@repo/db";
 
 const prisma = new PrismaClient();
 
 // Search jobs with filters
 const jobs = await prisma.job.findMany({
   where: {
-    workType: 'REMOTE',
-    seniorityLevel: 'SENIOR_LEVEL',
+    workType: "REMOTE",
+    seniorityLevel: "SENIOR_LEVEL",
     skills: {
       some: {
         skill: {
-          name: { in: ['React', 'TypeScript'] }
-        }
-      }
-    }
+          name: { in: ["React", "TypeScript"] },
+        },
+      },
+    },
   },
   include: {
     company: true,
     skills: {
-      include: { skill: true }
-    }
+      include: { skill: true },
+    },
   },
-  orderBy: { postedDate: 'desc' },
-  take: 20
+  orderBy: { postedDate: "desc" },
+  take: 20,
 });
 ```
 
@@ -122,6 +126,7 @@ const jobs = await prisma.job.findMany({
    - Links skills to jobs via junction table
 
 3. **Salary Parsing**
+
    ```typescript
    // Handles various formats:
    "$120k-$150k" → { min: 120000, max: 150000, currency: "USD" }
@@ -140,6 +145,7 @@ const jobs = await prisma.job.findMany({
    - Provides summary statistics
 
 ### Batch Processing
+
 - Processes jobs in batches of 100
 - Uses Promise.allSettled for fault tolerance
 - Progress reporting every 50 processed jobs
@@ -147,47 +153,51 @@ const jobs = await prisma.job.findMany({
 ## 🔍 Example Queries
 
 ### Find Remote React Jobs
+
 ```typescript
 const reactJobs = await prisma.job.findMany({
   where: {
-    workType: 'REMOTE',
+    workType: "REMOTE",
     skills: {
       some: {
-        skill: { name: 'React' }
-      }
-    }
+        skill: { name: "React" },
+      },
+    },
   },
   include: {
     company: true,
-    skills: { include: { skill: true } }
-  }
+    skills: { include: { skill: true } },
+  },
 });
 ```
 
 ### Get User Applications
+
 ```typescript
 const userApplications = await prisma.jobApplication.findMany({
-  where: { userId: 'user-id' },
+  where: { userId: "user-id" },
   include: {
     job: {
-      include: { company: true }
-    }
+      include: { company: true },
+    },
   },
-  orderBy: { appliedAt: 'desc' }
+  orderBy: { appliedAt: "desc" },
 });
 ```
 
 ### Search by Salary Range
+
 ```typescript
 const highPayingJobs = await prisma.job.findMany({
   where: {
     salaryMin: { gte: 100000 },
-    salaryCurrency: 'USD'
-  }
+    salaryCurrency: "USD",
+  },
 });
 ```
 
 ### Company Analytics
+
 ```typescript
 const companyStats = await prisma.company.findMany({
   include: {
@@ -195,17 +205,17 @@ const companyStats = await prisma.company.findMany({
       select: {
         id: true,
         seniorityLevel: true,
-        workType: true
-      }
+        workType: true,
+      },
     },
     _count: {
-      select: { jobs: true }
-    }
+      select: { jobs: true },
+    },
   },
   orderBy: {
-    jobs: { _count: 'desc' }
+    jobs: { _count: "desc" },
   },
-  take: 10
+  take: 10,
 });
 ```
 
@@ -214,20 +224,22 @@ const companyStats = await prisma.company.findMany({
 ### Regular Tasks
 
 1. **Update Job Data**
+
    ```bash
    # Re-run import with latest data
    npm run db:import path/to/latest-jobs.json
    ```
 
 2. **Clean Old Jobs**
+
    ```typescript
    // Remove jobs older than 6 months
    await prisma.job.deleteMany({
      where: {
        postedDate: {
-         lt: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000)
-       }
-     }
+         lt: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
+       },
+     },
    });
    ```
 
@@ -237,8 +249,8 @@ const companyStats = await prisma.company.findMany({
    await prisma.skill.deleteMany({
      where: {
        jobs: { none: {} },
-       userSkills: { none: {} }
-     }
+       userSkills: { none: {} },
+     },
    });
    ```
 
@@ -270,6 +282,7 @@ const companyStats = await prisma.company.findMany({
 ## 🚀 Next Steps
 
 1. **Add Full-Text Search**
+
    ```sql
    -- Add to PostgreSQL directly
    ALTER TABLE jobs ADD COLUMN search_vector tsvector;

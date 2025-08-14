@@ -28,14 +28,14 @@ class ApiResponse {
   static success<T>(
     data: T,
     message?: string,
-    meta?: PaginationMeta
+    meta?: PaginationMeta,
   ): ApiSuccessResponse<T> {
     return {
       success: true,
       ...(message && { message }),
       data,
       ...(meta && { meta }),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -47,7 +47,7 @@ class ApiResponse {
     page: number,
     limit: number,
     total: number,
-    message?: string
+    message?: string,
   ): ApiSuccessResponse<T[]> {
     const totalPages = Math.ceil(total / limit);
     const hasNext = page < totalPages;
@@ -59,7 +59,7 @@ class ApiResponse {
       total,
       totalPages,
       hasNext,
-      hasPrev
+      hasPrev,
     };
 
     return this.success(data, message, meta);
@@ -68,21 +68,29 @@ class ApiResponse {
   /**
    * Create a response for created resources (201)
    */
-  static created<T>(data: T, message: string = 'Resource created successfully'): ApiSuccessResponse<T> {
+  static created<T>(
+    data: T,
+    message: string = "Resource created successfully",
+  ): ApiSuccessResponse<T> {
     return this.success(data, message);
   }
 
   /**
    * Create a response for updated resources (200)
    */
-  static updated<T>(data: T, message: string = 'Resource updated successfully'): ApiSuccessResponse<T> {
+  static updated<T>(
+    data: T,
+    message: string = "Resource updated successfully",
+  ): ApiSuccessResponse<T> {
     return this.success(data, message);
   }
 
   /**
    * Create a response for deleted resources (200)
    */
-  static deleted(message: string = 'Resource deleted successfully'): ApiSuccessResponse<null> {
+  static deleted(
+    message: string = "Resource deleted successfully",
+  ): ApiSuccessResponse<null> {
     return this.success(null, message);
   }
 
@@ -96,21 +104,15 @@ class ApiResponse {
   /**
    * Create a response for list/collection endpoints
    */
-  static list<T>(
-    data: T[],
-    message?: string
-  ): ApiSuccessResponse<T[]> {
+  static list<T>(data: T[], message?: string): ApiSuccessResponse<T[]> {
     return this.success(data, message || `Retrieved ${data.length} items`);
   }
 
   /**
    * Create a response for single resource endpoints
    */
-  static single<T>(
-    data: T,
-    message?: string
-  ): ApiSuccessResponse<T> {
-    return this.success(data, message || 'Resource retrieved successfully');
+  static single<T>(data: T, message?: string): ApiSuccessResponse<T> {
+    return this.success(data, message || "Resource retrieved successfully");
   }
 
   /**
@@ -122,22 +124,24 @@ class ApiResponse {
     page: number = 1,
     limit: number = 10,
     total: number,
-    filters?: Record<string, unknown>
-  ): ApiSuccessResponse<T[]> & { searchMeta: { query: string; filters?: Record<string, unknown> } } {
+    filters?: Record<string, unknown>,
+  ): ApiSuccessResponse<T[]> & {
+    searchMeta: { query: string; filters?: Record<string, unknown> };
+  } {
     const response = this.paginated(
       data,
       page,
       limit,
       total,
-      `Found ${total} results for "${query}"`
+      `Found ${total} results for "${query}"`,
     );
 
     return {
       ...response,
       searchMeta: {
         query,
-        ...(filters && { filters })
-      }
+        ...(filters && { filters }),
+      },
     };
   }
 
@@ -147,13 +151,13 @@ class ApiResponse {
   static withMeta<T>(
     data: T,
     meta: Record<string, unknown>,
-    message?: string
+    message?: string,
   ): ApiSuccessResponse<T> & { customMeta: Record<string, unknown> } {
     const response = this.success(data, message);
-    
+
     return {
       ...response,
-      customMeta: meta
+      customMeta: meta,
     };
   }
 }

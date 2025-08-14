@@ -1,4 +1,8 @@
-import { AuthService, type AuthUser, type GoogleUserData } from "./auth.service";
+import {
+  AuthService,
+  type AuthUser,
+  type GoogleUserData,
+} from "./auth.service";
 
 export type { AuthUser, GoogleUserData };
 
@@ -20,7 +24,9 @@ export class UserService {
   /**
    * Find or create user from Google OAuth data
    */
-  static async findOrCreateGoogleUser(googleData: GoogleUserData): Promise<AuthUser> {
+  static async findOrCreateGoogleUser(
+    googleData: GoogleUserData,
+  ): Promise<AuthUser> {
     return AuthService.findOrCreateGoogleUser(googleData);
   }
 
@@ -36,7 +42,7 @@ export class UserService {
    */
   static async updateProfile(
     id: string,
-    updates: { name?: string; avatar?: string }
+    updates: { name?: string; avatar?: string },
   ): Promise<AuthUser | null> {
     return AuthService.updateUserProfile(id, updates);
   }

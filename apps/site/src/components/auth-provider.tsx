@@ -22,7 +22,9 @@ let API_BASE_URL: string | undefined = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_BASE_URL) {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("NEXT_PUBLIC_API_URL environment variable must be set in production.");
+    throw new Error(
+      "NEXT_PUBLIC_API_URL environment variable must be set in production.",
+    );
   } else {
     API_BASE_URL = "http://localhost:8000";
   }
@@ -38,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
+      const response = await fetch(`${API_BASE_URL}/auth/status`, {
         credentials: "include",
       });
 
@@ -56,12 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = () => {
-    window.location.href = `${API_BASE_URL}/api/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

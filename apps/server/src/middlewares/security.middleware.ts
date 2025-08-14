@@ -36,7 +36,7 @@ export const authRateLimit = rateLimit({
     error: {
       statusCode: 429,
       message: "Too many authentication attempts, please try again later.",
-    }
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -51,7 +51,7 @@ export const apiRateLimit = rateLimit({
     error: {
       statusCode: 429,
       message: "Too many API requests, please try again later.",
-    }
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -65,7 +65,7 @@ export const generalRateLimit = rateLimit({
     error: {
       statusCode: 429,
       message: "Too many requests, please try again later.",
-    }
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -75,7 +75,7 @@ export const generalRateLimit = rateLimit({
 export const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 50, // Allow 50 requests per windowMs without delay
-  delayMs: 100, // Add 100ms delay per request after delayAfter
+  delayMs: () => 100, // Add 100ms delay per request after delayAfter (new v2 syntax)
   maxDelayMs: 2000, // Max delay of 2 seconds
 });
 
@@ -117,21 +117,23 @@ export const corsOptions = {
 };
 
 // Request size limitation
-export const requestSizeLimit = (maxSize: string = '1mb') => {
+export const requestSizeLimit = (maxSize: string = "1mb") => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const contentLength = req.get('content-length');
-    
+    const contentLength = req.get("content-length");
+
     if (contentLength) {
       const sizeInBytes = parseInt(contentLength);
-      const maxSizeInBytes = maxSize.includes('mb') 
-        ? parseInt(maxSize) * 1024 * 1024 
+      const maxSizeInBytes = maxSize.includes("mb")
+        ? parseInt(maxSize) * 1024 * 1024
         : parseInt(maxSize) * 1024;
-        
+
       if (sizeInBytes > maxSizeInBytes) {
-        throw ApiError.badRequest(`Request body too large. Maximum size: ${maxSize}`);
+        throw ApiError.badRequest(
+          `Request body too large. Maximum size: ${maxSize}`,
+        );
       }
     }
-    
+
     next();
   };
 };
@@ -141,7 +143,8 @@ export const errorHandler = (
   error: Error | ApiError,
   req: Request,
   res: Response,
-  _next: NextFunction
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _next: NextFunction,
 ): void => {
   let apiError: ApiError;
 
@@ -149,19 +152,28 @@ export const errorHandler = (
     apiError = error;
   } else {
     // Handle specific error types
-    if (error.name === 'ValidationError') {
-      apiError = ApiError.badRequest('Validation error', []);
-    } else if (error.name === 'CastError') {
-      apiError = ApiError.badRequest('Invalid data format');
-    } else if (error.name === 'MongoError' || error.name === 'PrismaClientKnownRequestError') {
-      apiError = ApiError.internal('Database error');
+    if (error.name === "ValidationError") {
+      apiError = ApiError.badRequest("Validation error", []);
+    } else if (error.name === "CastError") {
+      apiError = ApiError.badRequest("Invalid data format");
+    } else if (
+      error.name === "MongoError" ||
+      error.name === "PrismaClientKnownRequestError"
+    ) {
+      apiError = ApiError.internal("Database error");
     } else {
-      apiError = new ApiError(500, error.message || 'Internal Server Error', [], false, error.stack);
+      apiError = new ApiError(
+        500,
+        error.message || "Internal Server Error",
+        [],
+        false,
+        error.stack,
+      );
     }
   }
 
   // Log error details
-  if (process.env.NODE_ENV === 'development' || apiError.statusCode >= 500) {
+  if (process.env.NODE_ENV === "development" || apiError.statusCode >= 500) {
     console.error(`[${new Date().toISOString()}] API Error:`, {
       statusCode: apiError.statusCode,
       message: apiError.message,
@@ -169,8 +181,8 @@ export const errorHandler = (
       method: req.method,
       url: req.url,
       ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      ...(apiError.statusCode >= 500 && { stack: apiError.stack })
+      userAgent: req.get("User-Agent"),
+      ...(apiError.statusCode >= 500 && { stack: apiError.stack }),
     });
   }
 

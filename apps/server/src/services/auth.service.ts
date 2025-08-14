@@ -61,7 +61,9 @@ export class AuthService {
   /**
    * Find or create user from Google OAuth data
    */
-  static async findOrCreateGoogleUser(googleData: GoogleUserData): Promise<AuthUser> {
+  static async findOrCreateGoogleUser(
+    googleData: GoogleUserData,
+  ): Promise<AuthUser> {
     try {
       // First try to find existing user by email
       let user = await prisma.user.findUnique({
@@ -72,7 +74,9 @@ export class AuthService {
       if (user) {
         // Check if Google account is already linked
         const googleAccount = user.accounts.find(
-          (account) => account.provider === "google" && account.providerAccountId === googleData.googleId
+          (account) =>
+            account.provider === "google" &&
+            account.providerAccountId === googleData.googleId,
         );
 
         if (!googleAccount) {
@@ -165,7 +169,7 @@ export class AuthService {
    */
   static async updateUserProfile(
     id: string,
-    updates: { name?: string; avatar?: string }
+    updates: { name?: string; avatar?: string },
   ): Promise<AuthUser | null> {
     try {
       const user = await prisma.user.update({
@@ -199,7 +203,9 @@ export class AuthService {
   /**
    * Format user for API response
    */
-  private static formatUser(user: PrismaUser & { accounts?: PrismaAccount[] }): AuthUser {
+  private static formatUser(
+    user: PrismaUser & { accounts?: PrismaAccount[] },
+  ): AuthUser {
     return {
       id: user.id,
       email: user.email,

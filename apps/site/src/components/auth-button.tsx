@@ -17,9 +17,9 @@ export function AuthButton() {
 
   if (loading) {
     return (
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button
+        variant="outline"
+        size="sm"
         disabled
         className="bg-slate-800/50 border-emerald-400/30 text-emerald-300"
       >
@@ -30,10 +30,10 @@ export function AuthButton() {
 
   if (!user) {
     return (
-      <Button 
-        onClick={login} 
-        variant="outline" 
-        size="sm" 
+      <Button
+        onClick={login}
+        variant="outline"
+        size="sm"
         className="gap-2 bg-slate-800/50 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400 transition-all duration-200 font-mono"
       >
         <LogIn className="w-4 h-4" />
@@ -45,22 +45,27 @@ export function AuthButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="gap-2 bg-slate-800/50 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400 transition-all duration-200 font-mono"
         >
           <Avatar className="w-6 h-6 border border-emerald-400/30">
-            <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
+            <AvatarImage
+              src={user.avatar || undefined}
+              alt={user.name || "User"}
+            />
             <AvatarFallback className="bg-emerald-500 text-slate-900 text-xs font-bold">
-              {user.name?.charAt(0).toUpperCase() || <User className="w-3 h-3" />}
+              {user.name?.charAt(0).toUpperCase() || (
+                <User className="w-3 h-3" />
+              )}
             </AvatarFallback>
           </Avatar>
-          {user.name || user.email.split('@')[0]}
+          {user.name || user.email.split("@")[0]}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-56 bg-slate-900 border-emerald-400/30"
       >
         <DropdownMenuItem disabled className="text-emerald-300 font-mono">
@@ -68,8 +73,8 @@ export function AuthButton() {
           {user.email}
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-emerald-400/30" />
-        <DropdownMenuItem 
-          onClick={logout} 
+        <DropdownMenuItem
+          onClick={logout}
           className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-mono"
         >
           <LogOut className="w-4 h-4 mr-2" />

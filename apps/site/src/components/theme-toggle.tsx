@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Sun, Moon } from 'lucide-react';
-import { useTheme } from '@/components/theme-provider';
+import React from "react";
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
   const getIcon = () => {
-    return theme === 'dark' ? (
+    return theme === "dark" ? (
       <Moon className="w-4 h-4" />
     ) : (
       <Sun className="w-4 h-4" />
@@ -16,9 +16,7 @@ export function ThemeToggle() {
   };
 
   const getLabel = () => {
-    return theme === 'light' 
-      ? 'Switch to dark mode' 
-      : 'Switch to light mode';
+    return theme === "light" ? "Switch to dark mode" : "Switch to light mode";
   };
 
   return (

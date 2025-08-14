@@ -3,7 +3,14 @@
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bot, FileText, TrendingUp, Users, Briefcase, Star } from "lucide-react";
+import {
+  Bot,
+  FileText,
+  TrendingUp,
+  Users,
+  Briefcase,
+  Star,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -40,7 +47,8 @@ export default function DashboardPage() {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome back, <span className="text-emerald-400">{user.name || user.email}</span>!
+            Welcome back,{" "}
+            <span className="text-emerald-400">{user.name || user.email}</span>!
           </h1>
           <p className="text-slate-400 font-mono">
             Ready to discover your next opportunity?
@@ -88,8 +96,9 @@ export default function DashboardPage() {
               Welcome to the Beta!
             </h2>
             <p className="text-slate-300 mb-6 max-w-2xl mx-auto">
-              You&apos;re among the first to experience our AI-powered job discovery platform. 
-              Features are being added regularly, and your feedback helps shape the future of job hunting.
+              You&apos;re among the first to experience our AI-powered job
+              discovery platform. Features are being added regularly, and your
+              feedback helps shape the future of job hunting.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
