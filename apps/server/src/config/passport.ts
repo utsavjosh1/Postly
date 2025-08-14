@@ -3,8 +3,9 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { config } from "./env";
 import { UserService } from "../services/user.service";
 
-// Extend Express User interface for TypeScript
+// Extend Express User interface for TypeScript using global augmentation
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface User {
       id: string;
@@ -16,7 +17,7 @@ declare global {
 }
 
 // Serialize user for session
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: Express.User, done) => {
   console.log("🔒 Serializing user:", user.id);
   done(null, user.id);
 });

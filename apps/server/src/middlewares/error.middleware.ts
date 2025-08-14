@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from 'express';
-import ApiError from '../utils/ApiError';
+import type { Request, Response, NextFunction } from "express";
+import ApiError from "../utils/ApiError";
 
 /**
  * Type for async route handlers
@@ -7,7 +7,7 @@ import ApiError from '../utils/ApiError';
 type AsyncRouteHandler = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => Promise<void | Response>;
 
 /**
@@ -17,7 +17,7 @@ type AsyncRouteHandler = (
 const errorHandler = (
   error: Error | ApiError,
   req: Request,
-  res: Response
+  res: Response,
 ): void => {
   let apiError: ApiError;
 
@@ -27,13 +27,13 @@ const errorHandler = (
   } else {
     // Convert generic errors to ApiError
     const statusCode = 500;
-    const message = error.message || 'Internal Server Error';
+    const message = error.message || "Internal Server Error";
     apiError = new ApiError(statusCode, message, [], false, error.stack);
   }
 
   // Log error for debugging (only in development or for server errors)
-  if (process.env.NODE_ENV === 'development' || apiError.statusCode >= 500) {
-    console.error('API Error:', {
+  if (process.env.NODE_ENV === "development" || apiError.statusCode >= 500) {
+    console.error("API Error:", {
       statusCode: apiError.statusCode,
       message: apiError.message,
       errors: apiError.errors,
@@ -41,7 +41,7 @@ const errorHandler = (
       url: req.url,
       method: req.method,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get("User-Agent"),
     });
   }
 
@@ -63,7 +63,11 @@ const asyncHandler = (fn: AsyncRouteHandler) => {
  * Middleware to handle 404 errors
  * Should be placed after all routes but before error handler
  */
-const notFoundHandler = (req: Request, res: Response, next: NextFunction): void => {
+const notFoundHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
   const error = ApiError.notFound(`Route ${req.originalUrl} not found`);
   next(error);
 };

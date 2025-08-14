@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Users, Star } from 'lucide-react';
+import React from "react";
+import { Users, Star } from "lucide-react";
 
 export const CommunitySection: React.FC = () => {
   const communityItems = [
-    { 
-      title: 'Realtime Whiteboard', 
-      tags: ['WebRTC','tRPC','Next.js'], 
-      stars: 142 
+    {
+      title: "Realtime Whiteboard",
+      tags: ["WebRTC", "tRPC", "Next.js"],
+      stars: 142,
     },
-    { 
-      title: 'Rust Image Pipeline', 
-      tags: ['Rust','WASM','S3'], 
-      stars: 98 
+    {
+      title: "Rust Image Pipeline",
+      tags: ["Rust", "WASM", "S3"],
+      stars: 98,
     },
-    { 
-      title: 'LLM Docs Agent', 
-      tags: ['Python','OpenAI'], 
-      stars: 210 
+    {
+      title: "LLM Docs Agent",
+      tags: ["Python", "OpenAI"],
+      stars: 210,
     },
   ];
 
@@ -34,25 +34,29 @@ export const CommunitySection: React.FC = () => {
             Coming Soon
           </span>
         </div>
-        
+
         <div className="grid sm:grid-cols-3 gap-6 relative">
           {/* Overlay to indicate coming soon */}
           <div className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center transition-all duration-300">
             <div className="text-center p-6">
-              <div className="text-xl font-bold text-white mb-2">Coming Soon</div>
+              <div className="text-xl font-bold text-white mb-2">
+                Coming Soon
+              </div>
               <p className="text-sm text-white/90 leading-relaxed max-w-xs">
                 Community showcase featuring the best projects from our members
               </p>
             </div>
           </div>
-          
+
           {communityItems.map((item, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="rounded-xl border border-border/25 bg-background/60 p-5 hover:bg-background/80 transition-all duration-300 text-left focus:outline-none focus:ring-2 focus:ring-primary/30 opacity-60 shadow-sm backdrop-blur-sm group/item"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="font-semibold text-sm text-foreground">{item.title}</div>
+                <div className="font-semibold text-sm text-foreground">
+                  {item.title}
+                </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Star className="w-3 h-3 text-yellow-500 fill-current" />
                   {item.stars}
@@ -60,8 +64,8 @@ export const CommunitySection: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {item.tags.map((tag) => (
-                  <span 
-                    key={tag} 
+                  <span
+                    key={tag}
                     className="text-xs rounded-md bg-primary/8 text-primary border border-primary/20 px-2 py-1 font-medium"
                   >
                     {tag}

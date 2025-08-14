@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
-import type { Route } from '@/types';
+import { useState, useCallback } from "react";
+import type { Route } from "@/types";
 
 export function useNavigation() {
-  const [route, setRoute] = useState<Route>('home');
+  const [route, setRoute] = useState<Route>("home");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigateTo = useCallback((newRoute: Route) => {
@@ -11,7 +11,7 @@ export function useNavigation() {
   }, []);
 
   const toggleMobile = useCallback(() => {
-    setMobileOpen(prev => !prev);
+    setMobileOpen((prev) => !prev);
   }, []);
 
   return {
@@ -19,6 +19,6 @@ export function useNavigation() {
     mobileOpen,
     navigateTo,
     toggleMobile,
-    closeMobile: () => setMobileOpen(false)
+    closeMobile: () => setMobileOpen(false),
   };
 }

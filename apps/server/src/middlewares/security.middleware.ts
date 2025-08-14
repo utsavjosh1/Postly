@@ -75,7 +75,7 @@ export const generalRateLimit = rateLimit({
 export const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 50, // Allow 50 requests per windowMs without delay
-  delayMs: 100, // Add 100ms delay per request after delayAfter
+  delayMs: () => 100, // Add 100ms delay per request after delayAfter (new v2 syntax)
   maxDelayMs: 2000, // Max delay of 2 seconds
 });
 
@@ -141,6 +141,7 @@ export const errorHandler = (
   error: Error | ApiError,
   req: Request,
   res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void => {
   let apiError: ApiError;

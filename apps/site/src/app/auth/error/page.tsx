@@ -32,7 +32,7 @@ export default function AuthErrorPage() {
             <RefreshCw className="w-4 h-4 mr-2" />
             TRY AGAIN
           </Button>
-          
+
           <Link href="/">
             <Button
               variant="outline"

@@ -6,7 +6,6 @@ import passport from "passport";
 import { config } from "./config/env";
 import "./config/passport";
 import IndexRoute from "./routes/index.route";
-import jobsRouter from "./routes/jobs.route";
 import {
   securityHeaders,
   authRateLimit,
@@ -73,9 +72,6 @@ app.get("/health", (_, res) => {
 
 // API routes - Clean Prisma-based authentication
 app.use("/api/v1", IndexRoute);
-
-// Jobs API routes
-app.use("/api/jobs", jobsRouter);
 
 // 404 handler
 app.use("*", notFoundHandler);

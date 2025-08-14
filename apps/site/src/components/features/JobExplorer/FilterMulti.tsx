@@ -1,38 +1,47 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
-import { cx } from '@/lib/utils';
-import type { FilterProps } from '@/types';
+import React from "react";
+import { cx } from "@/lib/utils";
+import type { FilterProps } from "@/types";
 
-export const FilterMulti: React.FC<FilterProps> = ({ 
-  title, 
-  options, 
-  values, 
-  onToggle 
+export const FilterMulti: React.FC<FilterProps> = ({
+  title,
+  options,
+  values,
+  onToggle,
 }) => {
   return (
-    <div>
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-muted-foreground">{title}</div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        <label className="text-sm font-medium text-foreground">
+          {title}
+        </label>
+        {values.length > 0 && (
+          <span className="text-xs text-primary font-medium">
+            {values.length} selected
+          </span>
+        )}
       </div>
-      
-      <div className="mt-2 flex flex-wrap gap-2">
+
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isActive = values.includes(option);
+          const formattedOption = option.split('_').map(word => 
+            word.charAt(0) + word.slice(1).toLowerCase()
+          ).join(' ');
+          
           return (
             <button
               key={option}
               onClick={() => onToggle(option)}
               className={cx(
-                'text-xs rounded-full border px-3 py-1 transition',
-                isActive 
-                  ? 'border-border bg-white/10' 
-                  : 'border-border bg-secondary hover:bg-white/10'
+                "text-sm px-3 py-2 rounded-lg border font-medium transition-all duration-200",
+                isActive
+                  ? "border-primary bg-primary/10 text-primary shadow-sm"
+                  : "border-border bg-background/60 backdrop-blur-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border/50"
               )}
             >
-              {option}
+              {formattedOption}
             </button>
           );
         })}
