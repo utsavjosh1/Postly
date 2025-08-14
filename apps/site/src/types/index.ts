@@ -5,16 +5,42 @@ export interface Job {
   id: string;
   title: string;
   coreTitle?: string;
-  description?  : string;
+  description?: string;
   requirements?: string;
   location?: string;
-  workType: 'REMOTE' | 'ONSITE' | 'HYBRID' | 'FLEXIBLE' | 'UNKNOWN';
-  jobTypes: ('FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY' | 'INTERNSHIP' | 'FREELANCE' | 'VOLUNTEER' | 'SEASONAL' | 'UNKNOWN')[];
+  workType: "REMOTE" | "ONSITE" | "HYBRID" | "FLEXIBLE" | "UNKNOWN";
+  jobTypes: (
+    | "FULL_TIME"
+    | "PART_TIME"
+    | "CONTRACT"
+    | "TEMPORARY"
+    | "INTERNSHIP"
+    | "FREELANCE"
+    | "VOLUNTEER"
+    | "SEASONAL"
+    | "UNKNOWN"
+  )[];
   experience?: string;
   managementExperience?: string;
   category?: string;
-  roleType?: 'INDIVIDUAL_CONTRIBUTOR' | 'PEOPLE_MANAGER' | 'TECHNICAL_LEAD' | 'EXECUTIVE' | 'CONSULTANT' | 'UNKNOWN';
-  seniorityLevel?: 'INTERN' | 'ENTRY_LEVEL' | 'MID_LEVEL' | 'SENIOR_LEVEL' | 'STAFF_LEVEL' | 'PRINCIPAL_LEVEL' | 'DIRECTOR_LEVEL' | 'VP_LEVEL' | 'C_LEVEL' | 'UNKNOWN';
+  roleType?:
+    | "INDIVIDUAL_CONTRIBUTOR"
+    | "PEOPLE_MANAGER"
+    | "TECHNICAL_LEAD"
+    | "EXECUTIVE"
+    | "CONSULTANT"
+    | "UNKNOWN";
+  seniorityLevel?:
+    | "INTERN"
+    | "ENTRY_LEVEL"
+    | "MID_LEVEL"
+    | "SENIOR_LEVEL"
+    | "STAFF_LEVEL"
+    | "PRINCIPAL_LEVEL"
+    | "DIRECTOR_LEVEL"
+    | "VP_LEVEL"
+    | "C_LEVEL"
+    | "UNKNOWN";
   salary?: string;
   salaryMin?: number;
   salaryMax?: number;

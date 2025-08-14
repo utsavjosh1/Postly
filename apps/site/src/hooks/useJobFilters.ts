@@ -29,23 +29,28 @@ export function useJobFilters() {
       const matchesQuery =
         !query.trim() ||
         job.title.toLowerCase().includes(query.toLowerCase()) ||
-        job.company.toLowerCase().includes(query.toLowerCase()) ||
-        job.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
+        job.company.name.toLowerCase().includes(query.toLowerCase()) ||
+        job.skills.some((skill) =>
+          skill.name.toLowerCase().includes(query.toLowerCase()),
+        );
 
       const matchesStack =
         stackFilter.length === 0 ||
-        stackFilter.some((filter) => job.tags.includes(filter));
+        stackFilter.some((filter) =>
+          job.skills.some((skill) => skill.name.includes(filter)),
+        );
 
       const matchesLocation =
-        locationFilter.length === 0 || locationFilter.includes(job.loc);
+        locationFilter.length === 0 ||
+        (job.location && locationFilter.includes(job.location));
 
       return matchesQuery && matchesStack && matchesLocation;
     });
 
     return jobs.sort((a, b) =>
       sortAscending
-        ? a.company.localeCompare(b.company)
-        : b.company.localeCompare(a.company),
+        ? a.company.name.localeCompare(b.company.name)
+        : b.company.name.localeCompare(a.company.name),
     );
   }, [query, stackFilter, locationFilter, sortAscending]);
 

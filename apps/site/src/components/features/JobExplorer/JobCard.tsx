@@ -7,7 +7,7 @@ import {
   Building2,
   Bookmark,
   BookmarkCheck,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 import type { Job } from "@/types";
 
@@ -19,12 +19,12 @@ interface JobCardProps {
 
 const formatPostedDate = (dateString?: string) => {
   if (!dateString) return "Recently posted";
-  
+
   const date = new Date(dateString);
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 1) return "1 day ago";
   if (diffDays < 7) return `${diffDays} days ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
@@ -43,8 +43,8 @@ const JobCardComponent: React.FC<JobCardProps> = ({
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {job.company.logo ? (
             <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted border">
-              <Image 
-                src={job.company.logo} 
+              <Image
+                src={job.company.logo}
                 alt={job.company.name}
                 width={48}
                 height={48}
@@ -56,15 +56,17 @@ const JobCardComponent: React.FC<JobCardProps> = ({
               <Building2 className="w-6 h-6 text-muted-foreground" />
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground text-base leading-tight mb-1 line-clamp-2 group-hover:text-primary transition-colors">
               {job.title}
             </h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">{job.company.name}</p>
+            <p className="text-sm text-muted-foreground line-clamp-1">
+              {job.company.name}
+            </p>
           </div>
         </div>
-        
+
         <button
           onClick={onToggleSave}
           className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
@@ -113,7 +115,7 @@ const JobCardComponent: React.FC<JobCardProps> = ({
         {/* Description */}
         {job.description && (
           <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-            {job.description.replace(/<[^>]*>/g, '').substring(0, 120)}...
+            {job.description.replace(/<[^>]*>/g, "").substring(0, 120)}...
           </p>
         )}
       </div>
@@ -123,13 +125,13 @@ const JobCardComponent: React.FC<JobCardProps> = ({
         <span className="text-xs text-muted-foreground">
           {formatPostedDate(job.postedDate)}
         </span>
-        
+
         <div className="flex gap-2">
           <button className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted hover:bg-accent rounded-lg transition-colors">
             View
           </button>
           <a
-            href={job.applyUrl || '#'}
+            href={job.applyUrl || "#"}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors inline-flex items-center gap-1"

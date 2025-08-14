@@ -255,39 +255,41 @@ class Jobs {
   static getJobStats = asyncHandler(async (req: Request, res: Response) => {
     try {
       // Use faster aggregation queries with proper error handling
-      const [
-        totalJobs,
-        workTypeStats,
-        seniorityStats,
-        recentJobs,
-      ] = await Promise.all([
-        prisma.job.count().catch(() => 0),
-        prisma.job.groupBy({
-          by: ["workType"],
-          _count: { workType: true },
-        }).catch(() => []),
-        prisma.job.groupBy({
-          by: ["seniorityLevel"],
-          _count: { seniorityLevel: true },
-          where: { seniorityLevel: { not: null } },
-        }).catch(() => []),
-        prisma.job.count({
-          where: {
-            OR: [
-              {
-                postedDate: {
-                  gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-                },
+      const [totalJobs, workTypeStats, seniorityStats, recentJobs] =
+        await Promise.all([
+          prisma.job.count().catch(() => 0),
+          prisma.job
+            .groupBy({
+              by: ["workType"],
+              _count: { workType: true },
+            })
+            .catch(() => []),
+          prisma.job
+            .groupBy({
+              by: ["seniorityLevel"],
+              _count: { seniorityLevel: true },
+              where: { seniorityLevel: { not: null } },
+            })
+            .catch(() => []),
+          prisma.job
+            .count({
+              where: {
+                OR: [
+                  {
+                    postedDate: {
+                      gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+                    },
+                  },
+                  {
+                    createdAt: {
+                      gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days as fallback
+                    },
+                  },
+                ],
               },
-              {
-                createdAt: {
-                  gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days as fallback
-                },
-              },
-            ],
-          },
-        }).catch(() => 0),
-      ]);
+            })
+            .catch(() => 0),
+        ]);
 
       const stats = {
         totalJobs,
@@ -311,10 +313,10 @@ class Jobs {
           {} as Record<string, number>,
         ),
         topCategories: [
-          { category: 'Engineering', count: Math.floor(totalJobs * 0.4) },
-          { category: 'Design', count: Math.floor(totalJobs * 0.2) },
-          { category: 'Product', count: Math.floor(totalJobs * 0.15) }
-        ]
+          { category: "Engineering", count: Math.floor(totalJobs * 0.4) },
+          { category: "Design", count: Math.floor(totalJobs * 0.2) },
+          { category: "Product", count: Math.floor(totalJobs * 0.15) },
+        ],
       };
 
       res
@@ -323,20 +325,23 @@ class Jobs {
           ApiResponse.success(stats, "Job statistics retrieved successfully"),
         );
     } catch (error) {
-      console.error('Job stats error:', error);
+      console.error("Job stats error:", error);
       // Return basic stats if database query fails
       const basicStats = {
         totalJobs: 0,
         recentJobs: 0,
         workTypeDistribution: {},
         seniorityDistribution: {},
-        topCategories: []
+        topCategories: [],
       };
-      
+
       res
         .status(200)
         .json(
-          ApiResponse.success(basicStats, "Job statistics retrieved (basic mode)"),
+          ApiResponse.success(
+            basicStats,
+            "Job statistics retrieved (basic mode)",
+          ),
         );
     }
   });

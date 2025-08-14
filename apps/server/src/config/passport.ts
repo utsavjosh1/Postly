@@ -76,8 +76,8 @@ passport.use(
         console.error("❌ Google OAuth Error:", error);
         return done(error, false);
       }
-    }
-  )
+    },
+  ),
 );
 
 export default passport;

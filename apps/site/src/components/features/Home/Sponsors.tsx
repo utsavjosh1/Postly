@@ -1,24 +1,22 @@
-"use client"
+"use client";
 
-import Image from "next/image"
+import Image from "next/image";
 
-const sponsors = [
-  { name: "Vercel", logo: "/vercel.svg" },
-]
+const sponsors = [{ name: "Vercel", logo: "/vercel.svg" }];
 
 const mysterySponsors = [
   {
     name: "Mystery Partner",
     logo: "/internshala.jpg",
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    tooltip: "Not yet sponsoring us… but maybe someday 👀"
-  }
-]
+    tooltip: "Not yet sponsoring us… but maybe someday 👀",
+  },
+];
 
 export function Sponsers() {
   const handleMysteryClick = (url: string) => {
-    window.open(url, "_blank")
-  }
+    window.open(url, "_blank");
+  };
 
   return (
     <section className="py-16">
@@ -46,8 +44,8 @@ export function Sponsers() {
 
           {/* Mystery sponsors */}
           {mysterySponsors.map((mystery, index) => (
-            <div 
-              key={`mystery-${index}`} 
+            <div
+              key={`mystery-${index}`}
               className="flex flex-col items-center group cursor-pointer"
               onClick={() => handleMysteryClick(mystery.url)}
               title={mystery.tooltip}
@@ -62,9 +60,9 @@ export function Sponsers() {
                 />
               </div>
             </div>
-          ))} 
+          ))}
         </div>
       </div>
     </section>
-  )
+  );
 }
