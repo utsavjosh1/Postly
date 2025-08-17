@@ -63,3 +63,5 @@ packages/db/src/generated/
 **/prisma/generated/
 
 test.json
+
+about.md

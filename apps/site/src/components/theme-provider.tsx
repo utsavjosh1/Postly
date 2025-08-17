@@ -6,7 +6,6 @@ type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
@@ -22,55 +21,37 @@ export function useTheme() {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  defaultTheme?: Theme;
-  storageKey?: string;
 }
 
-export function ThemeProvider({
-  children,
-  defaultTheme = "light",
-  storageKey = "theme",
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
-  const [mounted, setMounted] = useState(false);
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>("dark");
 
-  // Initialize theme from localStorage
+  // Initialize theme on mount
   useEffect(() => {
-    setMounted(true);
-
-    const stored = localStorage.getItem(storageKey) as Theme;
+    const stored = localStorage.getItem("postly-theme") as Theme;
     if (stored && ["light", "dark"].includes(stored)) {
       setTheme(stored);
     }
-  }, [storageKey]);
+    
+    // Apply theme immediately
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(stored || "dark");
+  }, []);
 
   // Handle theme changes
   useEffect(() => {
-    if (!mounted) return;
-
-    // Update document class
-    const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-  }, [theme, mounted]);
-
-  const handleSetTheme = (newTheme: Theme) => {
-    setTheme(newTheme);
-    localStorage.setItem(storageKey, newTheme);
-  };
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
+    localStorage.setItem("postly-theme", theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    handleSetTheme(newTheme);
-  };
-
-  const value = {
-    theme,
-    setTheme: handleSetTheme,
-    toggleTheme,
+    setTheme(prev => prev === "light" ? "dark" : "light");
   };
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
   );
 }

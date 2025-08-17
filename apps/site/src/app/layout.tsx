@@ -5,7 +5,6 @@ import { Footer } from "@/components/layout/Footer";
 import { AmbientBackground } from "@/components/layout/AmbientBackground";
 import { AuthProvider } from "@/components/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeScript } from "@/components/theme-script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,8 +33,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeScript storageKey="postly-theme" />
-        <ThemeProvider defaultTheme="dark" storageKey="postly-theme">
+        <ThemeProvider>
           <AuthProvider>
             <div className="min-h-screen bg-background text-foreground font-sans">
               <AmbientBackground />
