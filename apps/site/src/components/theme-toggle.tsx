@@ -15,7 +15,11 @@ export function ThemeToggle() {
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
     >
       <div className="relative w-4 h-4 flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-110">
-        {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        {theme === "dark" ? (
+          <Moon className="w-4 h-4" />
+        ) : (
+          <Sun className="w-4 h-4" />
+        )}
       </div>
     </button>
   );

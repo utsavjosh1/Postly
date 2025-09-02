@@ -7,8 +7,8 @@
     "dev": "bun run tsx src/index.ts",
     "build": "tsc --noEmit false --outDir dist",
     "start": "bun run dist/index.js",
-    "docker:build": "docker build -t jobbot-server .",
-    "docker:run": "docker run -p 8000:8000 --env-file .env jobbot-server"
+    "docker:build": "docker build -t postly-server .",
+    "docker:run": "docker run -p 8000:8000 --env-file .env postly-server"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

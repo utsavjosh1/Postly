@@ -32,7 +32,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     if (stored && ["light", "dark"].includes(stored)) {
       setTheme(stored);
     }
-    
+
     // Apply theme immediately
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(stored || "dark");
@@ -46,7 +46,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === "light" ? "dark" : "light");
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   return (

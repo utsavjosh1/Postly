@@ -4,8 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -25,6 +25,7 @@ model User {
   applications JobApplication[]
   savedJobs    SavedJob[]
   profile      UserProfile?
+  skills       UserSkill[]
 
   @@map("users")
 }
@@ -70,26 +71,29 @@ model VerificationToken {
 
 // Core Job-related models
 model Company {
-  id          String  @id @default(cuid())
-  name        String  @unique @db.VarChar(255)
-  website     String? @db.VarChar(500)
-  tagline     String? @db.Text
-  industry    String? @db.VarChar(100)
-  employees   Int?
-  founded     Int?
+  id           String  @id @default(cuid())
+  externalId   String?
+  source       String?
+  name         String  @db.VarChar(255)
+  website      String? @db.VarChar(500)
+  tagline      String? @db.Text
+  industry     String? @db.VarChar(100)
+  employees    Int?
+  founded      Int?
   headquarters String? @db.VarChar(100)
-  isPublic    Boolean @default(false)
-  logo        String? @db.VarChar(500)
-  description String? @db.Text
-  
+  isPublic     Boolean @default(false)
+  logo         String? @db.VarChar(500)
+  description  String? @db.Text
+
   // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relationships
-  jobs        Job[]
-  
-  // Indexes for search performance
+  jobs Job[]
+
+  // Indexes
+  @@unique([source, externalId])
   @@index([name])
   @@index([industry])
   @@index([employees])
@@ -97,50 +101,56 @@ model Company {
 }
 
 model Job {
-  id                  String    @id // Using external ID as primary key
-  title               String    @db.VarChar(255)
-  coreTitle           String?   @db.VarChar(255)
-  description         String?   @db.Text
-  requirements        String?   @db.Text
-  
+  id         String  @id @default(cuid())
+  externalId String? // ID from LinkedIn, Indeed, etc.
+  source     String? // e.g. "linkedin", "indeed"
+
+  title        String  @db.VarChar(255)
+  coreTitle    String? @db.VarChar(255)
+  description  String? @db.Text
+  requirements String? @db.Text
+
   // Location and work arrangement
-  location            String?   @db.VarChar(255)
-  workType            WorkType  @default(ONSITE)
-  
+  location String?  @db.VarChar(255)
+  workType WorkType @default(ONSITE)
+
   // Employment details
-  jobTypes            JobType[]
-  experience          String?   @db.VarChar(100)
-  managementExperience String?  @db.VarChar(100)
-  category            String?   @db.VarChar(100)
-  roleType            RoleType? 
-  seniorityLevel      SeniorityLevel?
-  
+  jobTypes             JobType[] // kept for convenience, normalized with JobJobType
+  experience           String?   @db.VarChar(100)
+  managementExperience String?   @db.VarChar(100)
+  category             String?   @db.VarChar(100)
+  roleType             RoleType?
+  seniorityLevel       SeniorityLevel?
+
   // Compensation
-  salary              String?   @db.VarChar(100)
-  salaryMin           Int?      // Parsed minimum salary
-  salaryMax           Int?      // Parsed maximum salary
-  salaryCurrency      String?   @db.VarChar(10)
-  
+  salary         String?     @db.VarChar(100)
+  salaryMin      Int?
+  salaryMax      Int?
+  salaryCurrency String?     @db.VarChar(10)
+  salaryUnit     SalaryUnit? @default(ANNUAL)
+
   // External links
-  applyUrl            String?   @db.VarChar(1000)
-  
+  applyUrl String? @db.VarChar(1000)
+
   // Timestamps
-  postedDate          DateTime?
-  expiresAt           DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
+  postedDate DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   // Relationships
-  companyId           String
-  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  skills              JobSkill[]
-  applications        JobApplication[]
-  savedByUsers        SavedJob[]
-  
-  // Full-text search
-  searchVector        String?   @db.Text // For PostgreSQL full-text search
-  
-  // Indexes for performance
+  companyId    String?
+  company      Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  skills       JobSkill[]
+  applications JobApplication[]
+  savedByUsers SavedJob[]
+  JobJobType   JobJobType[]
+
+  // Search
+  searchVector String? @db.Text
+
+  // Indexes
+  @@unique([source, externalId])
   @@index([title])
   @@index([category])
   @@index([workType])
@@ -152,19 +162,17 @@ model Job {
 }
 
 model Skill {
-  id          String     @id @default(cuid())
-  name        String     @unique @db.VarChar(100)
-  category    String?    @db.VarChar(50)
-  description String?    @db.Text
-  
-  // Metadata
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
-  // Relationships
-  jobs        JobSkill[]
-  userSkills  UserSkill[]
-  
+  id          String  @id @default(cuid())
+  name        String  @unique @db.VarChar(100)
+  category    String? @db.VarChar(50)
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs       JobSkill[]
+  userSkills UserSkill[]
+
   @@index([name])
   @@index([category])
   @@map("skills")
@@ -174,55 +182,56 @@ model JobSkill {
   id      String @id @default(cuid())
   jobId   String
   skillId String
-  
-  // Relationships
-  job     Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
-  
+
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([jobId, skillId])
   @@map("job_skills")
 }
 
 model UserProfile {
-  id                String      @id @default(cuid())
-  userId            String      @unique
-  bio               String?     @db.Text
-  experience        String?     @db.VarChar(100)
-  location          String?     @db.VarChar(255)
-  resume            String?     @db.VarChar(500) // File path or URL
-  portfolio         String?     @db.VarChar(500)
-  linkedin          String?     @db.VarChar(500)
-  github            String?     @db.VarChar(500)
-  website           String?     @db.VarChar(500)
-  
-  // Job preferences
-  preferredWorkType WorkType?
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  bio        String? @db.Text
+  experience String? @db.VarChar(100)
+  location   String? @db.VarChar(255)
+  resume     String? @db.VarChar(500)
+  portfolio  String? @db.VarChar(500)
+  linkedin   String? @db.VarChar(500)
+  github     String? @db.VarChar(500)
+  website    String? @db.VarChar(500)
+
+  // Preferences
+  preferredWorkType  WorkType?
   preferredSalaryMin Int?
   preferredSalaryMax Int?
-  preferredLocations String[]   // Array of preferred locations
-  
-  // Metadata
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  
-  // Relationships
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skills            UserSkill[]
-  
+  preferredLocations String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_profiles")
 }
 
 model UserSkill {
-  id          String  @id @default(cuid())
+  id          String @id @default(cuid())
   userId      String
   skillId     String
-  proficiency Int     @default(1) @db.SmallInt // 1-5 scale
-  yearsExp    Int?    @db.SmallInt
-  
-  // Relationships
-  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
-  
+  proficiency Int    @default(1) @db.SmallInt
+  yearsExp    Int?   @db.SmallInt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([userId, skillId])
   @@map("user_skills")
 }
@@ -234,40 +243,49 @@ model JobApplication {
   status      ApplicationStatus @default(APPLIED)
   coverLetter String?           @db.Text
   notes       String?           @db.Text
-  
-  // Timestamps
-  appliedAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  
-  // Relationships
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  
+
+  appliedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
   @@unique([userId, jobId])
   @@index([status])
   @@index([appliedAt])
   @@map("job_applications")
 }
 
+model JobJobType {
+  jobId   String
+  jobType JobType
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([jobId, jobType])
+}
+
 model SavedJob {
-  id        String   @id @default(cuid())
-  userId    String
-  jobId     String
-  notes     String?  @db.Text
-  
-  // Timestamps
+  id     String  @id @default(cuid())
+  userId String
+  jobId  String
+  notes  String? @db.Text
+
   savedAt   DateTime @default(now())
-  
-  // Relationships
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
   @@unique([userId, jobId])
   @@index([savedAt])
   @@map("saved_jobs")
 }
 
-// Enums with comprehensive edge cases
+// Enums
 enum WorkType {
   REMOTE
   ONSITE
@@ -320,4 +338,13 @@ enum ApplicationStatus {
   REJECTED
   WITHDRAWN
   ON_HOLD
+}
+
+enum SalaryUnit {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  ANNUAL
+  UNKNOWN
 }
