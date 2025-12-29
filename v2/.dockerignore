@@ -56,3 +56,5 @@ docker-compose.yml
 .editorconfig
 .prettierrc
 .prettierignore
+
+guide

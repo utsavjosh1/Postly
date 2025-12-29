@@ -17,7 +17,8 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/config/*"
   ],
   "packageManager": "npm@10.9.0",
   "engines": {

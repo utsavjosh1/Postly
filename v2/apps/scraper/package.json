@@ -10,8 +10,8 @@
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
-    "@postly/database": "workspace:*",
-    "@postly/shared-types": "workspace:*",
+    "@postly/database": "*",
+    "@postly/shared-types": "*",
     "bullmq": "^5.31.3",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
@@ -19,8 +19,8 @@
     "playwright": "^1.49.1"
   },
   "devDependencies": {
-    "@postly/eslint-config": "workspace:*",
-    "@postly/typescript-config": "workspace:*",
+    "@postly/eslint-config": "*",
+    "@postly/typescript-config": "*",
     "@types/node": "^22.10.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

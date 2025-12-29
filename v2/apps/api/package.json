@@ -13,8 +13,8 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@postly/database": "workspace:*",
-    "@postly/shared-types": "workspace:*",
+    "@postly/database": "*",
+    "@postly/shared-types": "*",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.31.3",
     "cors": "^2.8.5",
@@ -29,8 +29,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@postly/eslint-config": "workspace:*",
-    "@postly/typescript-config": "workspace:*",
+    "@postly/eslint-config": "*",
+    "@postly/typescript-config": "*",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

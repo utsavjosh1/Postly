@@ -11,8 +11,8 @@
     "lint": "eslint src"
   },
   "devDependencies": {
-    "@postly/eslint-config": "workspace:*",
-    "@postly/typescript-config": "workspace:*",
+    "@postly/eslint-config": "*",
+    "@postly/typescript-config": "*",
     "typescript": "^5.7.2"
   }
 }

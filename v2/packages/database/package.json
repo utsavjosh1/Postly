@@ -18,8 +18,8 @@
     "pgvector": "^0.2.0"
   },
   "devDependencies": {
-    "@postly/eslint-config": "workspace:*",
-    "@postly/typescript-config": "workspace:*",
+    "@postly/eslint-config": "*",
+    "@postly/typescript-config": "*",
     "@types/pg": "^8.11.10",
     "dotenv": "^16.4.7",
     "typescript": "^5.7.2"
