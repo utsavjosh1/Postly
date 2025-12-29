@@ -1,0 +1,27 @@
+{
+  "name": "@postly/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src",
+    "migrate:up": "node -r dotenv/config dist/migrations/migrate.js up",
+    "migrate:down": "node -r dotenv/config dist/migrations/migrate.js down",
+    "migrate:create": "node scripts/create-migration.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1",
+    "pgvector": "^0.2.0"
+  },
+  "devDependencies": {
+    "@postly/eslint-config": "workspace:*",
+    "@postly/typescript-config": "workspace:*",
+    "@types/pg": "^8.11.10",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.7.2"
+  }
+}
