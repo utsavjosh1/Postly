@@ -1,0 +1,21 @@
+{
+  "name": "@postly/ai-utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "langchain": "^0.3.12",
+    "@postly/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@postly/typescript-config": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

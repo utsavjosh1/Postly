@@ -1,0 +1,28 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext ts"
+  },
+  "dependencies": {
+    "@postly/database": "workspace:*",
+    "@postly/shared-types": "workspace:*",
+    "bullmq": "^5.31.3",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@postly/eslint-config": "workspace:*",
+    "@postly/typescript-config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
