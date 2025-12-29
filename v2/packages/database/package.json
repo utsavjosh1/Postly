@@ -14,6 +14,7 @@
     "migrate:create": "node scripts/create-migration.js"
   },
   "dependencies": {
+    "@postly/shared-types": "*",
     "pg": "^8.13.1",
     "pgvector": "^0.2.0"
   },
