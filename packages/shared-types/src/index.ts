@@ -179,6 +179,50 @@ export interface ResumeFeedback {
   ats_score: number;
 }
 
+// Enhanced Chat types for persistence
+export interface Conversation {
+  id: string;
+  user_id: string;
+  title: string;
+  resume_id: string | null;
+  last_message_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  metadata?: MessageMetadata;
+  created_at: Date;
+}
+
+export interface MessageMetadata {
+  job_matches?: JobMatch[];
+  resume_feedback?: ResumeFeedback;
+  error?: string;
+}
+
+export interface CreateConversationRequest {
+  resume_id?: string;
+  initial_message?: string;
+}
+
+export interface SendMessageRequest {
+  message: string;
+  conversation_id: string;
+}
+
+export interface StreamChatResponse {
+  type: 'chunk' | 'complete' | 'error' | 'metadata';
+  content?: string;
+  metadata?: MessageMetadata;
+  message_id?: string;
+  error?: string;
+}
+
 // API Response types
 export interface ApiResponse<T = unknown> {
   success: boolean;

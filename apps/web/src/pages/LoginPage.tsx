@@ -1,53 +1,86 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { GradientText } from '../components/ui/GradientText';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { authService } from '../services/auth.service';
+import type { ApiError } from '../types/auth';
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
+    setErrors({});
+
+    try {
+      await authService.login(formData);
+      navigate('/');
+    } catch (error: any) {
+      if (error.response?.data) {
+        const apiError = error.response.data as ApiError;
+        if (apiError.errors) {
+          setErrors(apiError.errors);
+        } else {
+          setErrors({ general: apiError.message || 'Login failed. Please try again.' });
+        }
+      } else {
+        setErrors({ general: 'Network error. Please check your connection.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto py-12 animate-fade-in-up">
-      <Card variant="glass" className="p-8 md:p-10">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
+      <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Welcome Back to <GradientText>Postly</GradientText>
-          </h1>
-          <p className="text-gray-600">Sign in to continue your job search journey</p>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Welcome back</h1>
+          <p className="text-muted-foreground">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {errors.general && (
+            <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
+              <p className="text-sm text-error">{errors.general}</p>
+            </div>
+          )}
+
           <Input
             type="email"
-            label="Email Address"
+            label="Email"
             placeholder="you@example.com"
             required
             autoComplete="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            error={errors.email}
           />
 
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
               label="Password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               required
               autoComplete="current-password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              error={errors.password}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-10.5 text-gray-500 hover:text-primary-600 transition-colors text-sm font-medium"
+              className="absolute right-3 top-9 text-muted-foreground hover:text-foreground text-sm transition-colors"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? 'Hide' : 'Show'}
@@ -58,57 +91,27 @@ export function LoginPage() {
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="w-4 h-4 rounded border-border text-foreground focus:ring-ring"
               />
-              <span className="text-gray-600">Remember me</span>
+              <span className="text-muted-foreground">Remember me</span>
             </label>
-            <Link
-              to="/forgot-password"
-              className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
-            >
+            <Link to="/forgot-password" className="text-foreground hover:underline font-medium">
               Forgot password?
             </Link>
           </div>
 
           <Button type="submit" variant="primary" className="w-full" isLoading={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            Sign In
           </Button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground text-sm">
             Don't have an account?{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
-              Sign up for free
+            <Link to="/register" className="text-foreground font-medium hover:underline">
+              Sign up
             </Link>
           </p>
-        </div>
-
-        {/* Social login divider */}
-        <div className="mt-8">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-glass-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              className="glass px-4 py-2.5 rounded-lg hover:shadow-glass-lg transition-all duration-200 font-medium text-gray-700 hover:scale-105"
-            >
-              Google
-            </button>
-            <button
-              type="button"
-              className="glass px-4 py-2.5 rounded-lg hover:shadow-glass-lg transition-all duration-200 font-medium text-gray-700 hover:scale-105"
-            >
-              LinkedIn
-            </button>
-          </div>
         </div>
       </Card>
     </div>

@@ -1,26 +1,21 @@
 import { HTMLAttributes, forwardRef } from 'react';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'glass' | 'gradient';
-  hover?: boolean;
+  variant?: 'default' | 'elevated' | 'outline';
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className = '', variant = 'glass', hover = true, children, ...props }, ref) => {
-    const baseStyles = 'rounded-lg transition-all duration-300';
+  ({ className = '', variant = 'default', children, ...props }, ref) => {
+    const baseStyles = 'rounded-xl transition-all duration-200';
 
     const variantStyles = {
-      default: 'bg-white shadow-sm border border-gray-200',
-      glass: 'glass-card',
-      gradient: 'bg-gradient-primary text-white shadow-glow',
+      default: 'bg-card border border-border shadow-soft',
+      elevated: 'bg-card border border-border shadow-soft-md hover:shadow-soft-lg',
+      outline: 'bg-transparent border border-border',
     };
 
-    const hoverStyles = hover
-      ? 'hover:shadow-glass-lg hover:-translate-y-1 hover:scale-[1.02] cursor-pointer'
-      : '';
-
     return (
-      <div ref={ref} className={`${baseStyles} ${variantStyles[variant]} ${hoverStyles} ${className}`} {...props}>
+      <div ref={ref} className={`${baseStyles} ${variantStyles[variant]} ${className}`} {...props}>
         {children}
       </div>
     );

@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import jobRoutes from './routes/job.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/resumes', resumeRoutes);
+app.use('/api/v1/chat', chatRoutes);
 
 // Error handling
 app.use(notFoundHandler);

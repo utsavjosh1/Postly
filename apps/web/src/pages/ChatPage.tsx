@@ -1,20 +1,28 @@
-export function ChatPage() {
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h1 className="text-3xl font-bold mb-4">AI Job Assistant</h1>
-        <p className="text-gray-600 mb-6">
-          Chat with our AI to find the perfect job matches. Upload your resume to get started!
-        </p>
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useChatStore } from '../stores/chat.store';
+import { chatService } from '../services/chat.service';
+import { ChatSidebar } from '../components/chat/ChatSidebar';
+import { ChatMain } from '../components/chat/ChatMain';
 
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-          <div className="text-6xl mb-4">💬</div>
-          <h3 className="text-xl font-semibold mb-2">Coming Soon</h3>
-          <p className="text-gray-600">
-            ChatGPT-like interface for job matching will be available here.
-          </p>
-        </div>
-      </div>
+export function ChatPage() {
+  const { setConversations } = useChatStore();
+
+  const { data: conversations } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: chatService.getConversations,
+  });
+
+  useEffect(() => {
+    if (conversations) {
+      setConversations(conversations);
+    }
+  }, [conversations, setConversations]);
+
+  return (
+    <div className="fixed inset-0 bg-charcoal flex overflow-hidden">
+      <ChatSidebar />
+      <ChatMain />
     </div>
   );
 }
