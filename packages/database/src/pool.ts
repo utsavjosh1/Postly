@@ -6,8 +6,8 @@ const config: PoolConfig = {
   database: process.env.DB_NAME || 'postly',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  max: 10, // Reduced for low-memory environments
+  idleTimeoutMillis: 10000, // Close idle clients faster to save memory
   connectionTimeoutMillis: 2000, // Return an error if connection takes longer than 2 seconds
 };
 

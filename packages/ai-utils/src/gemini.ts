@@ -1,28 +1,65 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY is not set in environment variables');
+// Lazy initialization - only create client when first used
+let genAI: GoogleGenerativeAI | null = null;
+let geminiModelInstance: GenerativeModel | null = null;
+let geminiEmbeddingModelInstance: GenerativeModel | null = null;
+
+function getGenAI(): GoogleGenerativeAI {
+  if (!genAI) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not set in environment variables');
+    }
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+  return genAI;
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+function getGeminiModel(): GenerativeModel {
+  if (!geminiModelInstance) {
+    geminiModelInstance = getGenAI().getGenerativeModel({
+      model: 'gemini-pro',
+    });
+  }
+  return geminiModelInstance;
+}
 
-export const geminiModel = genAI.getGenerativeModel({
-  model: 'gemini-pro',
-});
+function getGeminiEmbeddingModel(): GenerativeModel {
+  if (!geminiEmbeddingModelInstance) {
+    geminiEmbeddingModelInstance = getGenAI().getGenerativeModel({
+      model: 'text-embedding-004',
+    });
+  }
+  return geminiEmbeddingModelInstance;
+}
 
-export const geminiEmbeddingModel = genAI.getGenerativeModel({
-  model: 'text-embedding-004',
-});
+// Export getters for backward compatibility
+export const geminiModel = {
+  get instance() {
+    return getGeminiModel();
+  },
+  generateContent: (prompt: string) => getGeminiModel().generateContent(prompt),
+  generateContentStream: (prompt: string) => getGeminiModel().generateContentStream(prompt),
+};
+
+export const geminiEmbeddingModel = {
+  get instance() {
+    return getGeminiEmbeddingModel();
+  },
+  embedContent: (content: string) => getGeminiEmbeddingModel().embedContent(content),
+};
 
 export async function generateText(prompt: string): Promise<string> {
-  const result = await geminiModel.generateContent(prompt);
+  const model = getGeminiModel();
+  const result = await model.generateContent(prompt);
   const response = result.response;
   return response.text();
 }
 
 export async function streamText(prompt: string): Promise<AsyncIterable<string>> {
-  const result = await geminiModel.generateContentStream(prompt);
+  const model = getGeminiModel();
+  const result = await model.generateContentStream(prompt);
 
   async function* streamGenerator() {
     for await (const chunk of result.stream) {

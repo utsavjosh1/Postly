@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/error-handler.js';
 import { notFoundHandler } from './middleware/not-found.js';
@@ -23,6 +24,32 @@ app.use(cors({
   credentials: true,
 }));
 
+// Global rate limiting - 100 requests per 15 minutes
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { message: 'Too many requests, please try again later' },
+  },
+});
+
+// Strict rate limiting for auth endpoints - 5 attempts per 15 minutes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { message: 'Too many authentication attempts, please try again later' },
+  },
+});
+
+app.use(globalLimiter);
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -33,7 +60,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/resumes', resumeRoutes);

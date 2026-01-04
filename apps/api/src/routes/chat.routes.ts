@@ -1,10 +1,24 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { ChatService } from '../services/chat.service';
 import { conversationQueries } from '@postly/database';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 const chatService = new ChatService();
+
+// Rate limit for AI chat - 10 requests per minute per user
+const chatStreamLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { message: 'Too many chat requests, please wait a moment' },
+  },
+});
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -113,7 +127,7 @@ router.delete('/conversations/:id', async (req, res, next) => {
  * POST /api/v1/chat/stream
  * Stream AI chat response using Server-Sent Events
  */
-router.post('/stream', async (req, res, next) => {
+router.post('/stream', chatStreamLimiter, async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const { message, conversation_id } = req.body;

@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector for vector search
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: postly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postly}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
+      POSTGRES_DB: ${DB_NAME:-postly}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./packages/database/migrations:/docker-entrypoint-initdb.d:ro
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=128MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=32MB
+      -c max_connections=30
+      -c random_page_cost=1.1
+    deploy:
+      resources:
+        limits:
+          memory: 180M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postly}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - postly-network
+
+  # Redis for job queue and caching
+  redis:
+    image: redis:7-alpine
+    container_name: postly-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 40mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --save 60 1
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 50M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - postly-network
+
+  # API Server
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: postly-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-postly}
+      DB_USER: ${DB_USER:-postly}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:?JWT secret required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT refresh secret required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Gemini API key required}
+      WEB_URL: ${WEB_URL:-http://localhost}
+      API_PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - postly-network
+
+  # Web Frontend (Nginx serving static React build)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: postly-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - postly-network
+
+  # Scraper Worker (BullMQ)
+  scraper:
+    build:
+      context: .
+      dockerfile: apps/scraper/Dockerfile
+    container_name: postly-scraper
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-postly}
+      DB_USER: ${DB_USER:-postly}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 60M
+    networks:
+      - postly-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  postly-network:
+    driver: bridge

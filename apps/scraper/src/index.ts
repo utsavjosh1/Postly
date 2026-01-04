@@ -1,12 +1,17 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { Worker } from 'bullmq';
 import Redis from 'ioredis';
 
-dotenv.config();
+// Load environment variables from root .env file
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+const redisHost = process.env.REDIS_HOST || 'localhost';
+const redisPort = parseInt(process.env.REDIS_PORT || '6379');
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: redisHost,
+  port: redisPort,
   maxRetriesPerRequest: null,
 });
 
@@ -34,7 +39,7 @@ worker.on('failed', (job, err) => {
 });
 
 console.log('🔍 Scraper service started');
-console.log(`📍 Connected to Redis at ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`);
+console.log(`📍 Connecting to Redis at ${redisHost}:${redisPort}`);
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
