@@ -3,7 +3,7 @@ import { Router } from 'express';
 const router = Router();
 
 // GET /api/v1/jobs
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   res.json({ message: 'Get jobs - Coming soon' });
 });
 
@@ -13,7 +13,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/v1/jobs (for employers)
-router.post('/', (req, res) => {
+router.post('/', (_req, res) => {
   res.json({ message: 'Create job - Coming soon' });
 });
 

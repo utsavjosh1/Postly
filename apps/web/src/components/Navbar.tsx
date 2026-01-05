@@ -1,11 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useIsMobile } from '../hooks/useMediaQuery';
 import { ThemeToggle } from './ui/ThemeToggle';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isMobile = useIsMobile();
   const location = useLocation();
 
   // Close mobile menu when route changes

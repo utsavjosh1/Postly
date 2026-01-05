@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { z } from 'zod';
 import { userQueries } from '@postly/database';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth.js';
 import type { AuthResponse } from '@postly/shared-types';
 
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
+const JWT_REFRESH_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN || '30d') as SignOptions['expiresIn'];
 
 // Validation schemas
 const registerSchema = z.object({
@@ -30,14 +30,15 @@ const refreshSchema = z.object({
 });
 
 // POST /api/v1/auth/register
-router.post('/register', async (req, res, next) => {
+router.post('/register', async (req, res, next): Promise<void> => {
   try {
     const validation = registerSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: { message: validation.error.errors[0].message },
       });
+      return;
     }
 
     const { email, password, full_name } = validation.data;
@@ -45,10 +46,11 @@ router.post('/register', async (req, res, next) => {
     // Check if user already exists
     const existingUser = await userQueries.findByEmail(email);
     if (existingUser) {
-      return res.status(409).json({
+      res.status(409).json({
         success: false,
         error: { message: 'User with this email already exists' },
       });
+      return;
     }
 
     // Hash password
@@ -98,14 +100,15 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/v1/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', async (req, res, next): Promise<void> => {
   try {
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: { message: validation.error.errors[0].message },
       });
+      return;
     }
 
     const { email, password } = validation.data;
@@ -113,19 +116,21 @@ router.post('/login', async (req, res, next) => {
     // Find user
     const user = await userQueries.findByEmail(email);
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: 'Invalid email or password' },
       });
+      return;
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: 'Invalid email or password' },
       });
+      return;
     }
 
     // Generate tokens
@@ -164,14 +169,15 @@ router.post('/login', async (req, res, next) => {
 });
 
 // POST /api/v1/auth/refresh
-router.post('/refresh', async (req, res, next) => {
+router.post('/refresh', async (req, res, next): Promise<void> => {
   try {
     const validation = refreshSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: { message: validation.error.errors[0].message },
       });
+      return;
     }
 
     const { refresh_token } = validation.data;
@@ -181,26 +187,29 @@ router.post('/refresh', async (req, res, next) => {
     try {
       decoded = jwt.verify(refresh_token, JWT_REFRESH_SECRET) as { id: string; type: string };
     } catch {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: 'Invalid or expired refresh token' },
       });
+      return;
     }
 
     if (decoded.type !== 'refresh') {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: 'Invalid token type' },
       });
+      return;
     }
 
     // Get user
     const user = await userQueries.findById(decoded.id);
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: 'User not found' },
       });
+      return;
     }
 
     // Generate new access token
@@ -220,14 +229,15 @@ router.post('/refresh', async (req, res, next) => {
 });
 
 // GET /api/v1/auth/me
-router.get('/me', authenticateToken, async (req, res, next) => {
+router.get('/me', authenticateToken, async (req, res, next): Promise<void> => {
   try {
     const user = await userQueries.findById(req.user!.id);
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: { message: 'User not found' },
       });
+      return;
     }
 
     res.json({

@@ -21,23 +21,24 @@ declare global {
 /**
  * Middleware to authenticate JWT token
  */
-export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       error: { message: 'Access token required' },
     });
+    return;
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
     req.user = decoded;
     next();
-  } catch (error) {
-    return res.status(401).json({
+  } catch {
+    res.status(401).json({
       success: false,
       error: { message: 'Invalid or expired token' },
     });

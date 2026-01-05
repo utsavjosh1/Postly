@@ -3,12 +3,12 @@ import { Router } from 'express';
 const router = Router();
 
 // POST /api/v1/resumes/upload
-router.post('/upload', (req, res) => {
+router.post('/upload', (_req, res) => {
   res.json({ message: 'Upload resume - Coming soon' });
 });
 
 // GET /api/v1/resumes
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   res.json({ message: 'Get user resumes - Coming soon' });
 });
 

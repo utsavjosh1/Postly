@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { ChatService } from '../services/chat.service';
+import { ChatService } from '../services/chat.service.js';
 import { conversationQueries } from '@postly/database';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 const chatService = new ChatService();
@@ -11,7 +11,7 @@ const chatService = new ChatService();
 const chatStreamLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => req.user?.id || req.ip || 'anonymous',
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -70,17 +70,18 @@ router.post('/conversations', async (req, res, next) => {
  * GET /api/v1/chat/conversations/:id
  * Get a single conversation with all messages
  */
-router.get('/conversations/:id', async (req, res, next) => {
+router.get('/conversations/:id', async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
 
     const conversation = await conversationQueries.findById(id, userId);
     if (!conversation) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: { message: 'Conversation not found' },
       });
+      return;
     }
 
     const messages = await conversationQueries.getMessages(id);
@@ -101,17 +102,18 @@ router.get('/conversations/:id', async (req, res, next) => {
  * DELETE /api/v1/chat/conversations/:id
  * Delete a conversation
  */
-router.delete('/conversations/:id', async (req, res, next) => {
+router.delete('/conversations/:id', async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
 
     const deleted = await conversationQueries.delete(id, userId);
     if (!deleted) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: { message: 'Conversation not found' },
       });
+      return;
     }
 
     res.json({
@@ -127,25 +129,27 @@ router.delete('/conversations/:id', async (req, res, next) => {
  * POST /api/v1/chat/stream
  * Stream AI chat response using Server-Sent Events
  */
-router.post('/stream', chatStreamLimiter, async (req, res, next) => {
+router.post('/stream', chatStreamLimiter, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { message, conversation_id } = req.body;
 
     if (!message || !conversation_id) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: { message: 'message and conversation_id are required' },
       });
+      return;
     }
 
     // Verify conversation belongs to user
     const conversation = await conversationQueries.findById(conversation_id, userId);
     if (!conversation) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: { message: 'Conversation not found' },
       });
+      return;
     }
 
     // Set SSE headers

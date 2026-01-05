@@ -1,11 +1,18 @@
 import { pool } from '../pool';
-import type { User, CreateUserInput } from '@postly/shared-types';
+import type { User, UserRole } from '@postly/shared-types';
+
+interface CreateUserDbInput {
+  email: string;
+  password_hash: string;
+  full_name?: string;
+  role?: UserRole;
+}
 
 export const userQueries = {
   /**
    * Create a new user
    */
-  async create(input: CreateUserInput & { password_hash: string }): Promise<User> {
+  async create(input: CreateUserDbInput): Promise<User> {
     const { email, password_hash, full_name, role = 'job_seeker' } = input;
 
     const result = await pool.query<User>(

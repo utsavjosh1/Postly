@@ -1,7 +1,6 @@
 import { streamText, generateText } from '@postly/ai-utils';
 import { conversationQueries, resumeQueries } from '@postly/database';
-import { pool } from '@postly/database';
-import type { StreamChatResponse, MessageMetadata } from '@postly/shared-types';
+import type { StreamChatResponse, MessageMetadata, Message } from '@postly/shared-types';
 
 export class ChatService {
   /**
@@ -46,8 +45,8 @@ Be professional, encouraging, and specific in your responses.${resumeContext}`;
 
       // 5. Prepare conversation history
       const conversationHistory = messages
-        .filter((m) => m.role !== 'system')
-        .map((m) => `${m.role}: ${m.content}`)
+        .filter((m: Message) => m.role !== 'system')
+        .map((m: Message) => `${m.role}: ${m.content}`)
         .join('\n');
 
       const fullPrompt = `${systemPrompt}\n\nConversation:\n${conversationHistory}\nuser: ${userMessage}\nassistant:`;
