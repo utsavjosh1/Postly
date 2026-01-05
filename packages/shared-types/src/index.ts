@@ -37,6 +37,7 @@ export interface Resume {
   skills?: string[];
   experience_years?: number;
   education?: EducationEntry[];
+  embedding?: number[] | string;
   created_at: Date;
 }
 

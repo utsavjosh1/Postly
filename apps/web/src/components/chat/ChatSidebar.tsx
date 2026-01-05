@@ -1,51 +1,124 @@
+import { useState } from 'react';
+import { Plus, Settings } from 'lucide-react';
 import { useChatStore } from '../../stores/chat.store';
 import { chatService } from '../../services/chat.service';
 import { ConversationList } from './ConversationList';
+import { ResumeSelector } from './ResumeSelector';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/Dialog';
+import { Button } from '../ui/Button';
 
 export function ChatSidebar() {
   const { addConversation, setActiveConversation } = useChatStore();
+  const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>();
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleNewChat = async () => {
-    const conv = await chatService.createConversation();
-    addConversation(conv);
-    setActiveConversation(conv.id);
+    setIsCreating(true);
+    try {
+      const conv = await chatService.createConversation(selectedResumeId);
+      addConversation(conv);
+      setActiveConversation(conv.id);
+      setIsNewChatDialogOpen(false);
+      setSelectedResumeId(undefined);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleQuickNewChat = async () => {
+    setIsCreating(true);
+    try {
+      const conv = await chatService.createConversation();
+      addConversation(conv);
+      setActiveConversation(conv.id);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
-    <aside className="w-70 h-full bg-charcoal border-r border-zinc-800 flex flex-col">
-      {/* Header with New Chat button */}
-      <div className="p-4 border-b border-zinc-800">
-        <button
-          onClick={handleNewChat}
-          className="w-full px-4 py-3 bg-zinc-100 hover:bg-white text-zinc-900 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Chat</span>
-        </button>
-      </div>
+    <>
+      <aside className="w-70 h-full bg-charcoal border-r border-zinc-800 flex flex-col">
+        {/* Header with New Chat button */}
+        <div className="p-4 border-b border-zinc-800 space-y-2">
+          <button
+            onClick={() => setIsNewChatDialogOpen(true)}
+            className="w-full px-4 py-3 bg-zinc-100 hover:bg-white text-zinc-900 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>New Chat</span>
+          </button>
+          <button
+            onClick={handleQuickNewChat}
+            disabled={isCreating}
+            className="w-full px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            Quick chat (no resume)
+          </button>
+        </div>
 
-      {/* Conversation list - scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        <ConversationList />
-      </div>
+        {/* Conversation list - scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <ConversationList />
+        </div>
 
-      {/* Footer with settings */}
-      <div className="p-4 border-t border-zinc-800">
-        <button className="w-full px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        {/* Footer with settings */}
+        <div className="p-4 border-t border-zinc-800">
+          <button className="w-full px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            <span>Settings</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* New Chat Dialog */}
+      <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start New Chat</DialogTitle>
+            <DialogDescription>
+              Select a resume to get personalized career advice and job recommendations.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Select Resume (Optional)
+            </label>
+            <ResumeSelector
+              value={selectedResumeId}
+              onChange={setSelectedResumeId}
+              className="w-full"
             />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Settings</span>
-        </button>
-      </div>
-    </aside>
+            <p className="text-xs text-muted-foreground mt-2">
+              {selectedResumeId
+                ? 'The AI will use your resume to provide personalized advice.'
+                : 'Start without a resume for general career questions.'}
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewChatDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleNewChat} disabled={isCreating}>
+              {isCreating ? 'Creating...' : 'Start Chat'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

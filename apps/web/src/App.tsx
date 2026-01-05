@@ -4,6 +4,8 @@ import { HomePage } from '@pages/HomePage';
 import { LoginPage } from '@pages/LoginPage';
 import { RegisterPage } from '@pages/RegisterPage';
 import { ChatPage } from '@pages/ChatPage';
+import { ResumePage } from '@pages/ResumePage';
+import { JobsPage } from '@pages/JobsPage';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
         <Route path="chat" element={<ChatPage />} />
+        <Route path="resume" element={<ResumePage />} />
+        <Route path="jobs" element={<JobsPage />} />
       </Routes>
     </BrowserRouter>
   );

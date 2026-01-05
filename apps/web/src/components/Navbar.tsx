@@ -24,6 +24,8 @@ export function Navbar() {
   }, [isMobileMenuOpen]);
 
   const navLinks = [
+    { to: '/resume', label: 'Resume' },
+    { to: '/jobs', label: 'Jobs' },
     { to: '/chat', label: 'AI Chat' },
     { to: '/login', label: 'Login' },
   ];

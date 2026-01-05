@@ -45,4 +45,20 @@ export const resumeQueries = {
     );
     return result.rows[0] || null;
   },
+
+  async delete(id: string, userId: string): Promise<boolean> {
+    const result = await pool.query(
+      `DELETE FROM resumes WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    return result.rowCount !== null && result.rowCount > 0;
+  },
+
+  async findByIdWithUser(id: string, userId: string): Promise<Resume | null> {
+    const result = await pool.query<Resume>(
+      `SELECT * FROM resumes WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    return result.rows[0] || null;
+  },
 };
