@@ -1,24 +1,27 @@
 {
+  "name": "postly-v2",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
-    "turbo": "^2.5.5"
+    "prettier": "^3.3.3",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
   },
-  "name": "with-vite-react",
-  "packageManager": "bun@1.1.22",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/config/*"
   ],
-  "trustedDependencies": [
-    "@tailwindcss/oxide",
-    "unrs-resolver"
-  ]
+  "packageManager": "npm@10.9.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }

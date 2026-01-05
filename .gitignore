@@ -1,65 +1,50 @@
-# Environment files
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Production
+dist
+build
+.next
+out
+
+# Misc
+.DS_Store
+*.pem
 .env
 .env.local
-.env.development
-.env.test
 .env.production
+.env.*.local
 
-# Dependencies
-node_modules/
-.npm
-.yarn-integrity
-
-# Build outputs
-dist/
-dist-ssr/
-build/
-.turbo/
-server/dist
-public/dist
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Logs
-logs
-*.log
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+.pnpm-debug.log*
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Turbo
+.turbo
 
-# IDE files
-.vscode/
-.idea/
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
 *.swp
 *.swo
-*.local
+*~
 
-# Cache
-.cache
+# OS
+Thumbs.db
 
-# GCP deployment files
-.gcloudignore
-gcp-key.json
+# Docker
+*.log
 
-# Supabase
-.supabase/
 
-# Prisma generated files
-packages/db/src/generated/
-**/prisma/generated/
-
-test.json
+guide

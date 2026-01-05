@@ -1,0 +1,136 @@
+@import 'tailwindcss';
+
+/* ========================================
+   Clean & Minimal Design System
+   CSS Variables for Light/Dark Themes
+   ======================================== */
+
+:root {
+  /* Light Mode - Clean & Professional */
+  --color-background: #ffffff;
+  --color-foreground: #18181b;
+
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-ring: #3b82f6;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #18181b;
+
+  /* Primary - Dark in light mode */
+  --color-primary: #18181b;
+  --color-primary-foreground: #fafafa;
+
+  /* Accent */
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #18181b;
+
+  /* Scrollbar */
+  --scrollbar-track: #f4f4f5;
+  --scrollbar-thumb: #d4d4d8;
+  --scrollbar-thumb-hover: #a1a1aa;
+}
+
+.dark {
+  /* Dark Mode - Clean & Modern */
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #3b82f6;
+
+  --color-card: #18181b;
+  --color-card-foreground: #fafafa;
+
+  /* Primary - Light in dark mode */
+  --color-primary: #fafafa;
+  --color-primary-foreground: #18181b;
+
+  /* Accent */
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
+
+  /* Scrollbar */
+  --scrollbar-track: #18181b;
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-thumb-hover: #52525b;
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+/* Respect user preferences for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible for better keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ========================================
+   Custom Scrollbar - Clean & Minimal
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
