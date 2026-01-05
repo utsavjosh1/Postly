@@ -17,6 +17,7 @@ out
 *.pem
 .env
 .env.local
+.env.production
 .env.*.local
 
 # Debug
