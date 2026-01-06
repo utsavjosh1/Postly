@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { GradientBackground } from "@components/Gradientbackground";
+import { GradientBackground } from "@components/GradientBackground";
 
 export function HomePage() {
   return (
