@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { GradientBackground } from "@components/Gradientbackground";
 
 export function HomePage() {
   return (
     <div className="min-h-screen w-full h-full flex flex-col items-center justify-center bg-background">  
+      <GradientBackground />
       {/* Hero Section */}
       <section className="w-full flex items-center justify-center">
         <div className="text-center space-y-8">
