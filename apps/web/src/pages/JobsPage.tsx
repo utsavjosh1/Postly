@@ -240,7 +240,7 @@ export function JobsPage() {
       <main className="container mx-auto px-4 py-8">
         {/* AI Matching Banner */}
         {!selectedResumeId && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl">
+          <div className="mb-6 p-4 bg-linear-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl">
             <div className="flex items-center gap-3">
               <Sparkles className="w-6 h-6 text-primary" />
               <div>

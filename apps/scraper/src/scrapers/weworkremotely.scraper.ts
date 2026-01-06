@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import { BaseScraper, type ScrapedJob } from './base.scraper';
-import type { JobSource, JobType } from '@postly/shared-types';
+import type { JobSource } from '@postly/shared-types';
 
 const BASE_URL = 'https://weworkremotely.com';
 
@@ -10,11 +10,12 @@ export class WeWorkRemotelyScraper extends BaseScraper {
   async scrape(): Promise<ScrapedJob[]> {
     const jobs: ScrapedJob[] = [];
 
-    // Scrape programming category
+    // Scrape multiple categories
     const categories = [
-      '/remote-jobs/search?term=developer',
-      '/remote-jobs/search?term=engineer',
-      '/remote-jobs/search?term=software',
+      '/categories/remote-programming-jobs',
+      '/categories/remote-design-jobs',
+      '/categories/remote-devops-sysadmin-jobs',
+      '/categories/remote-data-jobs',
     ];
 
     for (const category of categories) {
@@ -26,7 +27,7 @@ export class WeWorkRemotelyScraper extends BaseScraper {
       }
 
       // Rate limiting - wait between requests
-      await this.delay(1000);
+      await this.delay(2000);
     }
 
     // Deduplicate by source_url
@@ -44,35 +45,40 @@ export class WeWorkRemotelyScraper extends BaseScraper {
     const url = `${BASE_URL}${category}`;
     console.log(`[WWR] Fetching ${url}`);
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const html = await response.text();
+    const html = await this.fetchWithBrowser(url, 'section.jobs');
     const $ = cheerio.load(html);
     const jobs: ScrapedJob[] = [];
+    const jobUrls: string[] = [];
 
-    // WWR uses <article> elements for job listings
-    $('article.job').each((_, element) => {
+    // WWR uses <li> elements inside job sections
+    $('section.jobs li').each((_, element) => {
       try {
         const $el = $(element);
-        const $link = $el.find('a').first();
+
+        // Skip view-all links
+        if ($el.hasClass('view-all')) return;
+
+        const $link = $el.find('a[href*="/remote-jobs/"]').first();
         const href = $link.attr('href');
 
-        if (!href) return;
+        if (!href || !href.includes('/remote-jobs/')) return;
 
+        const fullUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
+
+        // Avoid duplicates in this batch
+        if (jobUrls.includes(fullUrl)) return;
+        jobUrls.push(fullUrl);
+
+        // Get basic info from listing
         const title = $el.find('.title').text().trim();
-        const company = $el.find('.company').text().trim();
+        const company = $el.find('.company span.company').text().trim() ||
+          $el.find('.company').first().text().trim().split('\n')[0].trim();
         const region = $el.find('.region').text().trim();
+        const dateText = $el.find('.listing-date__date, time').text().trim();
 
         if (!title || !company) return;
+
+        const postedAt = this.parsePostedDate(dateText);
 
         const job: ScrapedJob = {
           title,
@@ -80,8 +86,9 @@ export class WeWorkRemotelyScraper extends BaseScraper {
           description: `${title} position at ${company}. ${region ? `Location: ${region}.` : ''} Remote opportunity from WeWorkRemotely.`,
           location: region || 'Remote',
           remote: true,
-          source_url: href.startsWith('http') ? href : `${BASE_URL}${href}`,
+          source_url: fullUrl,
           job_type: this.inferJobType(title),
+          posted_at: postedAt,
         };
 
         jobs.push(job);
@@ -90,24 +97,23 @@ export class WeWorkRemotelyScraper extends BaseScraper {
       }
     });
 
-    // Also try alternative selector for some pages
-    $('li.feature').each((_, element) => {
+    // Also try alternative structure
+    $('article.job, .job-listing').each((_, element) => {
       try {
         const $el = $(element);
-        const $link = $el.find('a[href*="/remote-jobs/"]');
+        const $link = $el.find('a[href*="/remote-jobs/"]').first();
         const href = $link.attr('href');
 
         if (!href) return;
 
-        const title = $el.find('.title').text().trim() || $link.text().trim();
+        const fullUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
+        if (jobUrls.includes(fullUrl)) return;
+        jobUrls.push(fullUrl);
+
+        const title = $el.find('.title, h3, h2').first().text().trim();
         const company = $el.find('.company').text().trim();
 
         if (!title || !company) return;
-
-        const sourceUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
-
-        // Skip if we already have this job
-        if (jobs.some(j => j.source_url === sourceUrl)) return;
 
         const job: ScrapedJob = {
           title,
@@ -115,29 +121,71 @@ export class WeWorkRemotelyScraper extends BaseScraper {
           description: `${title} position at ${company}. Remote opportunity from WeWorkRemotely.`,
           location: 'Remote',
           remote: true,
-          source_url: sourceUrl,
+          source_url: fullUrl,
           job_type: this.inferJobType(title),
         };
 
         jobs.push(job);
       } catch (error) {
-        console.warn('[WWR] Failed to parse feature element:', error);
+        console.warn('[WWR] Failed to parse article element:', error);
       }
     });
 
     console.log(`[WWR] Found ${jobs.length} jobs in ${category}`);
-    return jobs;
+
+    // Fetch details for each job (with rate limiting)
+    const detailedJobs: ScrapedJob[] = [];
+    for (const job of jobs.slice(0, 20)) {
+      // Limit to first 20 per category
+      try {
+        const detailed = await this.scrapeJobDetails(job);
+        detailedJobs.push(detailed);
+        await this.delay(1500); // Rate limit
+      } catch (error) {
+        console.warn(`[WWR] Failed to get details for ${job.title}:`, error);
+        detailedJobs.push(job); // Use basic info if detail fetch fails
+      }
+    }
+
+    return detailedJobs;
   }
 
-  private inferJobType(title: string): JobType {
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('intern')) return 'internship';
-    if (lowerTitle.includes('contract') || lowerTitle.includes('contractor')) return 'contract';
-    if (lowerTitle.includes('part-time') || lowerTitle.includes('part time')) return 'part-time';
-    return 'full-time';
-  }
+  private async scrapeJobDetails(job: ScrapedJob): Promise<ScrapedJob> {
+    try {
+      const html = await this.fetchWithBrowser(job.source_url, '.listing-container');
+      const $ = cheerio.load(html);
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+      // Get full description
+      const description =
+        $('.listing-container .listing-description, .job-description').text().trim() ||
+        $('.listing-container').text().trim();
+
+      // Get company info
+      const companyInfo = $('.company-card, .listing-logo-container').text().trim();
+
+      // Look for salary info
+      const salaryText = $('[class*="salary"], .compensation').text().trim();
+      const salary = this.parseSalary(salaryText);
+
+      // Extract skills from description
+      const skills = this.extractSkills(description);
+
+      // Get more precise location
+      const location =
+        $('.listing-location, .location, [class*="region"]').first().text().trim() ||
+        job.location;
+
+      return {
+        ...job,
+        description: description || job.description,
+        skills_required: skills.length > 0 ? skills : undefined,
+        salary_min: salary.min,
+        salary_max: salary.max,
+        location,
+      };
+    } catch (error) {
+      console.warn(`[WWR] Error fetching job details: ${error}`);
+      return job;
+    }
   }
 }

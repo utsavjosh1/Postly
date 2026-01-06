@@ -41,7 +41,7 @@ export function ConversationList() {
                   {conv.resume_id && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="flex-shrink-0">
+                        <span className="shrink-0">
                           <FileText className="w-3.5 h-3.5 text-primary" />
                         </span>
                       </TooltipTrigger>
