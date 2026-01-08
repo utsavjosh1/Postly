@@ -3,9 +3,11 @@ import { Layout } from "@components/Layout";
 import { HomePage } from "@pages/HomePage";
 import { LoginPage } from "@pages/LoginPage";
 import { RegisterPage } from "@pages/RegisterPage";
+import { AuthCallbackPage } from "@pages/AuthCallbackPage";
 import { ChatPage } from "@pages/ChatPage";
 import { ResumePage } from "@pages/ResumePage";
 import { JobsPage } from "@pages/JobsPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -15,11 +17,34 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="auth/callback" element={<AuthCallbackPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-        <Route path="chat" element={<ChatPage />} />
-        <Route path="resume" element={<ResumePage />} />
-        <Route path="jobs" element={<JobsPage />} />
+        
+        <Route
+          path="chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="resume"
+          element={
+            <ProtectedRoute>
+              <ResumePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="jobs"
+          element={
+            <ProtectedRoute>
+              <JobsPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

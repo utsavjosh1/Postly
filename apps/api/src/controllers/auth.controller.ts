@@ -4,16 +4,12 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import { z } from "zod";
 import { userQueries } from "@postly/database";
 import type { AuthResponse, User } from "@postly/shared-types";
+import { JWT_SECRET, JWT_REFRESH_SECRET, WEB_URL } from "../config/secrets.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "change-this-refresh-secret";
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ||
   "7d") as SignOptions["expiresIn"];
 const JWT_REFRESH_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN ||
   "30d") as SignOptions["expiresIn"];
-
-const WEB_URL = process.env.WEB_URL || "http://localhost:3001";
 
 // Validation schemas
 const registerSchema = z.object({
@@ -237,7 +233,7 @@ export class AuthController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const user = await userQueries.findById(req.user!.id);
+      const user = await userQueries.findById((req.user as any).id);
       if (!user) {
         res.status(404).json({
           success: false,

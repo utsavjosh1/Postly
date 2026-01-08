@@ -1,4 +1,4 @@
-import { FileText, Trash2 } from "lucide-react";
+import { FileText, Trash2, MessageSquare } from "lucide-react";
 import { useChatStore } from "../../stores/chat.store";
 import { chatService } from "../../services/chat.service";
 import {
@@ -33,46 +33,64 @@ export function ConversationList() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-1 p-2">
+      <div className="space-y-1">
         {conversations.map((conv) => (
           <button
             key={conv.id}
             onClick={() => handleSelectConversation(conv.id)}
-            className={`w-full px-3 py-3 rounded-lg text-left transition-colors group ${
+            className={`w-full px-3 py-3 rounded-lg text-left transition-all duration-200 group border relative overflow-hidden ${
               activeConversationId === conv.id
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+                ? "bg-primary/10 border-primary/20 text-foreground shadow-sm"
+                : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
-            <div className="flex items-start justify-between gap-2">
+            {/* Active Indication Bar */}
+            {activeConversationId === conv.id && (
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l" />
+            )}
+
+            <div className="flex items-start justify-between gap-3 pl-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium truncate flex-1">
+                  {conv.resume_id ? (
+                     <Tooltip>
+                      <TooltipTrigger asChild>
+                        <FileText className={`w-4 h-4 shrink-0 transition-colors ${
+                          activeConversationId === conv.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        }`} />
+                      </TooltipTrigger>
+                      <TooltipContent>Resume Context</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <MessageSquare className={`w-4 h-4 shrink-0 transition-colors ${
+                       activeConversationId === conv.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                    }`} />
+                  )}
+                  
+                  <p className={`text-sm font-medium truncate flex-1 ${
+                    activeConversationId === conv.id ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                  }`}>
                     {conv.title}
                   </p>
-                  {conv.resume_id && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="shrink-0">
-                          <FileText className="w-3.5 h-3.5 text-primary" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>Resume context enabled</TooltipContent>
-                    </Tooltip>
-                  )}
                 </div>
               </div>
 
               <button
                 onClick={(e) => handleDeleteConversation(conv.id, e)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                className="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md -mr-1"
                 aria-label="Delete conversation"
               >
-                <Trash2 className="w-4 h-4 text-red-400" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </button>
         ))}
+        {conversations.length === 0 && (
+          <div className="text-center py-8 px-4">
+            <p className="text-sm text-muted-foreground">No conversations yet.</p>
+            <p className="text-xs text-muted-foreground/80 mt-1">Start a new chat to begin.</p>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
