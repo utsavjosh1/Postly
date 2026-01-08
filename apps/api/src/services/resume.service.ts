@@ -91,7 +91,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
         summary: typeof parsed.summary === "string" ? parsed.summary : "",
       };
     } catch (error) {
-      console.error("Failed to parse AI response:", error);
+      console.error("Failed to parse AI response:", error instanceof Error ? error.message : "Unknown error");
       // Return default analysis if parsing fails
       return {
         skills: [],
@@ -137,8 +137,8 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
 
       return updatedResume || resume;
     } catch (error) {
-      console.error("Error processing resume:", error);
-      // Return the basic resume if processing fails
+      // Safe error logging to avoid log injection
+      console.error("Error processing resume:", error instanceof Error ? error.message : "Unknown error");
       // The user can retry analysis later
       return resume;
     }

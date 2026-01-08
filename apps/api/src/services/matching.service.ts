@@ -1,6 +1,6 @@
 import { generateText, generateEmbedding } from "@postly/ai-utils";
 import { resumeQueries, jobQueries } from "@postly/database";
-import type { Job, JobMatch, Resume } from "@postly/shared-types";
+import type { Job, JobMatch, Resume, EducationEntry } from "@postly/shared-types";
 import { pool } from "@postly/database";
 
 interface MatchedJob extends Job {
@@ -46,7 +46,7 @@ export class MatchingService {
     );
 
     // Convert similarity to percentage score
-    return matchedJobs.map((job) => ({
+    return matchedJobs.map((job: any) => ({
       ...job,
       match_score: Math.round(job.similarity * 100),
     }));
@@ -99,7 +99,7 @@ export class MatchingService {
 Candidate Profile:
 - Skills: ${resume.skills?.join(", ") || "Not specified"}
 - Experience: ${resume.experience_years || 0} years
-- Education: ${resume.education?.map((e) => `${e.degree} from ${e.institution}`).join(", ") || "Not specified"}
+- Education: ${resume.education?.map((e: EducationEntry) => `${e.degree} from ${e.institution}`).join(", ") || "Not specified"}
 
 Job:
 - Title: ${job.title}

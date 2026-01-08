@@ -1,14 +1,72 @@
 # Postly Deployment Guide
 
-## Quick Reference
+## Quick Start (Production)
 
-| Environment  | Command                                             |
-| ------------ | --------------------------------------------------- |
-| Local Dev    | `npm run dev`                                       |
-| Docker Build | `docker compose -f docker-compose.prod.yml build`   |
-| Docker Start | `docker compose -f docker-compose.prod.yml up -d`   |
-| Docker Stop  | `docker compose -f docker-compose.prod.yml down`    |
-| View Logs    | `docker compose -f docker-compose.prod.yml logs -f` |
+> [!NOTE]
+> Optimized for low-resource VPS (~1GB RAM).
+
+### 1. Initial Setup
+Run the automated setup script. This will check dependencies, copy environment files, and generate secure secrets.
+
+```bash
+make setup
+```
+
+### 2. Configure Keys
+Open `.env` and fill in any missing required keys found by the script (e.g., `GEMINI_API_KEY`, `DISCORD_TOKEN`).
+
+```bash
+nano .env
+```
+
+### 3. Launch
+Start the entire stack in detached mode.
+
+```bash
+make up
+```
+
+---
+
+## Management
+
+| Action | Command | Description |
+| :--- | :--- | :--- |
+| **Start** | `make up` | Start all services (detached) |
+| **Stop** | `make down` | Stop all services |
+| **Logs** | `make logs` | Follow logs for all services |
+| **Restart** | `make restart` | Soft restart all services |
+| **Status** | `docker ps` | View running containers |
+
+## Shell Access
+
+```bash
+# Enter API container
+make shell-api
+
+# Enter Database container
+make shell-db
+```
+
+## Database Management
+
+```bash
+# Create a backup (saved to ./backups/)
+make backup-db
+
+# Restore from backup
+# Cat the file into the restore command
+cat backups/backup_FILE.sql | docker compose -f docker-compose.prod.yml exec -T postgres psql -U postly postly
+```
+
+## Troubleshooting
+
+- **Permissions**: If `make setup` fails, try `chmod +x scripts/setup.sh`.
+- **Memory Issues**: If services crash with `137` code, they are out of memory. 
+    - Check usage: `docker stats`
+    - Adjust `deploy.resources.limits` in `docker-compose.prod.yml`.
+    - Adjust `NODE_OPTIONS="--max-old-space-size=..."` in `docker-compose.prod.yml`.
+
 
 ---
 

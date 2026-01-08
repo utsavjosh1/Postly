@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { Redis } from "ioredis";
+import { User } from "@postly/shared-types";
+
+// ...
 
 // Initialize Redis client
 // Using the same connection config as the main app
@@ -19,7 +22,8 @@ interface RateLimitConfig {
 export const createStrictRateLimiter = (config: RateLimitConfig) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user?.id) {
+      const user = (req as Request & { user?: User }).user;
+      if (!user?.id) {
         res.status(401).json({
           success: false,
           error: { message: "Authentication required for rate limiting" },
@@ -27,7 +31,7 @@ export const createStrictRateLimiter = (config: RateLimitConfig) => {
         return;
       }
 
-      const userId = req.user.id;
+      const userId = user.id;
       const key = `${config.keyPrefix}:${userId}`;
 
       // Get current count
