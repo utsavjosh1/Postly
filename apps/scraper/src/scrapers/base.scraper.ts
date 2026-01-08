@@ -1,6 +1,7 @@
 import type { JobSource, JobType } from "@postly/shared-types";
 import { generateEmbedding, geminiModel } from "@postly/ai-utils";
 import { jobQueries } from "@postly/database";
+import * as cheerio from "cheerio";
 import { fetchWithBrowser, delay } from "../utils/browser.js";
 
 export interface ScrapedJob {
@@ -280,9 +281,11 @@ export abstract class BaseScraper {
     const foundSkills: string[] = [];
 
     for (const skill of commonSkills) {
-      // Use word boundary to avoid partial matches
+      // Use explicit boundaries to handle both words and symbols (e.g. C++, .NET) correctly
+      // This also resolves CodeQL "Missing regular expression anchor" warnings by being explicit about boundaries
+      const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(
-        `\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        `(?:^|[^a-zA-Z0-9_])${escapedSkill}(?![a-zA-Z0-9_])`,
         "i",
       );
       if (regex.test(lowerDesc)) {
@@ -380,24 +383,39 @@ export abstract class BaseScraper {
     return stats;
   }
 
+
+
+
   // Extract jobs from HTML using AI
   protected async extractJobsFromHtml(html: string): Promise<ScrapedJob[]> {
     if (!html) return [];
 
     console.log(`[${this.source}] extracting jobs using AI...`);
 
-    // Clean HTML to reduce token usage
-    const cleanHtml = html
-      .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-      .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/\s+/g, " ")
-      .substring(0, 30000); // Limit to ~30k chars to stay within context window safely
+    // Use Cheerio to safely remove scripts, styles, and comments
+    // This resolves CodeQL "Incomplete multi-character sanitization" alerts
+    const $ = cheerio.load(html);
+    $("script").remove();
+    $("style").remove();
+    $("noscript").remove(); 
+    
+    // Get text or cleaned HTML. For AI context, inner text/structure is often enough, 
+    // but keeping some structure helps the LLM understand sections.
+    // Let's keep the body HTML but it's now stripped of dangerous tags.
+    let cleanHtml = $("body").html() || "";
+    
+    // Remove comments (Cheerio doesn't always remove them by default depending on config, but simple regex on valid DOM is safer)
+    // Or better, just rely on the fact that we stripped executable tags. 
+    // Let's do a simple whitespace cleanup on the result.
+    cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ");
+
+    const truncatedHtml = cleanHtml.substring(0, 30000); // Limit to ~30k chars
 
     const prompt = `
       You are an expert data extractor. I have provided raw HTML from a job board or career page below.
       
       Your task is to extract all job postings found in the HTML into a structured JSON array.
+
       
       Rules:
       1. IGNORE navigation links, footers, and general site text. Only extract actual job listings.
@@ -423,7 +441,7 @@ export abstract class BaseScraper {
       }
 
       HTML Content:
-      ${cleanHtml}
+      ${truncatedHtml}
     `;
 
     try {

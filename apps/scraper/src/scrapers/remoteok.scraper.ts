@@ -114,13 +114,16 @@ export class RemoteOKScraper extends BaseScraper {
     // Remove HTML tags
     let text = html.replace(/<[^>]*>/g, " ");
     // Decode HTML entities
-    text = text
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+    // Decode HTML entities safely in a single pass to avoid double-unescaping
+    const entities: Record<string, string> = {
+      "&nbsp;": " ",
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&#39;": "'",
+    };
+    text = text.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, (entity) => entities[entity] || entity);
     // Clean up whitespace
     text = text.replace(/\s+/g, " ").trim();
     // Limit length

@@ -26,7 +26,7 @@ export function authenticateToken(
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
   if (!token) {
-    console.log("[AuthMiddleware] No token provided in header:", authHeader);
+    console.log("[AuthMiddleware] No token provided in header.");
     res.status(401).json({
       success: false,
       error: { message: "Access token required" },

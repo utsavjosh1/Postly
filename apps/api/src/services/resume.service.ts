@@ -137,8 +137,8 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
 
       return updatedResume || resume;
     } catch (error) {
-      console.error("Error processing resume:", error);
-      // Return the basic resume if processing fails
+      // Safe error logging to avoid log injection
+      console.error("Error processing resume:", error instanceof Error ? error.message : "Unknown error");
       // The user can retry analysis later
       return resume;
     }
