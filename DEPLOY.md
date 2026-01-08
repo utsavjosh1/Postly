@@ -2,13 +2,13 @@
 
 ## Quick Reference
 
-| Environment | Command |
-|-------------|---------|
-| Local Dev | `npm run dev` |
-| Docker Build | `docker compose -f docker-compose.prod.yml build` |
-| Docker Start | `docker compose -f docker-compose.prod.yml up -d` |
-| Docker Stop | `docker compose -f docker-compose.prod.yml down` |
-| View Logs | `docker compose -f docker-compose.prod.yml logs -f` |
+| Environment  | Command                                             |
+| ------------ | --------------------------------------------------- |
+| Local Dev    | `npm run dev`                                       |
+| Docker Build | `docker compose -f docker-compose.prod.yml build`   |
+| Docker Start | `docker compose -f docker-compose.prod.yml up -d`   |
+| Docker Stop  | `docker compose -f docker-compose.prod.yml down`    |
+| View Logs    | `docker compose -f docker-compose.prod.yml logs -f` |
 
 ---
 
@@ -33,6 +33,7 @@ npm run dev
 ```
 
 **Services:**
+
 - Web: http://localhost:3001
 - API: http://localhost:3000
 - PostgreSQL: localhost:5432
@@ -56,6 +57,7 @@ nano .env
 ```
 
 **Required .env changes for Docker:**
+
 ```env
 NODE_ENV=production
 
@@ -107,31 +109,34 @@ openssl rand -base64 24
 
 ## Memory Budget (~450MB)
 
-| Service | RAM Limit |
-|---------|-----------|
-| PostgreSQL | 180MB |
-| Redis | 50MB |
-| Nginx (Web) | 20MB |
-| API | 100MB |
-| Scraper | 60MB |
+| Service     | RAM Limit |
+| ----------- | --------- |
+| PostgreSQL  | 180MB     |
+| Redis       | 50MB      |
+| Nginx (Web) | 20MB      |
+| API         | 100MB     |
+| Scraper     | 60MB      |
 
 ---
 
 ## Common Operations
 
 ### Restart a Service
+
 ```bash
 docker compose -f docker-compose.prod.yml restart api
 docker compose -f docker-compose.prod.yml restart web
 ```
 
 ### View Service Logs
+
 ```bash
 docker compose -f docker-compose.prod.yml logs -f api
 docker compose -f docker-compose.prod.yml logs -f postgres
 ```
 
 ### Update and Redeploy
+
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml build
@@ -139,18 +144,21 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### Database Backup
+
 ```bash
 docker compose -f docker-compose.prod.yml exec postgres \
   pg_dump -U postly postly > backup_$(date +%Y%m%d).sql
 ```
 
 ### Database Restore
+
 ```bash
 cat backup.sql | docker compose -f docker-compose.prod.yml exec -T postgres \
   psql -U postly postly
 ```
 
 ### Enter Container Shell
+
 ```bash
 docker compose -f docker-compose.prod.yml exec api sh
 docker compose -f docker-compose.prod.yml exec postgres psql -U postly postly
@@ -176,6 +184,7 @@ docker compose -f docker-compose.prod.yml ps
 ## Troubleshooting
 
 ### Container won't start
+
 ```bash
 # Check logs for errors
 docker compose -f docker-compose.prod.yml logs api
@@ -185,6 +194,7 @@ netstat -tulpn | grep 80
 ```
 
 ### Database connection failed
+
 ```bash
 # Verify postgres is healthy
 docker compose -f docker-compose.prod.yml exec postgres pg_isready
@@ -194,6 +204,7 @@ docker compose -f docker-compose.prod.yml exec api env | grep DB_
 ```
 
 ### Out of memory
+
 ```bash
 # Check memory usage
 docker stats

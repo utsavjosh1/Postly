@@ -4,11 +4,18 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "lint": "eslint src"
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src"
   },
   "devDependencies": {
     "@postly/eslint-config": "*",

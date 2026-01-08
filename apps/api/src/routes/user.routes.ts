@@ -1,15 +1,11 @@
-import { Router } from 'express';
+import { Router } from "express";
+import { UserController } from "../controllers/user.controller.js";
+import { authenticateToken } from "../middleware/auth.js";
 
 const router = Router();
+const userController = new UserController();
 
-// GET /api/v1/users/profile
-router.get('/profile', (req, res) => {
-  res.json({ message: 'Get user profile - Coming soon' });
-});
-
-// PATCH /api/v1/users/profile
-router.patch('/profile', (req, res) => {
-  res.json({ message: 'Update user profile - Coming soon' });
-});
+router.get("/profile", authenticateToken, userController.getProfile);
+router.patch("/profile", authenticateToken, userController.updateProfile);
 
 export default router;

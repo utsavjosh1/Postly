@@ -7,7 +7,7 @@
     "dev": "tsx watch src/bot.ts",
     "build": "tsc",
     "start": "node dist/bot.js",
-    "lint": "eslint src --ext ts"
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext ts"
   },
   "dependencies": {
     "@postly/database": "*",

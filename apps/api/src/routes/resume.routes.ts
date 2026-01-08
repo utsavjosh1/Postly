@@ -1,20 +1,38 @@
-import { Router } from 'express';
+import { Router } from "express";
+import multer from "multer";
+import { authenticateToken } from "../middleware/auth.js";
+import { ResumeController } from "../controllers/resume.controller.js";
 
 const router = Router();
+const resumeController = new ResumeController();
 
-// POST /api/v1/resumes/upload
-router.post('/upload', (req, res) => {
-  res.json({ message: 'Upload resume - Coming soon' });
+// Configure multer for memory storage (we'll process the buffer directly)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only PDF and DOCX files are allowed."));
+    }
+  },
 });
 
-// GET /api/v1/resumes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get user resumes - Coming soon' });
-});
+// All resume routes require authentication
+router.use(authenticateToken);
 
-// GET /api/v1/resumes/:id
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get resume ${req.params.id} - Coming soon` });
-});
+router.post("/upload", upload.single("resume"), resumeController.uploadResume);
+router.get("/", resumeController.getResumes);
+router.get("/:id", resumeController.getResumeById);
+router.delete("/:id", resumeController.deleteResume);
+router.post("/:id/reanalyze", resumeController.reanalyzeResume);
 
 export default router;

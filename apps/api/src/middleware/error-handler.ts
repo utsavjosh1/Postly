@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from "express";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -7,23 +7,23 @@ export interface AppError extends Error {
 
 export function errorHandler(
   err: AppError,
-  req: Request,
+  _req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ) {
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  const message = err.message || "Internal Server Error";
 
   // Log error in development
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Error:', err);
+  if (process.env.NODE_ENV !== "production") {
+    console.error("Error:", err);
   }
 
   res.status(statusCode).json({
     success: false,
     error: {
       message,
-      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+      ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
     },
   });
 }
