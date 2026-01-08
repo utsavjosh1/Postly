@@ -91,7 +91,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
         summary: typeof parsed.summary === "string" ? parsed.summary : "",
       };
     } catch (error) {
-      console.error("Failed to parse AI response:", error);
+      console.error("Failed to parse AI response:", error instanceof Error ? error.message : "Unknown error");
       // Return default analysis if parsing fails
       return {
         skills: [],

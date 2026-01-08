@@ -402,12 +402,20 @@ export abstract class BaseScraper {
     // Get text or cleaned HTML. For AI context, inner text/structure is often enough, 
     // but keeping some structure helps the LLM understand sections.
     // Let's keep the body HTML but it's now stripped of dangerous tags.
+    // Remove comments safely using Cheerio
+    $.root()
+      .find("*")
+      .contents()
+      .filter((_, el: any) => el.type === "comment")
+      .remove();
+
+    // Get text or cleaned HTML. For AI context, inner text/structure is often enough, 
+    // but keeping some structure helps the LLM understand sections.
+    // Let's keep the body HTML but it's now stripped of dangerous tags.
     let cleanHtml = $("body").html() || "";
     
-    // Remove comments (Cheerio doesn't always remove them by default depending on config, but simple regex on valid DOM is safer)
-    // Or better, just rely on the fact that we stripped executable tags. 
-    // Let's do a simple whitespace cleanup on the result.
-    cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ");
+    // Clean up whitespace
+    cleanHtml = cleanHtml.replace(/\s+/g, " ");
 
     const truncatedHtml = cleanHtml.substring(0, 30000); // Limit to ~30k chars
 
