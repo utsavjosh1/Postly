@@ -42,7 +42,7 @@ export class GenericScraper extends BaseScraper {
                 job.source_url,
                 baseUrl.origin,
               ).toString();
-} catch {
+            } catch {
               // keep as is if invalid
             }
           }
