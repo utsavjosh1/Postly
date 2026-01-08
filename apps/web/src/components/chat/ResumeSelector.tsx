@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
-import { FileText } from 'lucide-react';
+import { useEffect } from "react";
+import { FileText } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/Select';
-import { useResumeStore } from '../../stores/resume.store';
-import { resumeService } from '../../services/resume.service';
+} from "../ui/Select";
+import { useResumeStore } from "../../stores/resume.store";
+import { resumeService } from "../../services/resume.service";
 
 interface ResumeSelectorProps {
   value?: string;
@@ -16,7 +16,11 @@ interface ResumeSelectorProps {
   className?: string;
 }
 
-export function ResumeSelector({ value, onChange, className }: ResumeSelectorProps) {
+export function ResumeSelector({
+  value,
+  onChange,
+  className,
+}: ResumeSelectorProps) {
   const { resumes, isLoading, setResumes, setLoading } = useResumeStore();
 
   useEffect(() => {
@@ -27,7 +31,7 @@ export function ResumeSelector({ value, onChange, className }: ResumeSelectorPro
           const data = await resumeService.getResumes();
           setResumes(data);
         } catch (error) {
-          console.error('Failed to load resumes:', error);
+          console.error("Failed to load resumes:", error);
         } finally {
           setLoading(false);
         }
@@ -40,23 +44,27 @@ export function ResumeSelector({ value, onChange, className }: ResumeSelectorPro
   const selectedResume = resumes.find((r) => r.id === value);
 
   const getResumeLabel = (fileUrl: string) => {
-    const filename = fileUrl.split('/').pop() || 'Resume';
-    return filename.length > 25 ? filename.substring(0, 22) + '...' : filename;
+    const filename = fileUrl.split("/").pop() || "Resume";
+    return filename.length > 25 ? filename.substring(0, 22) + "..." : filename;
   };
 
   return (
-    <Select value={value || ''} onValueChange={(v) => onChange(v || undefined)}>
+    <Select value={value || ""} onValueChange={(v) => onChange(v || undefined)}>
       <SelectTrigger className={className}>
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-muted-foreground" />
-          <SelectValue placeholder={isLoading ? 'Loading...' : 'Select resume'}>
-            {selectedResume ? getResumeLabel(selectedResume.file_url) : 'No resume selected'}
+          <SelectValue placeholder={isLoading ? "Loading..." : "Select resume"}>
+            {selectedResume
+              ? getResumeLabel(selectedResume.file_url)
+              : "No resume selected"}
           </SelectValue>
         </div>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="">
-          <span className="text-muted-foreground">No resume (general chat)</span>
+          <span className="text-muted-foreground">
+            No resume (general chat)
+          </span>
         </SelectItem>
         {resumes.map((resume) => (
           <SelectItem key={resume.id} value={resume.id}>

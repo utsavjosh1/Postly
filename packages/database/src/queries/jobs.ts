@@ -1,5 +1,10 @@
-import { pool } from '../pool';
-import type { Job, CreateJobInput, JobSearchFilters, JobSource } from '@postly/shared-types';
+import { pool } from "../pool";
+import type {
+  Job,
+  CreateJobInput,
+  JobSearchFilters,
+  JobSource,
+} from "@postly/shared-types";
 
 interface ScrapedJobInput {
   title: string;
@@ -37,12 +42,12 @@ export const jobQueries = {
         input.salary_max,
         input.job_type,
         input.remote || false,
-        employerId ? 'company_direct' : 'indeed',
+        employerId ? "company_direct" : "indeed",
         JSON.stringify(input.skills_required || []),
         input.experience_required,
         input.expires_at,
         employerId,
-      ]
+      ],
     );
     return result.rows[0];
   },
@@ -50,14 +55,15 @@ export const jobQueries = {
   async findBySourceUrl(sourceUrl: string): Promise<Job | null> {
     const result = await pool.query<Job>(
       `SELECT * FROM jobs WHERE source_url = $1`,
-      [sourceUrl]
+      [sourceUrl],
     );
     return result.rows[0] || null;
   },
 
   async upsertFromScraper(input: ScrapedJobInput): Promise<Job> {
     // Calculate default expiration if not provided (90 days from now)
-    const expiresAt = input.expires_at || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+    const expiresAt =
+      input.expires_at || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
     // Check if job already exists by source_url
     const existing = await this.findBySourceUrl(input.source_url);
@@ -83,7 +89,7 @@ export const jobQueries = {
           input.embedding ? JSON.stringify(input.embedding) : null,
           expiresAt,
           input.source_url,
-        ]
+        ],
       );
       return result.rows[0];
     }
@@ -113,12 +119,16 @@ export const jobQueries = {
         input.posted_at,
         input.embedding ? JSON.stringify(input.embedding) : null,
         expiresAt,
-      ]
+      ],
     );
     return result.rows[0];
   },
 
-  async findActive(filters?: JobSearchFilters, limit = 50, offset = 0): Promise<Job[]> {
+  async findActive(
+    filters?: JobSearchFilters,
+    limit = 50,
+    offset = 0,
+  ): Promise<Job[]> {
     let query = `SELECT * FROM jobs WHERE is_active = true`;
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -149,24 +159,31 @@ export const jobQueries = {
   },
 
   async findById(id: string): Promise<Job | null> {
-    const result = await pool.query<Job>(`SELECT * FROM jobs WHERE id = $1`, [id]);
+    const result = await pool.query<Job>(`SELECT * FROM jobs WHERE id = $1`, [
+      id,
+    ]);
     return result.rows[0] || null;
   },
 
-  async findMatchingByEmbedding(embedding: number[], limit = 20): Promise<(Job & { similarity: number })[]> {
+  async findMatchingByEmbedding(
+    embedding: number[],
+    limit = 20,
+  ): Promise<(Job & { similarity: number })[]> {
     const result = await pool.query<Job & { similarity: number }>(
       `SELECT *, 1 - (embedding <=> $1::vector) as similarity
        FROM jobs
        WHERE is_active = true AND embedding IS NOT NULL
        ORDER BY embedding <=> $1::vector
        LIMIT $2`,
-      [JSON.stringify(embedding), limit]
+      [JSON.stringify(embedding), limit],
     );
     return result.rows;
   },
 
   async countActive(): Promise<number> {
-    const result = await pool.query<{ count: string }>('SELECT COUNT(*) FROM jobs WHERE is_active = true');
+    const result = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) FROM jobs WHERE is_active = true",
+    );
     return parseInt(result.rows[0].count, 10);
   },
 
@@ -178,7 +195,7 @@ export const jobQueries = {
        WHERE is_active = true
          AND expires_at IS NOT NULL
          AND expires_at < NOW()
-       RETURNING id`
+       RETURNING id`,
     );
     return result.rowCount || 0;
   },
@@ -188,7 +205,7 @@ export const jobQueries = {
     const result = await pool.query(
       `DELETE FROM jobs
        WHERE created_at < NOW() - INTERVAL '1 year'
-       RETURNING id`
+       RETURNING id`,
     );
     return result.rowCount || 0;
   },
@@ -197,7 +214,7 @@ export const jobQueries = {
   async markInactive(sourceUrl: string): Promise<void> {
     await pool.query(
       `UPDATE jobs SET is_active = false, updated_at = NOW() WHERE source_url = $1`,
-      [sourceUrl]
+      [sourceUrl],
     );
   },
 
@@ -205,7 +222,7 @@ export const jobQueries = {
   async markInactiveById(id: string): Promise<void> {
     await pool.query(
       `UPDATE jobs SET is_active = false, updated_at = NOW() WHERE id = $1`,
-      [id]
+      [id],
     );
   },
 
@@ -216,7 +233,7 @@ export const jobQueries = {
        WHERE is_active = true AND source_url IS NOT NULL
        ORDER BY RANDOM()
        LIMIT $1`,
-      [limit]
+      [limit],
     );
     return result.rows;
   },

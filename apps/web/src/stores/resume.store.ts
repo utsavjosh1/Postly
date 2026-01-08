@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { Resume } from '@postly/shared-types';
+import { create } from "zustand";
+import type { Resume } from "@postly/shared-types";
 
 interface ResumeState {
   resumes: Resume[];
@@ -49,7 +49,8 @@ export const useResumeStore = create<ResumeState>((set) => ({
   updateResume: (resume) =>
     set((state) => ({
       resumes: state.resumes.map((r) => (r.id === resume.id ? resume : r)),
-      activeResume: state.activeResume?.id === resume.id ? resume : state.activeResume,
+      activeResume:
+        state.activeResume?.id === resume.id ? resume : state.activeResume,
     })),
 
   setUploading: (uploading) => set({ isUploading: uploading }),

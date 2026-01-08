@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   FileText,
   Trash2,
@@ -7,11 +7,11 @@ import {
   GraduationCap,
   ChevronDown,
   ChevronUp,
-} from 'lucide-react';
-import type { Resume } from '@postly/shared-types';
-import { cn } from '../../lib/utils';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
+} from "lucide-react";
+import type { Resume } from "@postly/shared-types";
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/Dialog';
-import { resumeService } from '../../services/resume.service';
-import { useResumeStore } from '../../stores/resume.store';
+} from "../ui/Dialog";
+import { resumeService } from "../../services/resume.service";
+import { useResumeStore } from "../../stores/resume.store";
 
 interface ResumeCardProps {
   resume: Resume;
@@ -44,7 +44,7 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
       removeResume(resume.id);
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      console.error('Failed to delete resume:', error);
+      console.error("Failed to delete resume:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -56,17 +56,17 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
       const updated = await resumeService.reanalyzeResume(resume.id);
       updateResume(updated);
     } catch (error) {
-      console.error('Failed to reanalyze resume:', error);
+      console.error("Failed to reanalyze resume:", error);
     } finally {
       setIsReanalyzing(false);
     }
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -76,9 +76,9 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
     <>
       <div
         className={cn(
-          'group bg-card border border-border rounded-xl p-4 transition-all duration-200',
-          'hover:shadow-md hover:border-primary/30',
-          isActive && 'ring-2 ring-primary border-primary'
+          "group bg-card border border-border rounded-xl p-4 transition-all duration-200",
+          "hover:shadow-md hover:border-primary/30",
+          isActive && "ring-2 ring-primary border-primary",
         )}
       >
         <div className="flex items-start justify-between gap-3">
@@ -88,18 +88,21 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
           >
             <div
               className={cn(
-                'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                hasAnalysis ? 'bg-primary/10' : 'bg-muted'
+                "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                hasAnalysis ? "bg-primary/10" : "bg-muted",
               )}
             >
               <FileText
-                className={cn('w-5 h-5', hasAnalysis ? 'text-primary' : 'text-muted-foreground')}
+                className={cn(
+                  "w-5 h-5",
+                  hasAnalysis ? "text-primary" : "text-muted-foreground",
+                )}
               />
             </div>
 
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-foreground truncate">
-                {resume.file_url.split('/').pop() || 'Resume'}
+                {resume.file_url.split("/").pop() || "Resume"}
               </h3>
               <p className="text-sm text-muted-foreground">
                 Uploaded {formatDate(resume.created_at)}
@@ -112,12 +115,14 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
               onClick={handleReanalyze}
               disabled={isReanalyzing || !resume.parsed_text}
               className={cn(
-                'p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
               title="Re-analyze resume"
             >
-              <RefreshCw className={cn('w-4 h-4', isReanalyzing && 'animate-spin')} />
+              <RefreshCw
+                className={cn("w-4 h-4", isReanalyzing && "animate-spin")}
+              />
             </button>
             <button
               onClick={() => setIsDeleteDialogOpen(true)}
@@ -143,7 +148,10 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
                 {resume.education && resume.education.length > 0 && (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <GraduationCap className="w-4 h-4" />
-                    <span>{resume.education.length} degree{resume.education.length !== 1 ? 's' : ''}</span>
+                    <span>
+                      {resume.education.length} degree
+                      {resume.education.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
                 )}
               </div>
@@ -151,11 +159,17 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
               {/* Skills Preview */}
               {resume.skills && resume.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {resume.skills.slice(0, isExpanded ? undefined : 5).map((skill) => (
-                    <Badge key={skill} variant="secondary" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+                  {resume.skills
+                    .slice(0, isExpanded ? undefined : 5)
+                    .map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
                   {!isExpanded && resume.skills.length > 5 && (
                     <Badge variant="outline" className="text-xs">
                       +{resume.skills.length - 5} more
@@ -165,7 +179,8 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
               )}
 
               {/* Expand/Collapse Button */}
-              {(resume.skills && resume.skills.length > 5) || (resume.education && resume.education.length > 0) ? (
+              {(resume.skills && resume.skills.length > 5) ||
+              (resume.education && resume.education.length > 0) ? (
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -185,24 +200,33 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
               ) : null}
 
               {/* Expanded Content */}
-              {isExpanded && resume.education && resume.education.length > 0 && (
-                <div className="pt-2 border-t border-border space-y-2">
-                  <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4" />
-                    Education
-                  </h4>
-                  {resume.education.map((edu, index) => (
-                    <div key={index} className="text-sm text-muted-foreground pl-6">
-                      <p className="font-medium text-foreground">{edu.degree}</p>
-                      <p>
-                        {edu.institution}
-                        {edu.year && ` (${edu.year})`}
-                      </p>
-                      {edu.field_of_study && <p className="text-xs">{edu.field_of_study}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {isExpanded &&
+                resume.education &&
+                resume.education.length > 0 && (
+                  <div className="pt-2 border-t border-border space-y-2">
+                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4" />
+                      Education
+                    </h4>
+                    {resume.education.map((edu, index) => (
+                      <div
+                        key={index}
+                        className="text-sm text-muted-foreground pl-6"
+                      >
+                        <p className="font-medium text-foreground">
+                          {edu.degree}
+                        </p>
+                        <p>
+                          {edu.institution}
+                          {edu.year && ` (${edu.year})`}
+                        </p>
+                        {edu.field_of_study && (
+                          <p className="text-xs">{edu.field_of_study}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
             </div>
           </>
         )}
@@ -226,11 +250,15 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
           <DialogHeader>
             <DialogTitle>Delete Resume</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this resume? This action cannot be undone.
+              Are you sure you want to delete this resume? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -238,7 +266,7 @@ export function ResumeCard({ resume, isActive, onSelect }: ResumeCardProps) {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

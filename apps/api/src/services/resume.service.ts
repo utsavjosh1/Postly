@@ -1,19 +1,24 @@
-import { generateText, generateEmbedding } from '@postly/ai-utils';
-import { resumeQueries } from '@postly/database';
-import type { Resume, ResumeAnalysis, EducationEntry } from '@postly/shared-types';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
+import { generateText, generateEmbedding } from "@postly/ai-utils";
+import { resumeQueries } from "@postly/database";
+import type {
+  Resume,
+  ResumeAnalysis,
+  EducationEntry,
+} from "@postly/shared-types";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
 
 export class ResumeService {
   /**
    * Parse file content based on type
    */
   async parseFile(buffer: Buffer, mimetype: string): Promise<string> {
-    if (mimetype === 'application/pdf') {
+    if (mimetype === "application/pdf") {
       return this.parsePDF(buffer);
     } else if (
-      mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      mimetype === 'application/msword'
+      mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mimetype === "application/msword"
     ) {
       return this.parseDOCX(buffer);
     }
@@ -57,12 +62,12 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
     try {
       // Clean up response - remove markdown code blocks if present
       let cleanJson = response.trim();
-      if (cleanJson.startsWith('```json')) {
+      if (cleanJson.startsWith("```json")) {
         cleanJson = cleanJson.slice(7);
-      } else if (cleanJson.startsWith('```')) {
+      } else if (cleanJson.startsWith("```")) {
         cleanJson = cleanJson.slice(3);
       }
-      if (cleanJson.endsWith('```')) {
+      if (cleanJson.endsWith("```")) {
         cleanJson = cleanJson.slice(0, -3);
       }
       cleanJson = cleanJson.trim();
@@ -71,23 +76,28 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
 
       return {
         skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-        experience_years: typeof parsed.experience_years === 'number' ? parsed.experience_years : 0,
-        education: Array.isArray(parsed.education) ? parsed.education.map((e: Partial<EducationEntry>) => ({
-          degree: e.degree || 'Unknown',
-          institution: e.institution || 'Unknown',
-          year: e.year,
-          field_of_study: e.field_of_study,
-        })) : [],
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+        experience_years:
+          typeof parsed.experience_years === "number"
+            ? parsed.experience_years
+            : 0,
+        education: Array.isArray(parsed.education)
+          ? parsed.education.map((e: Partial<EducationEntry>) => ({
+              degree: e.degree || "Unknown",
+              institution: e.institution || "Unknown",
+              year: e.year,
+              field_of_study: e.field_of_study,
+            }))
+          : [],
+        summary: typeof parsed.summary === "string" ? parsed.summary : "",
       };
     } catch (error) {
-      console.error('Failed to parse AI response:', error);
+      console.error("Failed to parse AI response:", error);
       // Return default analysis if parsing fails
       return {
         skills: [],
         experience_years: 0,
         education: [],
-        summary: 'Unable to analyze resume. Please try again.',
+        summary: "Unable to analyze resume. Please try again.",
       };
     }
   }
@@ -99,7 +109,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
     userId: string,
     fileUrl: string,
     fileBuffer: Buffer,
-    mimetype: string
+    mimetype: string,
   ): Promise<Resume> {
     // 1. Create initial resume record
     const resume = await resumeQueries.create(userId, fileUrl);
@@ -112,7 +122,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
       const analysis = await this.analyzeResume(parsedText);
 
       // 4. Generate embedding for vector search
-      const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(', ')} Experience: ${analysis.experience_years} years`;
+      const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(", ")} Experience: ${analysis.experience_years} years`;
       const embedding = await generateEmbedding(embeddingText);
 
       // 5. Update resume with analysis
@@ -122,12 +132,12 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
         analysis.skills,
         analysis.experience_years,
         analysis.education,
-        embedding
+        embedding,
       );
 
       return updatedResume || resume;
     } catch (error) {
-      console.error('Error processing resume:', error);
+      console.error("Error processing resume:", error);
       // Return the basic resume if processing fails
       // The user can retry analysis later
       return resume;
@@ -165,7 +175,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
     }
 
     const analysis = await this.analyzeResume(resume.parsed_text);
-    const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(', ')} Experience: ${analysis.experience_years} years`;
+    const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(", ")} Experience: ${analysis.experience_years} years`;
     const embedding = await generateEmbedding(embeddingText);
 
     return resumeQueries.updateAnalysis(
@@ -174,7 +184,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
       analysis.skills,
       analysis.experience_years,
       analysis.education,
-      embedding
+      embedding,
     );
   }
 }

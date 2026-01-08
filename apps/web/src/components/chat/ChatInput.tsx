@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSSEChat } from '../../hooks/useSSEChat';
-import { useChatStore } from '../../stores/chat.store';
+import { useState, useRef, useEffect } from "react";
+import { useSSEChat } from "../../hooks/useSSEChat";
+import { useChatStore } from "../../stores/chat.store";
 
 export function ChatInput() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage } = useSSEChat();
   const { isStreaming } = useChatStore();
@@ -11,7 +11,7 @@ export function ChatInput() {
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
     }
   }, [input]);
@@ -21,11 +21,11 @@ export function ChatInput() {
     if (!input.trim() || isStreaming) return;
 
     await sendMessage(input.trim());
-    setInput('');
+    setInput("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
@@ -42,7 +42,7 @@ export function ChatInput() {
             onKeyDown={handleKeyDown}
             placeholder="Ask about jobs, resumes, or career advice..."
             className="w-full px-4 py-3 pr-12 bg-charcoal border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 resize-none"
-            style={{ maxHeight: '240px' }}
+            style={{ maxHeight: "240px" }}
             disabled={isStreaming}
             rows={1}
           />
@@ -53,7 +53,12 @@ export function ChatInput() {
             className="absolute right-2 bottom-2 p-2 bg-zinc-100 hover:bg-white disabled:bg-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-500 rounded-lg transition-colors"
             aria-label="Send message"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -64,7 +69,9 @@ export function ChatInput() {
           </button>
         </div>
 
-        <p className="text-xs text-zinc-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
+        <p className="text-xs text-zinc-500 mt-2">
+          Press Enter to send, Shift+Enter for new line
+        </p>
       </form>
     </div>
   );

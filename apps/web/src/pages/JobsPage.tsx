@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Briefcase, Filter, RefreshCw, Sparkles } from 'lucide-react';
-import { JobCard } from '../components/jobs/JobCard';
-import { ResumeSelector } from '../components/chat/ResumeSelector';
-import { Skeleton } from '../components/ui/Skeleton';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { Input } from '../components/ui/Input';
-import { useJobStore } from '../stores/job.store';
-import { useResumeStore } from '../stores/resume.store';
-import { jobService } from '../services/job.service';
-import { authService } from '../services/auth.service';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Briefcase, Filter, RefreshCw, Sparkles } from "lucide-react";
+import { JobCard } from "../components/jobs/JobCard";
+import { ResumeSelector } from "../components/chat/ResumeSelector";
+import { Skeleton } from "../components/ui/Skeleton";
+import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
+import { Input } from "../components/ui/Input";
+import { useJobStore } from "../stores/job.store";
+import { useResumeStore } from "../stores/resume.store";
+import { jobService } from "../services/job.service";
+import { authService } from "../services/auth.service";
 
 export function JobsPage() {
   const navigate = useNavigate();
-  const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>();
+  const [selectedResumeId, setSelectedResumeId] = useState<
+    string | undefined
+  >();
   const [showFilters, setShowFilters] = useState(false);
 
   const {
@@ -39,7 +41,7 @@ export function JobsPage() {
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
@@ -58,7 +60,7 @@ export function JobsPage() {
       const data = await jobService.getJobs(filters);
       setJobs(data.jobs, data.total);
     } catch (error) {
-      console.error('Failed to load jobs:', error);
+      console.error("Failed to load jobs:", error);
     } finally {
       setLoading(false);
     }
@@ -70,19 +72,28 @@ export function JobsPage() {
       const data = await jobService.getMatches(resumeId, true, 20);
       setMatches(data);
     } catch (error) {
-      console.error('Failed to load matches:', error);
+      console.error("Failed to load matches:", error);
     } finally {
       setMatchLoading(false);
     }
   };
 
-  const handleSaveJob = async (jobId: string, matchScore = 0, explanation?: string) => {
+  const handleSaveJob = async (
+    jobId: string,
+    matchScore = 0,
+    explanation?: string,
+  ) => {
     if (!selectedResumeId) return;
     try {
-      await jobService.saveJob(jobId, selectedResumeId, matchScore, explanation);
+      await jobService.saveJob(
+        jobId,
+        selectedResumeId,
+        matchScore,
+        explanation,
+      );
       saveJob(jobId);
     } catch (error) {
-      console.error('Failed to save job:', error);
+      console.error("Failed to save job:", error);
     }
   };
 
@@ -91,7 +102,7 @@ export function JobsPage() {
       await jobService.unsaveJob(jobId);
       unsaveJob(jobId);
     } catch (error) {
-      console.error('Failed to unsave job:', error);
+      console.error("Failed to unsave job:", error);
     }
   };
 
@@ -115,7 +126,9 @@ export function JobsPage() {
                 <Briefcase className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Job Matches</h1>
+                <h1 className="text-xl font-semibold text-foreground">
+                  Job Matches
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {selectedResumeId
                     ? `${matches.length} jobs matched to your resume`
@@ -142,11 +155,13 @@ export function JobsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => (selectedResumeId ? loadMatches(selectedResumeId) : loadJobs())}
+                onClick={() =>
+                  selectedResumeId ? loadMatches(selectedResumeId) : loadJobs()
+                }
                 disabled={isLoading || isMatchLoading}
               >
                 <RefreshCw
-                  className={`w-4 h-4 ${isLoading || isMatchLoading ? 'animate-spin' : ''}`}
+                  className={`w-4 h-4 ${isLoading || isMatchLoading ? "animate-spin" : ""}`}
                 />
               </Button>
             </div>
@@ -161,7 +176,9 @@ export function JobsPage() {
                     type="checkbox"
                     checked={filters.remote === true}
                     onChange={(e) =>
-                      setFilters({ remote: e.target.checked ? true : undefined })
+                      setFilters({
+                        remote: e.target.checked ? true : undefined,
+                      })
                     }
                     className="rounded border-border"
                   />
@@ -169,9 +186,11 @@ export function JobsPage() {
                 </label>
 
                 <select
-                  value={filters.job_type || ''}
+                  value={filters.job_type || ""}
                   onChange={(e) =>
-                    setFilters({ job_type: e.target.value || undefined } as Parameters<typeof setFilters>[0])
+                    setFilters({
+                      job_type: e.target.value || undefined,
+                    } as Parameters<typeof setFilters>[0])
                   }
                   className="px-3 py-1.5 bg-background border border-border rounded-lg text-sm"
                 >
@@ -184,8 +203,10 @@ export function JobsPage() {
 
                 <Input
                   placeholder="Location..."
-                  value={filters.location || ''}
-                  onChange={(e) => setFilters({ location: e.target.value || undefined })}
+                  value={filters.location || ""}
+                  onChange={(e) =>
+                    setFilters({ location: e.target.value || undefined })
+                  }
                   className="w-48"
                 />
 
@@ -211,7 +232,11 @@ export function JobsPage() {
                     <Badge variant="secondary">
                       {filters.job_type}
                       <button
-                        onClick={() => setFilters({ job_type: undefined } as Parameters<typeof setFilters>[0])}
+                        onClick={() =>
+                          setFilters({ job_type: undefined } as Parameters<
+                            typeof setFilters
+                          >[0])
+                        }
                         className="ml-1 hover:text-destructive"
                       >
                         ×
@@ -244,10 +269,12 @@ export function JobsPage() {
             <div className="flex items-center gap-3">
               <Sparkles className="w-6 h-6 text-primary" />
               <div>
-                <h3 className="font-medium text-foreground">Get AI-Powered Job Matches</h3>
+                <h3 className="font-medium text-foreground">
+                  Get AI-Powered Job Matches
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Select a resume above to see jobs ranked by how well they match your skills and
-                  experience.
+                  Select a resume above to see jobs ranked by how well they
+                  match your skills and experience.
                 </p>
               </div>
             </div>
@@ -258,7 +285,10 @@ export function JobsPage() {
         {isLoading || isMatchLoading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-4">
+              <div
+                key={i}
+                className="bg-card border border-border rounded-xl p-4"
+              >
                 <div className="flex gap-4">
                   <Skeleton className="w-14 h-14 rounded-full" />
                   <div className="flex-1 space-y-3">
@@ -283,8 +313,10 @@ export function JobsPage() {
                 onSave={() =>
                   handleSaveJob(
                     job.id,
-                    'match_score' in job ? (job.match_score as number) : 0,
-                    'ai_explanation' in job ? (job.ai_explanation as string | undefined) : undefined
+                    "match_score" in job ? (job.match_score as number) : 0,
+                    "ai_explanation" in job
+                      ? (job.ai_explanation as string | undefined)
+                      : undefined,
                   )
                 }
                 onUnsave={() => handleUnsaveJob(job.id)}
@@ -294,11 +326,13 @@ export function JobsPage() {
         ) : (
           <div className="text-center py-12">
             <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground">No jobs found</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              No jobs found
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
               {selectedResumeId
-                ? 'No jobs match your resume yet. Check back later!'
-                : 'Try adjusting your filters or check back later.'}
+                ? "No jobs match your resume yet. Check back later!"
+                : "Try adjusting your filters or check back later."}
             </p>
           </div>
         )}

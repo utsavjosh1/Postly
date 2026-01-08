@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Plus, Settings } from 'lucide-react';
-import { useChatStore } from '../../stores/chat.store';
-import { chatService } from '../../services/chat.service';
-import { ConversationList } from './ConversationList';
-import { ResumeSelector } from './ResumeSelector';
+import { useState } from "react";
+import { Plus, Settings } from "lucide-react";
+import { useChatStore } from "../../stores/chat.store";
+import { chatService } from "../../services/chat.service";
+import { ConversationList } from "./ConversationList";
+import { ResumeSelector } from "./ResumeSelector";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/Dialog';
-import { Button } from '../ui/Button';
+} from "../ui/Dialog";
+import { Button } from "../ui/Button";
 
 export function ChatSidebar() {
   const { addConversation, setActiveConversation } = useChatStore();
   const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
-  const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>();
+  const [selectedResumeId, setSelectedResumeId] = useState<
+    string | undefined
+  >();
   const [isCreating, setIsCreating] = useState(false);
 
   const handleNewChat = async () => {
@@ -29,7 +31,7 @@ export function ChatSidebar() {
       setIsNewChatDialogOpen(false);
       setSelectedResumeId(undefined);
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      console.error("Failed to create conversation:", error);
     } finally {
       setIsCreating(false);
     }
@@ -42,7 +44,7 @@ export function ChatSidebar() {
       addConversation(conv);
       setActiveConversation(conv.id);
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      console.error("Failed to create conversation:", error);
     } finally {
       setIsCreating(false);
     }
@@ -89,7 +91,8 @@ export function ChatSidebar() {
           <DialogHeader>
             <DialogTitle>Start New Chat</DialogTitle>
             <DialogDescription>
-              Select a resume to get personalized career advice and job recommendations.
+              Select a resume to get personalized career advice and job
+              recommendations.
             </DialogDescription>
           </DialogHeader>
 
@@ -104,17 +107,20 @@ export function ChatSidebar() {
             />
             <p className="text-xs text-muted-foreground mt-2">
               {selectedResumeId
-                ? 'The AI will use your resume to provide personalized advice.'
-                : 'Start without a resume for general career questions.'}
+                ? "The AI will use your resume to provide personalized advice."
+                : "Start without a resume for general career questions."}
             </p>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewChatDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsNewChatDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleNewChat} disabled={isCreating}>
-              {isCreating ? 'Creating...' : 'Start Chat'}
+              {isCreating ? "Creating..." : "Start Chat"}
             </Button>
           </DialogFooter>
         </DialogContent>

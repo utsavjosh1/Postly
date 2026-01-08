@@ -1,30 +1,34 @@
-import { cn } from '../../lib/utils';
+import { cn } from "../../lib/utils";
 
 interface MatchScoreProps {
   score: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   showLabel?: boolean;
 }
 
-export function MatchScore({ score, size = 'md', showLabel = true }: MatchScoreProps) {
+export function MatchScore({
+  score,
+  size = "md",
+  showLabel = true,
+}: MatchScoreProps) {
   const getColor = (score: number) => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 60) return 'text-yellow-500';
-    if (score >= 40) return 'text-orange-500';
-    return 'text-red-500';
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    if (score >= 40) return "text-orange-500";
+    return "text-red-500";
   };
 
   const getBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 60) return 'bg-yellow-500';
-    if (score >= 40) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (score >= 80) return "bg-green-500";
+    if (score >= 60) return "bg-yellow-500";
+    if (score >= 40) return "bg-orange-500";
+    return "bg-red-500";
   };
 
   const sizes = {
-    sm: { container: 'w-10 h-10', text: 'text-xs', stroke: 3 },
-    md: { container: 'w-14 h-14', text: 'text-sm', stroke: 4 },
-    lg: { container: 'w-20 h-20', text: 'text-lg', stroke: 5 },
+    sm: { container: "w-10 h-10", text: "text-xs", stroke: 3 },
+    md: { container: "w-14 h-14", text: "text-sm", stroke: 4 },
+    lg: { container: "w-20 h-20", text: "text-lg", stroke: 5 },
   };
 
   const { container, text, stroke } = sizes[size];
@@ -34,7 +38,7 @@ export function MatchScore({ score, size = 'md', showLabel = true }: MatchScoreP
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className={cn('relative', container)}>
+      <div className={cn("relative", container)}>
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
           {/* Background circle */}
           <circle
@@ -57,14 +61,14 @@ export function MatchScore({ score, size = 'md', showLabel = true }: MatchScoreP
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference - progress}
-            className={cn('transition-all duration-500', getBgColor(score))}
+            className={cn("transition-all duration-500", getBgColor(score))}
           />
         </svg>
         <span
           className={cn(
-            'absolute inset-0 flex items-center justify-center font-bold',
+            "absolute inset-0 flex items-center justify-center font-bold",
             text,
-            getColor(score)
+            getColor(score),
           )}
         >
           {score}%

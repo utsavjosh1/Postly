@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { Job, JobSearchFilters } from '@postly/shared-types';
+import { create } from "zustand";
+import type { Job, JobSearchFilters } from "@postly/shared-types";
 
 interface MatchedJob extends Job {
   match_score: number;

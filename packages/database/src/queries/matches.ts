@@ -1,5 +1,5 @@
-import { pool } from '../pool';
-import type { JobMatch } from '@postly/shared-types';
+import { pool } from "../pool";
+import type { JobMatch } from "@postly/shared-types";
 
 export const matchQueries = {
   async create(
@@ -7,7 +7,7 @@ export const matchQueries = {
     resumeId: string,
     jobId: string,
     matchScore: number,
-    aiExplanation: string
+    aiExplanation: string,
   ): Promise<JobMatch> {
     const result = await pool.query<JobMatch>(
       `INSERT INTO job_matches (user_id, resume_id, job_id, match_score, ai_explanation)
@@ -15,7 +15,7 @@ export const matchQueries = {
        ON CONFLICT (user_id, job_id) DO UPDATE
        SET match_score = $4, ai_explanation = $5, created_at = NOW()
        RETURNING *`,
-      [userId, resumeId, jobId, matchScore, aiExplanation]
+      [userId, resumeId, jobId, matchScore, aiExplanation],
     );
     return result.rows[0];
   },
@@ -28,22 +28,21 @@ export const matchQueries = {
        WHERE m.user_id = $1
        ORDER BY m.match_score DESC, m.created_at DESC
        LIMIT $2`,
-      [userId, limit]
+      [userId, limit],
     );
     return result.rows;
   },
 
   async markSaved(matchId: string, isSaved: boolean): Promise<void> {
-    await pool.query(
-      `UPDATE job_matches SET is_saved = $2 WHERE id = $1`,
-      [matchId, isSaved]
-    );
+    await pool.query(`UPDATE job_matches SET is_saved = $2 WHERE id = $1`, [
+      matchId,
+      isSaved,
+    ]);
   },
 
   async markApplied(matchId: string): Promise<void> {
-    await pool.query(
-      `UPDATE job_matches SET applied = true WHERE id = $1`,
-      [matchId]
-    );
+    await pool.query(`UPDATE job_matches SET applied = true WHERE id = $1`, [
+      matchId,
+    ]);
   },
 };

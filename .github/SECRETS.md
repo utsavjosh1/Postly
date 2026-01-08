@@ -5,24 +5,29 @@ This document lists all the secrets that need to be configured in GitHub reposit
 ## Required Secrets
 
 ### Docker Hub (for docker-build job)
+
 - **DOCKER_USERNAME** - Your Docker Hub username
 - **DOCKER_PASSWORD** - Your Docker Hub password or access token
 
 ### Code Coverage (optional)
+
 - **CODECOV_TOKEN** - Codecov token for uploading coverage reports
   - Get from: https://codecov.io/
 
 ### Deployment Secrets
 
 #### Staging Environment
+
 - **STAGING_DATABASE_URL** - PostgreSQL connection string for staging
   - Format: `postgresql://user:password@host:port/database`
 
 #### Production Environment
+
 - **PRODUCTION_DATABASE_URL** - PostgreSQL connection string for production
   - Format: `postgresql://user:password@host:port/database`
 
 ### Notifications (optional)
+
 - **SLACK_WEBHOOK_URL** - Slack webhook URL for deployment notifications
   - Create at: https://api.slack.com/messaging/webhooks
 
@@ -36,9 +41,11 @@ This document lists all the secrets that need to be configured in GitHub reposit
 ## Environment-Specific Secrets
 
 ### Staging
+
 Go to **Settings** → **Environments** → **staging** → **Add secret**
 
 ### Production
+
 Go to **Settings** → **Environments** → **production** → **Add secret**
 
 ## Security Best Practices
@@ -55,6 +62,7 @@ Go to **Settings** → **Environments** → **production** → **Add secret**
 ### Branch Protection Rules (Recommended)
 
 For `main` branch:
+
 - ✅ Require pull request reviews before merging
 - ✅ Require status checks to pass before merging
   - lint
@@ -66,17 +74,20 @@ For `main` branch:
 - ✅ Do not allow bypassing the above settings
 
 For `develop` branch:
+
 - ✅ Require status checks to pass before merging
 - ✅ Require branches to be up to date before merging
 
 ### Environment Protection Rules
 
 For `production` environment:
+
 - ✅ Required reviewers (at least 1)
 - ✅ Wait timer: 5 minutes
 - ✅ Deployment branches: Only `main` and tags matching `v*`
 
 For `staging` environment:
+
 - ✅ Deployment branches: Only `main` and `develop`
 
 ## Verifying Configuration

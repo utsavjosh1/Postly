@@ -1,7 +1,7 @@
-import { BaseScraper, type ScrapedJob } from './base.scraper';
-import type { JobSource } from '@postly/shared-types';
+import { BaseScraper, type ScrapedJob } from "./base.scraper.js";
+import type { JobSource } from "@postly/shared-types";
 
-const API_URL = 'https://remoteok.com/api';
+const API_URL = "https://remoteok.com/api";
 
 interface RemoteOKJob {
   id: string;
@@ -21,7 +21,7 @@ interface RemoteOKJob {
 }
 
 export class RemoteOKScraper extends BaseScraper {
-  source: JobSource = 'remote_ok';
+  source: JobSource = "remote_ok";
 
   async scrape(): Promise<ScrapedJob[]> {
     console.log(`[RemoteOK] Fetching jobs from API...`);
@@ -30,8 +30,9 @@ export class RemoteOKScraper extends BaseScraper {
       // RemoteOK has a public JSON API
       const response = await fetch(API_URL, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "application/json",
         },
       });
 
@@ -64,22 +65,27 @@ export class RemoteOKScraper extends BaseScraper {
           }
 
           // Build source URL
-          const sourceUrl = rawJob.url || `https://remoteok.com/remote-jobs/${rawJob.id}`;
+          const sourceUrl =
+            rawJob.url || `https://remoteok.com/remote-jobs/${rawJob.id}`;
 
           // Clean up description (remove HTML)
-          const description = this.cleanDescription(rawJob.description || '');
+          const description = this.cleanDescription(rawJob.description || "");
 
           // Extract skills from tags and description
           const skills = [
             ...(rawJob.tags || []).slice(0, 10),
             ...this.extractSkills(description),
-          ].filter((skill, index, self) => self.indexOf(skill) === index).slice(0, 15);
+          ]
+            .filter((skill, index, self) => self.indexOf(skill) === index)
+            .slice(0, 15);
 
           const job: ScrapedJob = {
             title: rawJob.position,
             company_name: rawJob.company,
-            description: description || `${rawJob.position} position at ${rawJob.company}. Remote opportunity.`,
-            location: rawJob.location || 'Remote',
+            description:
+              description ||
+              `${rawJob.position} position at ${rawJob.company}. Remote opportunity.`,
+            location: rawJob.location || "Remote",
             remote: true,
             source_url: sourceUrl,
             job_type: this.inferJobType(rawJob.position),
@@ -106,16 +112,17 @@ export class RemoteOKScraper extends BaseScraper {
 
   private cleanDescription(html: string): string {
     // Remove HTML tags
-    let text = html.replace(/<[^>]*>/g, ' ');
+    let text = html.replace(/<[^>]*>/g, " ");
     // Decode HTML entities
-    text = text.replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+    text = text
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'");
     // Clean up whitespace
-    text = text.replace(/\s+/g, ' ').trim();
+    text = text.replace(/\s+/g, " ").trim();
     // Limit length
     return text.substring(0, 5000);
   }
@@ -124,12 +131,15 @@ export class RemoteOKScraper extends BaseScraper {
     console.log(`[RemoteOK] Falling back to browser scraping...`);
 
     try {
-      const html = await this.fetchWithBrowser('https://remoteok.com/remote-dev-jobs', '.job');
+      const html = await this.fetchWithBrowser(
+        "https://remoteok.com/remote-dev-jobs",
+        ".job",
+      );
       const jobs: ScrapedJob[] = [];
 
       // Simple regex-based extraction as fallback
       const jobMatches = html.matchAll(
-        /data-id="(\d+)"[^>]*>[\s\S]*?company[^>]*>([^<]+)<[\s\S]*?position[^>]*>([^<]+)</gi
+        /data-id="(\d+)"[^>]*>[\s\S]*?company[^>]*>([^<]+)<[\s\S]*?position[^>]*>([^<]+)</gi,
       );
 
       for (const match of jobMatches) {
@@ -139,7 +149,7 @@ export class RemoteOKScraper extends BaseScraper {
             title: position.trim(),
             company_name: company.trim(),
             description: `${position.trim()} position at ${company.trim()}. Remote opportunity.`,
-            location: 'Remote',
+            location: "Remote",
             remote: true,
             source_url: `https://remoteok.com/remote-jobs/${id}`,
             job_type: this.inferJobType(position),

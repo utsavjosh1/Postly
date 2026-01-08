@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { Conversation, Message } from '@postly/shared-types';
+import { create } from "zustand";
+import type { Conversation, Message } from "@postly/shared-types";
 
 interface ChatState {
   // Sidebar state
@@ -36,7 +36,7 @@ export const useChatStore = create<ChatState>((set) => ({
   messages: [],
   isLoading: false,
   isStreaming: false,
-  streamingContent: '',
+  streamingContent: "",
 
   setConversations: (conversations) => set({ conversations }),
 
@@ -49,13 +49,14 @@ export const useChatStore = create<ChatState>((set) => ({
     set({
       activeConversationId: id,
       messages: [],
-      streamingContent: '',
+      streamingContent: "",
     }),
 
   deleteConversation: (id) =>
     set((state) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
-      activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+      activeConversationId:
+        state.activeConversationId === id ? null : state.activeConversationId,
     })),
 
   setMessages: (messages) => set({ messages }),
@@ -70,9 +71,10 @@ export const useChatStore = create<ChatState>((set) => ({
       streamingContent: state.streamingContent + content,
     })),
 
-  clearStreamingContent: () => set({ streamingContent: '' }),
+  clearStreamingContent: () => set({ streamingContent: "" }),
 
   setLoading: (loading) => set({ isLoading: loading }),
   setStreaming: (streaming) => set({ isStreaming: streaming }),
-  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 }));

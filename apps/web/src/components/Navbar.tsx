@@ -38,7 +38,12 @@ export function Navbar() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-1">
               <div className="flex items-center gap-2">
-                <Link to="/login" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted">Login</Link>
+                <Link
+                  to="/login"
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  Login
+                </Link>
               </div>
             </div>
           </div>

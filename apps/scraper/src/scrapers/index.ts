@@ -1,15 +1,19 @@
-import { BaseScraper } from './base.scraper';
-import { WeWorkRemotelyScraper } from './weworkremotely.scraper';
-import { RemoteCoScraper } from './remote-co.scraper';
-import type { JobSource } from '@postly/shared-types';
+import { BaseScraper } from "./base.scraper.js";
+import { WeWorkRemotelyScraper } from "./weworkremotely.scraper.js";
+import { RemoteCoScraper } from "./remote-co.scraper.js";
+import type { JobSource } from "@postly/shared-types";
 
-export { BaseScraper, type ScrapedJob } from './base.scraper';
-export { WeWorkRemotelyScraper } from './weworkremotely.scraper';
-export { RemoteCoScraper } from './remote-co.scraper';
+import { GenericScraper } from "./generic.scraper.js";
+
+export { BaseScraper, type ScrapedJob } from "./base.scraper.js";
+export { WeWorkRemotelyScraper } from "./weworkremotely.scraper.js";
+export { RemoteCoScraper } from "./remote-co.scraper.js";
+export { GenericScraper } from "./generic.scraper.js";
 
 const scrapers: Record<string, new () => BaseScraper> = {
   weworkremotely: WeWorkRemotelyScraper,
   remote_co: RemoteCoScraper,
+  generic: GenericScraper,
 };
 
 export function getScraper(source: JobSource): BaseScraper {
@@ -21,7 +25,9 @@ export function getScraper(source: JobSource): BaseScraper {
 }
 
 export function getAllScrapers(): BaseScraper[] {
-  return Object.values(scrapers).map(Scraper => new Scraper());
+  return Object.values(scrapers).map((Scraper) => new Scraper());
 }
 
-export const AVAILABLE_SOURCES: JobSource[] = Object.keys(scrapers) as JobSource[];
+export const AVAILABLE_SOURCES: JobSource[] = Object.keys(
+  scrapers,
+) as JobSource[];

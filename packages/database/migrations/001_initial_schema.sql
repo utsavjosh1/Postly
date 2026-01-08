@@ -5,15 +5,39 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255), -- Nullable for Google Auth users
+  google_id VARCHAR(255) UNIQUE,
   full_name VARCHAR(255),
+  avatar_url TEXT,
   role VARCHAR(50) NOT NULL CHECK (role IN ('job_seeker', 'employer', 'admin')) DEFAULT 'job_seeker',
+  is_verified BOOLEAN DEFAULT FALSE,
+  last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_google_id ON users(google_id);
+
+-- User Preferences (Nurturing)
+CREATE TABLE user_preferences (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  search_preferences JSONB DEFAULT '{}'::jsonb, -- e.g. { "locations": [], "roles": [], "salary_min": 0 }
+  notification_settings JSONB DEFAULT '{}'::jsonb,
+  ui_preferences JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Rate Limits
+CREATE TABLE rate_limits (
+  key VARCHAR(255) PRIMARY KEY, -- e.g. "ip:127.0.0.1:login" or "user:uuid:chat"
+  count INT DEFAULT 0,
+  reset_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_rate_limits_reset ON rate_limits(reset_at);
 
 -- Resumes table
 CREATE TABLE resumes (
@@ -22,7 +46,7 @@ CREATE TABLE resumes (
   file_url TEXT NOT NULL,
   parsed_text TEXT,
   embedding VECTOR(768),
-  skills JSONB,
+  skills JSONB, -- storing extracted skills as JSON array
   experience_years INT,
   education JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -30,6 +54,7 @@ CREATE TABLE resumes (
 
 CREATE INDEX idx_resumes_user ON resumes(user_id);
 CREATE INDEX idx_resumes_embedding ON resumes USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_resumes_skills ON resumes USING GIN (skills);
 
 -- Jobs table
 CREATE TABLE jobs (
@@ -61,6 +86,7 @@ CREATE INDEX idx_jobs_location ON jobs(location);
 CREATE INDEX idx_jobs_remote ON jobs(remote);
 CREATE INDEX idx_jobs_type ON jobs(job_type);
 CREATE INDEX idx_jobs_embedding ON jobs USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_jobs_skills ON jobs USING GIN (skills_required);
 
 -- Job matches table
 CREATE TABLE job_matches (
@@ -78,6 +104,28 @@ CREATE TABLE job_matches (
 
 CREATE INDEX idx_job_matches_user ON job_matches(user_id, match_score DESC);
 CREATE INDEX idx_job_matches_job ON job_matches(job_id);
+
+-- Chat System
+CREATE TABLE chat_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  title VARCHAR(255),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_sessions_user ON chat_sessions(user_id, updated_at DESC);
+
+CREATE TABLE chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE NOT NULL,
+  role VARCHAR(50) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+  content TEXT NOT NULL,
+  metadata JSONB, -- For citations, tool calls, etc.
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
 
 -- Bot subscriptions table
 CREATE TABLE bot_subscriptions (
@@ -108,3 +156,4 @@ CREATE TABLE scraping_jobs (
 );
 
 CREATE INDEX idx_scraping_jobs_status ON scraping_jobs(status, created_at DESC);
+

@@ -1,11 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from '@components/Layout';
-import { HomePage } from '@pages/HomePage';
-import { LoginPage } from '@pages/LoginPage';
-import { RegisterPage } from '@pages/RegisterPage';
-import { ChatPage } from '@pages/ChatPage';
-import { ResumePage } from '@pages/ResumePage';
-import { JobsPage } from '@pages/JobsPage';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Layout } from "@components/Layout";
+import { HomePage } from "@pages/HomePage";
+import { LoginPage } from "@pages/LoginPage";
+import { RegisterPage } from "@pages/RegisterPage";
+import { ChatPage } from "@pages/ChatPage";
+import { ResumePage } from "@pages/ResumePage";
+import { JobsPage } from "@pages/JobsPage";
 
 function App() {
   return (

@@ -7,7 +7,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  userType: 'job_seeker' | 'employer';
+  userType: "job_seeker" | "employer";
 }
 
 export interface AuthResponse {
@@ -15,7 +15,7 @@ export interface AuthResponse {
     id: string;
     name: string;
     email: string;
-    userType: 'job_seeker' | 'employer';
+    userType: "job_seeker" | "employer";
   };
   accessToken: string;
 }

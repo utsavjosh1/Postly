@@ -1,5 +1,5 @@
-import { pool } from '../pool';
-import type { Resume } from '@postly/shared-types';
+import { pool } from "../pool";
+import type { Resume } from "@postly/shared-types";
 
 export const resumeQueries = {
   async create(userId: string, fileUrl: string): Promise<Resume> {
@@ -7,7 +7,7 @@ export const resumeQueries = {
       `INSERT INTO resumes (user_id, file_url)
        VALUES ($1, $2)
        RETURNING *`,
-      [userId, fileUrl]
+      [userId, fileUrl],
     );
     return result.rows[0];
   },
@@ -15,7 +15,7 @@ export const resumeQueries = {
   async findByUserId(userId: string): Promise<Resume[]> {
     const result = await pool.query<Resume>(
       `SELECT * FROM resumes WHERE user_id = $1 ORDER BY created_at DESC`,
-      [userId]
+      [userId],
     );
     return result.rows;
   },
@@ -23,7 +23,7 @@ export const resumeQueries = {
   async findById(id: string): Promise<Resume | null> {
     const result = await pool.query<Resume>(
       `SELECT * FROM resumes WHERE id = $1`,
-      [id]
+      [id],
     );
     return result.rows[0] || null;
   },
@@ -34,14 +34,21 @@ export const resumeQueries = {
     skills: string[],
     experienceYears: number,
     education: unknown,
-    embedding: number[]
+    embedding: number[],
   ): Promise<Resume | null> {
     const result = await pool.query<Resume>(
       `UPDATE resumes
        SET parsed_text = $2, skills = $3, experience_years = $4, education = $5, embedding = $6
        WHERE id = $1
        RETURNING *`,
-      [id, parsedText, JSON.stringify(skills), experienceYears, JSON.stringify(education), JSON.stringify(embedding)]
+      [
+        id,
+        parsedText,
+        JSON.stringify(skills),
+        experienceYears,
+        JSON.stringify(education),
+        JSON.stringify(embedding),
+      ],
     );
     return result.rows[0] || null;
   },
@@ -49,7 +56,7 @@ export const resumeQueries = {
   async delete(id: string, userId: string): Promise<boolean> {
     const result = await pool.query(
       `DELETE FROM resumes WHERE id = $1 AND user_id = $2`,
-      [id, userId]
+      [id, userId],
     );
     return result.rowCount !== null && result.rowCount > 0;
   },
@@ -57,7 +64,7 @@ export const resumeQueries = {
   async findByIdWithUser(id: string, userId: string): Promise<Resume | null> {
     const result = await pool.query<Resume>(
       `SELECT * FROM resumes WHERE id = $1 AND user_id = $2`,
-      [id, userId]
+      [id, userId],
     );
     return result.rows[0] || null;
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   MapPin,
   Building2,
@@ -8,12 +8,12 @@ import {
   ExternalLink,
   Briefcase,
   Wifi,
-} from 'lucide-react';
-import type { Job } from '@postly/shared-types';
-import { cn } from '../../lib/utils';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { MatchScore } from './MatchScore';
+} from "lucide-react";
+import type { Job } from "@postly/shared-types";
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { MatchScore } from "./MatchScore";
 
 interface MatchedJob extends Job {
   match_score?: number;
@@ -69,9 +69,9 @@ export function JobCard({
     <div
       onClick={onClick}
       className={cn(
-        'group bg-card border border-border rounded-xl p-4 transition-all duration-200 cursor-pointer',
-        'hover:shadow-md hover:border-primary/30',
-        isSelected && 'ring-2 ring-primary border-primary'
+        "group bg-card border border-border rounded-xl p-4 transition-all duration-200 cursor-pointer",
+        "hover:shadow-md hover:border-primary/30",
+        isSelected && "ring-2 ring-primary border-primary",
       )}
     >
       <div className="flex gap-4">
@@ -86,7 +86,9 @@ export function JobCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-foreground line-clamp-1">{job.title}</h3>
+              <h3 className="font-semibold text-foreground line-clamp-1">
+                {job.title}
+              </h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Building2 className="w-4 h-4" />
                 <span>{job.company_name}</span>
@@ -98,12 +100,12 @@ export function JobCard({
               onClick={handleSave}
               disabled={saving}
               className={cn(
-                'p-2 rounded-lg transition-colors',
+                "p-2 rounded-lg transition-colors",
                 isSaved
-                  ? 'text-primary hover:bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? "text-primary hover:bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
               )}
-              title={isSaved ? 'Unsave job' : 'Save job'}
+              title={isSaved ? "Unsave job" : "Save job"}
             >
               {isSaved ? (
                 <BookmarkCheck className="w-5 h-5" />
@@ -130,7 +132,7 @@ export function JobCard({
             {job.job_type && (
               <span className="flex items-center gap-1">
                 <Briefcase className="w-4 h-4" />
-                {job.job_type.replace('-', ' ')}
+                {job.job_type.replace("-", " ")}
               </span>
             )}
             {salary && (
@@ -171,7 +173,7 @@ export function JobCard({
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(job.source_url, '_blank', 'noopener,noreferrer');
+                  window.open(job.source_url, "_blank", "noopener,noreferrer");
                 }}
                 className="gap-1.5"
               >
@@ -183,7 +185,7 @@ export function JobCard({
               <Clock className="w-3 h-3" />
               {job.posted_at
                 ? new Date(job.posted_at).toLocaleDateString()
-                : 'Recently posted'}
+                : "Recently posted"}
             </span>
           </div>
         </div>
