@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Settings, LogOut, FileText, MessageSquare } from "lucide-react";
+import { Plus, LogOut, FileText, MessageSquare } from "lucide-react";
 import { useChatStore } from "../../stores/chat.store";
 import { useAuthStore } from "../../stores/auth.store";
 import { chatService } from "../../services/chat.service";
@@ -53,98 +53,82 @@ export function ChatSidebar() {
 
   return (
     <>
-      <aside className="w-[300px] h-full bg-card border-r border-border flex flex-col shrink-0 transition-all duration-300">
-        {/* Header */}
-        <div className="p-4 space-y-3 border-b border-border">
-          <button
-            onClick={() => setIsNewChatDialogOpen(true)}
-            className="group w-full px-4 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all duration-200 shadow-sm flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
-            <span>New Chat</span>
-          </button>
-          
-          <button
-            onClick={handleQuickNewChat}
-            disabled={isCreating}
-            className="w-full px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 border border-transparent hover:border-border"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Quick chat (no resume)</span>
-          </button>
+      <aside className="w-[260px] h-full bg-zinc-900 border-r border-white/10 flex flex-col shrink-0 transition-all duration-300 text-zinc-100">
+        {/* Header (New Chat) */}
+        <div className="p-3 space-y-2">
+           <button
+             onClick={handleQuickNewChat}
+             disabled={isCreating}
+             className="group w-full px-3 py-2.5 bg-transparent hover:bg-zinc-800 rounded-lg border border-white/20 text-sm text-left transition-all duration-200 flex items-center justify-between"
+           >
+             <div className="flex items-center gap-2 text-zinc-100">
+               <Plus className="w-4 h-4" />
+               <span className="font-medium">New chat</span>
+             </div>
+             <MessageSquare className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+           </button>
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-          <div className="p-2">
-            <h3 className="px-2 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Recent Chats
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+          <div className="px-3 pb-2">
+            <h3 className="px-2 py-2 text-xs font-medium text-zinc-500">
+              Today
             </h3>
-            <ConversationList />
+            {/* We might need to pass a specific dark theme adaptation to ConversationList */}
+           <div className="text-zinc-300">
+             <ConversationList />
+           </div>
           </div>
         </div>
 
         {/* User Profile & Settings */}
-        <div className="p-4 border-t border-border bg-muted/30">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-secondary-foreground uppercase">
-              {user?.name?.[0] || "U"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.name || "User"}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <button className="flex-1 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg text-sm transition-colors flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
-            <button 
-              onClick={logout}
-              className="px-3 py-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg text-sm transition-colors"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+        <div className="p-3 border-t border-white/10 bg-zinc-900">
+          <div className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-zinc-800 cursor-pointer transition-colors group relative">
+             <div className="w-8 h-8 rounded bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-100 uppercase">
+                {user?.name?.[0] || "U"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-zinc-100 truncate">
+                  {user?.name || "User"}
+                </p>
+              </div>
+              
+              {/* Dropdown/Settings trigger could go here, for now simple logout/settings */}
+              <div className="flex items-center">
+                 <button 
+                  onClick={logout}
+                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
           </div>
         </div>
       </aside>
 
       {/* New Chat Dialog */}
       <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+        <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-xl">Start New Chat</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogDescription className="text-zinc-400">
               Select a resume to get personalized AI career advice.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-6 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground block flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
+              <label className="text-sm font-medium text-zinc-200 block flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-400" />
                 Select Resume (Optional)
               </label>
               <ResumeSelector
                 value={selectedResumeId}
                 onChange={setSelectedResumeId}
-                className="w-full bg-background border-input focus:border-primary text-foreground"
+                className="w-full bg-zinc-800 border-zinc-700 focus:border-purple-500 text-zinc-100"
               />
-            </div>
-            
-            <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-              <p className="text-xs text-primary/80">
-                {selectedResumeId
-                  ? "✓ The AI will analyze your selected resume to provide tailored job matches and advice."
-                  : "ℹ️ Starting without a resume handles general career questions."}
-              </p>
             </div>
           </div>
 
@@ -152,16 +136,16 @@ export function ChatSidebar() {
             <Button
               variant="outline"
               onClick={() => setIsNewChatDialogOpen(false)}
-              className="text-foreground hover:bg-muted"
+              className="bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleNewChat} 
               disabled={isCreating}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="bg-white text-black hover:bg-zinc-200"
             >
-              {isCreating ? "Creating..." : "Start Chat"}
+              Start Chat
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,198 +1,115 @@
 import * as cheerio from "cheerio";
-import { BaseScraper, type ScrapedJob } from "./base.scraper.js";
+import { exec } from "child_process";
+import { promisify } from "util";
+import { ScrapedJob, BaseScraper } from "./base.scraper.js";
+// @ts-ignore
 import type { JobSource } from "@postly/shared-types";
 
+const execAsync = promisify(exec);
 const BASE_URL = "https://weworkremotely.com";
 
 export class WeWorkRemotelyScraper extends BaseScraper {
+  name = "WeWorkRemotely";
   source: JobSource = "weworkremotely";
 
+  private categories = [
+    "/categories/remote-programming-jobs",
+    "/categories/remote-design-jobs",
+    "/categories/remote-devops-sysadmin-jobs",
+    "/categories/remote-management-finance-jobs",
+    "/categories/remote-product-jobs",
+    "/categories/remote-customer-support-jobs",
+    "/categories/remote-sales-marketing-jobs",
+    "/categories/remote-sales-and-marketing-jobs",
+    "/categories/remote-copywriting-jobs",
+  ];
+
   async scrape(): Promise<ScrapedJob[]> {
-    const jobs: ScrapedJob[] = [];
+    console.log(`\n🚀 Starting ${this.name} scraper (RSS via Curl)...`);
+    const allJobs: ScrapedJob[] = [];
 
-    // Scrape multiple categories
-    const categories = [
-      "/categories/remote-programming-jobs",
-      "/categories/remote-design-jobs",
-      "/categories/remote-devops-sysadmin-jobs",
-      "/categories/remote-data-jobs",
-    ];
+    // Process categories in parallel chunks
+    const chunked = this.chunkArray(this.categories, 3);
 
-    for (const category of categories) {
-      try {
-        const categoryJobs = await this.scrapeCategory(category);
-        jobs.push(...categoryJobs);
-      } catch (error) {
-        console.error(`[WWR] Failed to scrape category ${category}:`, error);
-      }
-
-      // Rate limiting - wait between requests
-      await this.delay(2000);
+    for (const chunk of chunked) {
+      const promises = chunk.map((cat) => this.scrapeCategory(cat));
+      const results = await Promise.all(promises);
+      results.forEach((jobs) => allJobs.push(...jobs));
     }
 
-    // Deduplicate by source_url
-    const uniqueJobs = new Map<string, ScrapedJob>();
-    for (const job of jobs) {
-      if (!uniqueJobs.has(job.source_url)) {
-        uniqueJobs.set(job.source_url, job);
-      }
-    }
-
-    return Array.from(uniqueJobs.values());
+    return allJobs;
   }
 
   private async scrapeCategory(category: string): Promise<ScrapedJob[]> {
     const url = `${BASE_URL}${category}`;
-    console.log(`[WWR] Fetching ${url}`);
+    console.log(`[WWR] Fetching RSS feed: ${url}`);
 
-    const html = await this.fetchWithBrowser(url, "section.jobs");
-    const $ = cheerio.load(html);
-    const jobs: ScrapedJob[] = [];
-    const jobUrls: string[] = [];
+    try {
+        // Use curl to bypass Node.js TLS fingerprinting which triggers Cloudflare
+        const { stdout } = await execAsync(`curl -L -s --user-agent "curl/7.64.1" "${url}"`, { maxBuffer: 10 * 1024 * 1024 });
+        
+        const xml = stdout;
+        
+        if (!xml.trim().startsWith("<?xml") && !xml.includes("<rss")) {
+             console.warn(`[WWR] Response for ${url} does not look like RSS XML.`);
+             // console.warn(`[WWR] Preview: ${xml.substring(0, 100)}...`);
+             return [];
+        }
 
-    // WWR uses <li> elements inside job sections
-    $("section.jobs li").each((_, element) => {
-      try {
-        const $el = $(element);
+        const $ = cheerio.load(xml, { xmlMode: true });
+        const jobs: ScrapedJob[] = [];
 
-        // Skip view-all links
-        if ($el.hasClass("view-all")) return;
+        $("item").each((_, element) => {
+            const item = $(element);
+            const link = item.find("link").text().trim();
+            const guid = item.find("guid").text().trim();
+            const dateStr = item.find("pubDate").text().trim();
+            
+            let fullTitle = item.find("title").text().trim();
+            let company = "Unknown";
+            let title = fullTitle;
 
-        const $link = $el.find('a[href*="/remote-jobs/"]').first();
-        const href = $link.attr("href");
+            if (fullTitle.includes(":")) {
+                const parts = fullTitle.split(":");
+                company = parts[0].trim();
+                title = parts.slice(1).join(":").trim();
+            }
 
-        if (!href || !href.includes("/remote-jobs/")) return;
+            const descriptionHtml = item.find("description").text();
+            const $desc = cheerio.load(descriptionHtml);
+            const description = $desc.text().trim() || descriptionHtml;
 
-        const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`;
+            const job: ScrapedJob = {
+                title,
+                company_name: company,
+                description: description,
+                location: "Remote",
+                salary_min: undefined,
+                salary_max: undefined,
+                job_type: undefined,
+                remote: true,
+                source_url: link || guid,
+                posted_at: this.parsePostedDate(dateStr) || new Date(),
+                skills_required: this.extractSkills(description + " " + title)
+            };
 
-        // Avoid duplicates in this batch
-        if (jobUrls.includes(fullUrl)) return;
-        jobUrls.push(fullUrl);
+            jobs.push(job);
+        });
 
-        // Get basic info from listing
-        const title = $el.find(".title").text().trim();
-        const company =
-          $el.find(".company span.company").text().trim() ||
-          $el.find(".company").first().text().trim().split("\n")[0].trim();
-        const region = $el.find(".region").text().trim();
-        const dateText = $el.find(".listing-date__date, time").text().trim();
+        console.log(`[WWR] Found ${jobs.length} jobs in ${category}`);
+        return jobs;
 
-        if (!title || !company) return;
-
-        const postedAt = this.parsePostedDate(dateText);
-
-        const job: ScrapedJob = {
-          title,
-          company_name: company,
-          description: `${title} position at ${company}. ${region ? `Location: ${region}.` : ""} Remote opportunity from WeWorkRemotely.`,
-          location: region || "Remote",
-          remote: true,
-          source_url: fullUrl,
-          job_type: this.inferJobType(title),
-          posted_at: postedAt,
-        };
-
-        jobs.push(job);
-      } catch (error) {
-        console.warn("[WWR] Failed to parse job element:", error);
-      }
-    });
-
-    // Also try alternative structure
-    $("article.job, .job-listing").each((_, element) => {
-      try {
-        const $el = $(element);
-        const $link = $el.find('a[href*="/remote-jobs/"]').first();
-        const href = $link.attr("href");
-
-        if (!href) return;
-
-        const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`;
-        if (jobUrls.includes(fullUrl)) return;
-        jobUrls.push(fullUrl);
-
-        const title = $el.find(".title, h3, h2").first().text().trim();
-        const company = $el.find(".company").text().trim();
-
-        if (!title || !company) return;
-
-        const job: ScrapedJob = {
-          title,
-          company_name: company,
-          description: `${title} position at ${company}. Remote opportunity from WeWorkRemotely.`,
-          location: "Remote",
-          remote: true,
-          source_url: fullUrl,
-          job_type: this.inferJobType(title),
-        };
-
-        jobs.push(job);
-      } catch (error) {
-        console.warn("[WWR] Failed to parse article element:", error);
-      }
-    });
-
-    console.log(`[WWR] Found ${jobs.length} jobs in ${category}`);
-
-    // Fetch details for each job (with rate limiting)
-    const detailedJobs: ScrapedJob[] = [];
-    for (const job of jobs.slice(0, 20)) {
-      // Limit to first 20 per category
-      try {
-        const detailed = await this.scrapeJobDetails(job);
-        detailedJobs.push(detailed);
-        await this.delay(1500); // Rate limit
-      } catch (error) {
-        console.warn(`[WWR] Failed to get details for ${job.title}:`, error);
-        detailedJobs.push(job); // Use basic info if detail fetch fails
-      }
+    } catch (error) {
+        console.error(`[WWR] Error scraping ${category}:`, error);
+        return [];
     }
-
-    return detailedJobs;
   }
 
-  private async scrapeJobDetails(job: ScrapedJob): Promise<ScrapedJob> {
-    try {
-      const html = await this.fetchWithBrowser(
-        job.source_url,
-        ".listing-container",
-      );
-      const $ = cheerio.load(html);
-
-      // Get full description
-      const description =
-        $(".listing-container .listing-description, .job-description")
-          .text()
-          .trim() || $(".listing-container").text().trim();
-
-      // Get company info
-      // const companyInfo = $('.company-card, .listing-logo-container').text().trim();
-
-      // Look for salary info
-      const salaryText = $('[class*="salary"], .compensation').text().trim();
-      const salary = this.parseSalary(salaryText);
-
-      // Extract skills from description
-      const skills = this.extractSkills(description);
-
-      // Get more precise location
-      const location =
-        $('.listing-location, .location, [class*="region"]')
-          .first()
-          .text()
-          .trim() || job.location;
-
-      return {
-        ...job,
-        description: description || job.description,
-        skills_required: skills.length > 0 ? skills : undefined,
-        salary_min: salary.min,
-        salary_max: salary.max,
-        location,
-      };
-    } catch (error) {
-      console.warn(`[WWR] Error fetching job details: ${error}`);
-      return job;
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunked: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunked.push(array.slice(i, i + size));
     }
+    return chunked;
   }
 }

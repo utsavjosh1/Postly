@@ -28,16 +28,23 @@ client.on("messageCreate", async (message) => {
 });
 
 // Login to Discord
-const token = process.env.DISCORD_BOT_TOKEN;
-if (!token) {
-  console.error("❌ DISCORD_BOT_TOKEN not found in environment variables");
-  process.exit(1);
-}
+// Login to Discord
+const token = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
 
-client.login(token).catch((error) => {
-  console.error("❌ Failed to login:", error);
-  process.exit(1);
-});
+if (!token) {
+  console.warn("⚠️ DISCORD_TOKEN or DISCORD_BOT_TOKEN not found in environment variables.");
+  console.warn("⚠️ Discord bot will run in dormant mode (no connection).");
+  
+  // Keep the process alive to prevent container restart loops
+  setInterval(() => {
+    // Heartbeat for dormant mode
+  }, 1000 * 60 * 60); // Check every hour
+} else {
+  client.login(token).catch((error) => {
+    console.error("❌ Failed to login:", error);
+    process.exit(1);
+  });
+}
 
 // Graceful shutdown
 process.on("SIGTERM", async () => {

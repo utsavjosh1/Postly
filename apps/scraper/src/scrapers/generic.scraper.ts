@@ -1,14 +1,14 @@
 import { BaseScraper, type ScrapedJob } from "./base.scraper.js";
+// @ts-ignore
 import type { JobSource } from "@postly/shared-types";
 
 export class GenericScraper extends BaseScraper {
   source: JobSource = "generic";
-  // Ideally, add 'generic' to JobSource type, but using a fallback for now.
-
+  
+  // Default targets, but can be overridden
   private targetUrls: string[] = [
-    // Example target (Y Combinator jobs)
     "https://www.ycombinator.com/jobs",
-    // We can add more here dynamically or via config
+    "https://weworkremotely.com/categories/remote-programming-jobs", // Should trigger RSS detection
   ];
 
   constructor(urls?: string[]) {
@@ -19,47 +19,43 @@ export class GenericScraper extends BaseScraper {
   }
 
   async scrape(): Promise<ScrapedJob[]> {
-    console.log(
-      `[GenericScraper] Starting scrape of ${this.targetUrls.length} targets...`,
-    );
+    console.log(`\n🚀 Starting Universal Scraper (${this.targetUrls.length} targets)...`);
     const allJobs: ScrapedJob[] = [];
 
     for (const url of this.targetUrls) {
       try {
-        console.log(`[GenericScraper] Fetching ${url}...`);
-        // We wait for body to ensure basic load
-        const html = await this.fetchWithBrowser(url, "body");
+        console.log(`[Universal] Processing ${url}...`);
+        
+        // 1. Smart Fetch (Browser or Curl)
+        const { content, type } = await this.smartFetch(url);
+        console.log(`[Universal] Fetched ${content.length} bytes. Detected type: ${type}`);
 
-        // Use AI to extract
-        const jobs = await this.extractJobsFromHtml(html);
+        let jobs: ScrapedJob[] = [];
 
-        // Post-process URLs to ensure they are absolute
-        const processedJobs = jobs.map((job) => {
-          if (job.source_url && !job.source_url.startsWith("http")) {
-            try {
-              const baseUrl = new URL(url);
-              job.source_url = new URL(
-                job.source_url,
-                baseUrl.origin,
-              ).toString();
-            } catch {
-              // keep as is if invalid
-            }
-          }
-          // Fallback source URL if missing
-          if (!job.source_url) {
-            job.source_url = url;
-          }
-          return job;
-        });
+        // 2. Extract based on type
+        if (type === "rss" || type === "json") {
+             // Direct extraction for structured feeds
+             jobs = await this.extractResolvableData(content, type, url);
+             if (jobs.length === 0) {
+                 console.warn(`[Universal] Structured extraction failed for ${type}, falling back to AI/HTML processing.`);
+                 // Fallback: Treat as text/html for AI
+                 jobs = await this.extractJobsFromHtml(content, url);
+             }
+        } else {
+             // HTML: Parsing (JSON-LD) + AI Backup
+             // extractJobsFromHtml now internally checks extractResolvableData(html, 'html') first!
+             jobs = await this.extractJobsFromHtml(content, url);
+        }
 
-        console.log(
-          `[GenericScraper] Extracted ${processedJobs.length} jobs from ${url}`,
-        );
-        allJobs.push(...processedJobs);
+        console.log(`[Universal] Extracted ${jobs.length} jobs from ${url}`);
+        allJobs.push(...jobs);
+
       } catch (error) {
-        console.error(`[GenericScraper] Failed to process ${url}:`, error);
+        console.error(`[Universal] Failed to process ${url}:`, error);
       }
+      
+      // Be nice to servers
+      await this.delay(2000);
     }
 
     return allJobs;

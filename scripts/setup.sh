@@ -72,8 +72,6 @@ check_key() {
 }
 
 check_key "GEMINI_API_KEY"
-check_key "DISCORD_TOKEN"
-check_key "DISCORD_CLIENT_ID"
 
 echo -e "${GREEN}Environment setup complete.${NC}"
 
