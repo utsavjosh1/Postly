@@ -15,7 +15,7 @@ COPY packages/config/typescript/package.json ./packages/config/typescript/
 COPY apps/bot-discord/package.json ./apps/bot-discord/
 
 # Install dependencies
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source code
 COPY packages ./packages

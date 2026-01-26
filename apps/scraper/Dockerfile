@@ -11,14 +11,18 @@ COPY turbo.json ./
 COPY packages/database/package.json ./packages/database/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
+COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY apps/scraper/package.json ./apps/scraper/
 
 # Install dependencies
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --fetch-retry-maxtimeout 600000 --fetch-retry-mintimeout 10000
 
 # Copy source code
 COPY packages/shared-types ./packages/shared-types
 COPY packages/logger ./packages/logger
+COPY packages/config/typescript-config ./packages/config/typescript-config
+COPY packages/config/eslint-config ./packages/config/eslint-config
 COPY packages/database ./packages/database
 COPY apps/scraper ./apps/scraper
 
@@ -43,7 +47,7 @@ COPY packages/logger/package.json ./packages/logger/
 COPY apps/scraper/package.json ./apps/scraper/
 
 # Install production dependencies only
-RUN npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --fetch-retry-maxtimeout 600000 --fetch-retry-mintimeout 10000
 
 # Copy built files from builder
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist

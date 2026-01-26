@@ -30,7 +30,6 @@ export function ChatSidebar() {
     string | undefined
   >();
   const [isCreating, setIsCreating] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleNewChat = async () => {
     setIsCreating(true);
