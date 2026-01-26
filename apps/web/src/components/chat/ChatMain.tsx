@@ -1,7 +1,7 @@
 import { useChatStore } from "../../stores/chat.store";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useSSEChat } from "../../hooks/useSSEChat";
 
 export function ChatMain() {
@@ -14,13 +14,19 @@ export function ChatMain() {
 
   return (
     <main className="flex-1 flex flex-col h-full bg-zinc-900 relative overflow-hidden text-zinc-100 font-sans selection:bg-purple-500/30">
-      {/* Mobile Menu Button - Always accessible but subtle */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute top-4 left-4 z-50 p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors md:hidden"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Mobile Menu Button - Shown only when sidebar is closed on desktop or always on mobile if needed */}
+      <div className="hidden">
+        {/* We handle menu via header now, but if activeConversationId is null (empty state) we need a trigger */}
+      </div>
+
+      {!activeConversationId && (
+        <button
+          onClick={toggleSidebar}
+          className="absolute top-4 left-4 z-50 p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col relative w-full h-full">
@@ -28,10 +34,18 @@ export function ChatMain() {
           // ACTIVE STATE: Chat Interface
           <>
             {/* Minimal Header */}
-            <header className="h-14 flex items-center justify-center border-b border-white/5 bg-zinc-900/50 backdrop-blur-md shrink-0 z-10 transition-all duration-500 animate-in fade-in slide-in-from-top-4">
-              <span className="text-sm font-medium text-zinc-400">
-                Postly AI
-              </span>
+            <header className="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-zinc-900/50 backdrop-blur-sm shrink-0 z-10">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleSidebar}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <span className="text-sm font-medium text-zinc-400 hidden sm:block">
+                  New Chat
+                </span>
+              </div>
             </header>
 
             {/* Messages */}

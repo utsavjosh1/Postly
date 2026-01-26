@@ -1,14 +1,17 @@
 import { FileText, Trash2, MessageSquare } from "lucide-react";
 import { useChatStore } from "../../stores/chat.store";
+import { useToastStore } from "../../stores/toast.store";
 import { chatService } from "../../services/chat.service";
+import { cn } from "../../lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/Tooltip";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Conversation } from "@postly/shared-types";
+import { AlertDialog } from "../ui/AlertDialog";
 
 // Helper to categorize dates
 const getRelativeDateGroup = (dateStr: string | Date | undefined) => {
@@ -35,6 +38,10 @@ export function ConversationList() {
     setMessages,
     deleteConversation,
   } = useChatStore();
+  const { addToast } = useToastStore();
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSelectConversation = async (id: string) => {
     setActiveConversation(id);
@@ -42,24 +49,40 @@ export function ConversationList() {
     setMessages(messages);
   };
 
-  const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("Delete this conversation?")) {
-      await chatService.deleteConversation(id);
-      deleteConversation(id);
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+
+    setIsDeleting(true);
+    try {
+      await chatService.deleteConversation(deleteId);
+      deleteConversation(deleteId);
+      addToast({
+        type: "success",
+        message: "Conversation deleted",
+        duration: 3000,
+      });
+      setDeleteId(null);
+    } catch (error) {
+      console.error(error);
+      addToast({
+        type: "error",
+        message: "Failed to delete conversation",
+        duration: 3000,
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const groupedConversations = useMemo(() => {
     const groups: Record<string, Conversation[]> = {
-      "Today": [],
-      "Yesterday": [],
+      Today: [],
+      Yesterday: [],
       "Previous 7 Days": [],
-      "Older": []
+      Older: [],
     };
 
-    conversations.forEach(conv => {
-      // Assuming 'created_at' or 'updated_at' exists. Using created_at for now.
+    conversations.forEach((conv) => {
       const group = getRelativeDateGroup(conv.created_at || conv.updated_at);
       if (groups[group]) {
         groups[group].push(conv);
@@ -74,73 +97,105 @@ export function ConversationList() {
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Older"];
 
   return (
-    <TooltipProvider>
-      <div className="space-y-4">
-        {conversations.length === 0 && (
-           <div className="text-center py-8 px-4">
-            <p className="text-sm text-zinc-500">No conversations yet.</p>
-          </div>
-        )}
+    <>
+      <TooltipProvider>
+        <div className="space-y-4">
+          {conversations.length === 0 && (
+            <div className="text-center py-8 px-4">
+              <p className="text-sm text-zinc-500">No conversations yet.</p>
+            </div>
+          )}
 
-        {groupOrder.map((group) => {
-          const groupConvs = groupedConversations[group];
-          if (groupConvs.length === 0) return null;
+          {groupOrder.map((group) => {
+            const groupConvs = groupedConversations[group];
+            if (groupConvs.length === 0) return null;
 
-          return (
-            <div key={group}>
-              <h3 className="px-2 py-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                {group}
-              </h3>
-              <div className="space-y-0.5">
-                {groupConvs.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className={`w-full px-3 py-2 text-sm rounded-lg text-left transition-all duration-200 group relative overflow-hidden flex items-center gap-2 ${
-                      activeConversationId === conv.id
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
-                    }`}
-                  >
-                    {/* Icon */}
-                    {conv.resume_id ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <FileText className={`w-4 h-4 shrink-0 transition-colors ${
-                              activeConversationId === conv.id ? "text-purple-400" : "text-zinc-500 group-hover:text-zinc-300"
-                            }`} />
-                          </TooltipTrigger>
-                          <TooltipContent>Resume Context</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <MessageSquare className={`w-4 h-4 shrink-0 transition-colors ${
-                          activeConversationId === conv.id ? "text-white" : "text-zinc-500 group-hover:text-zinc-300"
-                        }`} />
+            return (
+              <div key={group}>
+                <h3 className="px-3 py-2 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                  {group}
+                </h3>
+                <div className="space-y-0.5">
+                  {groupConvs.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={cn(
+                        "w-full px-3 py-2 text-sm rounded-lg text-left transition-colors duration-200 group relative overflow-hidden grid grid-cols-[20px_1fr_20px] gap-3 items-center",
+                        activeConversationId === conv.id
+                          ? "bg-zinc-800 text-white"
+                          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white",
                       )}
-                      
-                    <span className="truncate flex-1">
-                        {conv.title || "New Chat"}
-                    </span>
+                    >
+                      {/* Icon Column */}
+                      <div className="flex items-center justify-center">
+                        {conv.resume_id ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <FileText
+                                className={cn(
+                                  "w-4 h-4 transition-colors",
+                                  activeConversationId === conv.id
+                                    ? "text-purple-400"
+                                    : "text-zinc-500 group-hover:text-zinc-300",
+                                )}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>Resume Context</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <MessageSquare
+                            className={cn(
+                              "w-4 h-4 transition-colors",
+                              activeConversationId === conv.id
+                                ? "text-white"
+                                : "text-zinc-500 group-hover:text-zinc-300",
+                            )}
+                          />
+                        )}
+                      </div>
 
-                    {/* Delete Action (visible on hover) */}
-                    <div
-                        onClick={(e) => handleDeleteConversation(conv.id, e)}
-                        className={`opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-red-400 ${
-                          activeConversationId === conv.id ? "opacity-0 group-hover:opacity-100" : ""
-                        }`}
+                      {/* Text Column */}
+                      <span className="truncate leading-5">
+                        {conv.title || "New Chat"}
+                      </span>
+
+                      {/* Action Column */}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(conv.id);
+                        }}
+                        className={cn(
+                          "flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-red-400",
+                          activeConversationId === conv.id &&
+                            "opacity-0 group-hover:opacity-100",
+                        )}
                         aria-label="Delete conversation"
                         role="button"
                         tabIndex={0}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </div>
-                  </button>
-                ))}
-            </div>
-          </div>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+                        <Trash2 className="w-4 h-4" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </TooltipProvider>
+
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Delete Conversation?"
+        description="This action cannot be undone. The chat history will be permanently removed."
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete"
+        variant="destructive"
+      />
+    </>
   );
 }
