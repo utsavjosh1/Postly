@@ -272,3 +272,13 @@ export interface PaginatedResponse<T> {
   limit: number;
   total_pages: number;
 }
+
+export const AI_ERROR_CODES = {
+  QUOTA_EXCEEDED: "AI_QUOTA_EXCEEDED",
+  TIMEOUT: "AI_TIMEOUT",
+  POLICY_VIOLATION: "AI_POLICY_VIOLATION",
+  SERVER_ERROR: "AI_SERVER_ERROR",
+  UNKNOWN: "AI_UNKNOWN_ERROR",
+} as const;
+
+export type AIErrorCode = (typeof AI_ERROR_CODES)[keyof typeof AI_ERROR_CODES];

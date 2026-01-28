@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { AI_ERROR_CODES } from "@postly/shared-types";
 
 // Lazy initialization
 let genAI: GoogleGenAI | null = null;
@@ -13,6 +14,16 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       return await operation();
     } catch (error: any) {
       lastError = error;
+
+      // Check for specific error types to map
+      if (error.status === 429) {
+        error.code = AI_ERROR_CODES.QUOTA_EXCEEDED;
+      } else if (error.status === 503 || error.status === 500) {
+        error.code = AI_ERROR_CODES.SERVER_ERROR;
+      } else if (error.message?.includes("policy")) {
+        error.code = AI_ERROR_CODES.POLICY_VIOLATION;
+      }
+
       // 429 = Too Many Requests
       const isRetryable =
         !error.status || [429, 500, 503, 504].includes(error.status);

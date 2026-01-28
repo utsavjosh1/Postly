@@ -3,6 +3,7 @@ import { useChatStore } from "../stores/chat.store";
 import { useToastStore } from "../stores/toast.store";
 import { chatService } from "../services/chat.service";
 import type { StreamChatResponse, Message } from "@postly/shared-types";
+import { AI_ERROR_CODES } from "@postly/shared-types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -178,13 +179,29 @@ export function useSSEChat() {
           setConversationState("interrupted");
         } else {
           console.error("Failed to send message:", error);
-          // We already toasted above for some cases, but general catch:
+
+          let errorMessage = "Sorry, I encountered an error. Please try again.";
+
+          if (error.code === AI_ERROR_CODES.QUOTA_EXCEEDED) {
+            errorMessage =
+              "You've reached your usage limit. Please try again later.";
+          } else if (error.code === AI_ERROR_CODES.TIMEOUT) {
+            errorMessage =
+              "The AI is taking too long to respond. Please try again.";
+          } else if (error.code === AI_ERROR_CODES.POLICY_VIOLATION) {
+            errorMessage =
+              "Your message triggered a safety filter. Please revise it.";
+          } else if (error.code === AI_ERROR_CODES.SERVER_ERROR) {
+            errorMessage =
+              "AI service is currently unavailable. Please try again later.";
+          }
+
           if (!useChatStore.getState().streamingContent) {
             const errorMsg: Message = {
               id: crypto.randomUUID(),
               conversation_id: currentConversationId!,
               role: "assistant",
-              content: "Sorry, I encountered an error. Please try again.",
+              content: errorMessage,
               created_at: new Date(),
               status: "error",
             };
