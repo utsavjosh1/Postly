@@ -94,7 +94,7 @@ export abstract class BaseScraper {
       }
 
       return { content: html, type: "html" };
-    } catch (browserError) {
+    } catch {
       console.warn(
         `[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`,
       );
@@ -117,11 +117,13 @@ export abstract class BaseScraper {
           try {
             JSON.parse(stdout);
             return { content: stdout, type: "json" };
-          } catch {}
+          } catch {
+            // ignore
+          }
         }
 
         return { content: stdout, type: "html" };
-      } catch (curlError) {
+      } catch {
         console.error(
           `[${this.source}] smartFetch: All methods failed for ${url}`,
         );
@@ -264,7 +266,7 @@ export abstract class BaseScraper {
               });
             }
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -662,6 +664,7 @@ export abstract class BaseScraper {
     $.root()
       .find("*")
       .contents()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((_, el: any) => el.type === "comment")
       .remove();
 
@@ -714,6 +717,7 @@ export abstract class BaseScraper {
       }
 
       // Map to ScrapedJob interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return parsed.map((job: any) => ({
         title: job.title || "Unknown Job",
         company_name: job.company_name || "Unknown Company",

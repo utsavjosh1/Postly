@@ -23,7 +23,7 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
 
       console.warn(
         `AI Operation failed, retrying in ${RETRY_DELAYS[i]}ms...`,
-        lastError.message,
+        lastError?.message || String(lastError),
       );
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[i]));
     }
@@ -59,7 +59,6 @@ export async function generateText(prompt: string): Promise<string> {
   }
 
   if (response.candidates && response.candidates.length > 0) {
-    // @ts-ignore
     const part = response.candidates[0].content?.parts?.[0];
     if (part && "text" in part) {
       return part.text as string;
@@ -113,7 +112,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   } catch (error: any) {
     console.warn(
       "Embedding generation failed, trying fallback...",
-      error.message,
+      error?.message || String(error),
     );
     // If the error is a 404 (Model Not Found), try the legacy model silently
     if (error.status === 404 || error.message?.includes("not found")) {
