@@ -4,13 +4,15 @@ export class UserController {
   getProfile = async (req: Request, res: Response): Promise<void> => {
     // req.user is populated by authenticateToken middleware
     if (!req.user) {
-      res.status(401).json({ success: false, error: { message: "User not authenticated" } });
+      res
+        .status(401)
+        .json({ success: false, error: { message: "User not authenticated" } });
       return;
     }
-    
-    res.json({ 
-      success: true, 
-      data: req.user 
+
+    res.json({
+      success: true,
+      data: req.user,
     });
   };
 

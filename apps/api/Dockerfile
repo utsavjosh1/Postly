@@ -12,16 +12,20 @@ COPY packages/database/package.json ./packages/database/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
+COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY apps/api/package.json ./apps/api/
 
 # Install all dependencies
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source code
 COPY packages/database ./packages/database
 COPY packages/ai-utils ./packages/ai-utils
 COPY packages/shared-types ./packages/shared-types
 COPY packages/logger ./packages/logger
+COPY packages/config/typescript-config ./packages/config/typescript-config
+COPY packages/config/eslint-config ./packages/config/eslint-config
 COPY apps/api ./apps/api
 
 # Build packages in order
@@ -47,7 +51,7 @@ COPY packages/logger/package.json ./packages/logger/
 COPY apps/api/package.json ./apps/api/
 
 # Install production dependencies only
-RUN npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
 # Copy built files from builder
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist

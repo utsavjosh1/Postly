@@ -1,109 +1,105 @@
 import { useChatStore } from "../../stores/chat.store";
-import { useAuthStore } from "../../stores/auth.store";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
+import { useSSEChat } from "../../hooks/useSSEChat";
 
 export function ChatMain() {
   const { activeConversationId, toggleSidebar } = useChatStore();
-  const { user } = useAuthStore();
+  const { sendMessage } = useSSEChat();
+
+  const handlePillClick = (text: string) => {
+    sendMessage(text);
+  };
 
   return (
-    <main className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Background Ambience - subtle accent color */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-accent/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
+    <main className="flex-1 flex flex-col h-full bg-zinc-900 relative overflow-hidden text-zinc-100 font-sans selection:bg-purple-500/30">
+      {/* Mobile Menu Button - Shown only when sidebar is closed on desktop or always on mobile if needed */}
+      <div className="hidden">
+        {/* We handle menu via header now, but if activeConversationId is null (empty state) we need a trigger */}
       </div>
 
-      {/* Header */}
-      <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur-md z-10 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleSidebar}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors md:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary" />
+      {!activeConversationId && (
+        <button
+          onClick={toggleSidebar}
+          className="absolute top-4 left-4 z-50 p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col relative w-full h-full">
+        {activeConversationId ? (
+          // ACTIVE STATE: Chat Interface
+          <>
+            {/* Minimal Header */}
+            <header className="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-zinc-900/50 backdrop-blur-sm shrink-0 z-10">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleSidebar}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <span className="text-sm font-medium text-zinc-400 hidden sm:block">
+                  New Chat
+                </span>
+              </div>
+            </header>
+
+            {/* Messages */}
+            <div className="flex-1 relative min-h-0">
+              <MessageList />
             </div>
-            <div>
-              <h1 className="text-sm font-semibold text-foreground leading-none">
-                AI Career Assistant
+
+            {/* Input Footer */}
+            <div className="shrink-0 w-full max-w-3xl mx-auto px-4 pb-6 pt-2 bg-gradient-to-t from-zinc-900 via-zinc-900 to-transparent z-20 transition-all duration-500">
+              <ChatInput />
+              <div className="text-center mt-2">
+                <p className="text-[10px] text-zinc-600">
+                  AI can make mistakes. Verify important information.
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          // EMPTY STATE: Centered Search
+          <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full w-full max-w-3xl mx-auto animate-in fade-in zoom-in-95 duration-500">
+            {/* Logo/Greeting */}
+            <div className="mb-10 text-center space-y-4">
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60 tracking-tight">
+                What can I help you with?
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Powered by Gemini • {user?.userType === "employer" ? "Recruiter Mode" : "Job Seeker Mode"}
-              </p>
+            </div>
+
+            {/* Centered Input */}
+            <div className="w-full max-w-2xl relative z-10">
+              <ChatInput />
+            </div>
+
+            {/* Quick Actions / Pills */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 max-w-2xl animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100">
+              {SUGGESTION_PILLS.map((pill, i) => (
+                <button
+                  key={i}
+                  onClick={() => handlePillClick(pill)}
+                  className="px-4 py-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 border border-white/5 hover:border-white/10 text-sm text-zinc-400 hover:text-white transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  {pill}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Messages area */}
-      <div className="flex-1 relative min-h-0 flex flex-col">
-        {activeConversationId ? <MessageList /> : <EmptyState />}
+        )}
       </div>
-
-      {/* Input area */}
-      {activeConversationId && (
-        <div className="shrink-0 z-20">
-          <ChatInput />
-        </div>
-      )}
     </main>
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-500">
-      <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center mb-6 shadow-xl shadow-primary/5">
-        <Sparkles className="w-10 h-10 text-primary" />
-      </div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">
-        How can I help you today?
-      </h2>
-      <p className="text-muted-foreground max-w-md mb-8">
-        I can help you analyze resumes, find relevant jobs, cover letter tips, or provide general career advice.
-      </p>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full">
-        {SUGGESTIONS.map((suggestion, i) => (
-          <button
-            key={i}
-            className="p-4 rounded-xl bg-card border border-border hover:bg-muted/50 hover:border-primary/20 text-left transition-all group"
-          >
-            <h3 className="text-sm font-medium text-foreground mb-1 group-hover:text-primary transition-colors">
-              {suggestion.title}
-            </h3>
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {suggestion.desc}
-            </p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const SUGGESTIONS = [
-  {
-    title: "Analyze my resume",
-    desc: "Get feedback on strengths and weaknesses",
-  },
-  {
-    title: "Find remote React jobs",
-    desc: "Search for latest opportunities",
-  },
-  {
-    title: "Write a cover letter",
-    desc: "For a Senior Frontend Developer role",
-  },
-  {
-    title: "Interview prep",
-    desc: "Common questions for Engineering Managers",
-  },
+const SUGGESTION_PILLS = [
+  "Analyze my resume",
+  "Mock Interview",
+  "Write a cover letter",
+  "Find remote jobs",
 ];

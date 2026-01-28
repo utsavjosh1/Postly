@@ -22,6 +22,11 @@ interface RateLimitConfig {
 export const createStrictRateLimiter = (config: RateLimitConfig) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (process.env.NODE_ENV === "development") {
+        next();
+        return;
+      }
+
       const user = (req as Request & { user?: User }).user;
       if (!user?.id) {
         res.status(401).json({
@@ -37,6 +42,10 @@ export const createStrictRateLimiter = (config: RateLimitConfig) => {
       // Get current count
       const currentCount = await redis.get(key);
       const count = currentCount ? parseInt(currentCount, 10) : 0;
+
+      console.log(
+        `[RateLimit] User: ${userId}, Env: ${process.env.NODE_ENV}, Max: ${config.max}, Count: ${count}`,
+      );
 
       if (count >= config.max) {
         // Get Time-to-Live to tell user when they can try again
@@ -70,9 +79,12 @@ export const createStrictRateLimiter = (config: RateLimitConfig) => {
   };
 };
 
+// 1000 requests in dev, 3 in prod
+const isDev = process.env.NODE_ENV === "development";
+
 export const chatRateLimiter = createStrictRateLimiter({
-  windowMs: 7 * 24 * 60 * 60 * 1000, // 7 days
-  max: 3, // 3 requests
+  windowMs: isDev ? 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000, // 1 hour in dev, 7 days in prod
+  max: isDev ? 10000 : 3, // Unlimited-ish in dev
   keyPrefix: "rate_limit:ai_chat",
   message:
     "Weekly AI limit reached (3 requests/week). Upgrade to Premium for more.",

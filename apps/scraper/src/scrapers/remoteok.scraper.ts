@@ -123,7 +123,10 @@ export class RemoteOKScraper extends BaseScraper {
       "&quot;": '"',
       "&#39;": "'",
     };
-    text = text.replace(/&(?:nbsp|amp|lt|gt|quot|#39);/g, (entity) => entities[entity] || entity);
+    text = text.replace(
+      /&(?:nbsp|amp|lt|gt|quot|#39);/g,
+      (entity) => entities[entity] || entity,
+    );
     // Clean up whitespace
     text = text.replace(/\s+/g, " ").trim();
     // Limit length

@@ -104,45 +104,53 @@ export function ResumeUpload() {
       <div
         {...getRootProps()}
         className={cn(
-          "relative border-2 border-dashed rounded-xl p-8 transition-all duration-200 cursor-pointer",
-          "hover:border-primary/50 hover:bg-muted/50",
-          isDragActive && "border-primary bg-primary/5 scale-[1.02]",
-          status === "error" && "border-destructive bg-destructive/5",
-          status === "success" && "border-green-500 bg-green-500/5",
+          "group relative border border-dashed rounded-2xl p-10 transition-all duration-300 cursor-pointer overflow-hidden",
+          "bg-zinc-900/30 backdrop-blur-sm",
+          "border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50",
+          isDragActive &&
+            "border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500/20",
+          status === "error" && "border-red-500/50 bg-red-500/5",
+          status === "success" && "border-green-500/50 bg-green-500/5",
           (status === "uploading" || status === "processing") &&
             "pointer-events-none opacity-80",
         )}
       >
+        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         <input {...getInputProps()} />
 
-        <div className="flex flex-col items-center justify-center gap-4 text-center">
+        <div className="relative flex flex-col items-center justify-center gap-6 text-center z-10">
           {status === "idle" && !error && (
             <>
               <div
                 className={cn(
-                  "w-16 h-16 rounded-full bg-muted flex items-center justify-center transition-transform",
-                  isDragActive && "scale-110 bg-primary/10",
+                  "w-20 h-20 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center transition-all duration-300 shadow-xl",
+                  isDragActive &&
+                    "scale-110 border-indigo-500/50 bg-indigo-500/10 shadow-indigo-500/20",
+                  "group-hover:border-zinc-700 group-hover:bg-zinc-800",
                 )}
               >
                 <Upload
                   className={cn(
-                    "w-8 h-8 text-muted-foreground transition-colors",
-                    isDragActive && "text-primary",
+                    "w-8 h-8 text-zinc-400 transition-colors duration-300",
+                    isDragActive
+                      ? "text-indigo-400"
+                      : "group-hover:text-zinc-100",
                   )}
                 />
               </div>
-              <div>
-                <p className="text-lg font-medium text-foreground">
+              <div className="space-y-2">
+                <p className="text-xl font-medium text-zinc-100 transition-colors group-hover:text-white">
                   {isDragActive
-                    ? "Drop your resume here"
+                    ? "Drop your resume anywhere"
                     : "Upload your resume"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Drag and drop or click to browse
+                <p className="text-sm text-zinc-400 max-w-[280px] mx-auto leading-relaxed">
+                  Drag and drop your PDF or DOCX file here, or click to browse
+                  files
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <FileText className="w-4 h-4" />
+              <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium px-3 py-1.5 rounded-full bg-zinc-900/50 border border-zinc-800/50">
+                <FileText className="w-3.5 h-3.5" />
                 <span>PDF, DOC, DOCX up to 5MB</span>
               </div>
             </>
