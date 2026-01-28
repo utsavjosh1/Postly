@@ -20,24 +20,31 @@ export class RemoteCoScraper extends BaseScraper {
       // Extract all category links from the sidebar or main content
       // Typically they are in a list or grid
       const categoryLinks: string[] = [];
-      
+
       $('a[href^="/remote-jobs/"]').each((_, element) => {
         const href = $(element).attr("href");
-        if (href && href !== "/remote-jobs/" && !processedCategories.has(href)) {
-           // Basic filtering to ensure it's a category page
-           // (Simple logic: if it starts with /remote-jobs/ and isn't the root)
-           categoryLinks.push(href);
-           processedCategories.add(href);
+        if (
+          href &&
+          href !== "/remote-jobs/" &&
+          !processedCategories.has(href)
+        ) {
+          // Basic filtering to ensure it's a category page
+          // (Simple logic: if it starts with /remote-jobs/ and isn't the root)
+          categoryLinks.push(href);
+          processedCategories.add(href);
         }
       });
-      
-      console.log(`[Remote.co] Found ${categoryLinks.length} categories:`, categoryLinks);
+
+      console.log(
+        `[Remote.co] Found ${categoryLinks.length} categories:`,
+        categoryLinks,
+      );
 
       // 2. Iterate through each category
       for (const category of categoryLinks) {
         try {
           // Additional check to skip if we want (e.g. specific ignored categories)
-          
+
           const categoryJobs = await this.scrapeCategory(category);
           jobs.push(...categoryJobs);
         } catch (error) {
@@ -53,17 +60,19 @@ export class RemoteCoScraper extends BaseScraper {
     } catch (e) {
       console.error("[Remote.co] Failed to fetch categories:", e);
       // Fallback to a few default categories if main page fails
-       const defaultCategories = [
+      const defaultCategories = [
         "/remote-jobs/developer/",
         "/remote-jobs/design/",
         "/remote-jobs/customer-service/",
       ];
-       for (const category of defaultCategories) {
-          try {
-             const categoryJobs = await this.scrapeCategory(category);
-             jobs.push(...categoryJobs);
-           } catch(err) { console.error(err)}
-       }
+      for (const category of defaultCategories) {
+        try {
+          const categoryJobs = await this.scrapeCategory(category);
+          jobs.push(...categoryJobs);
+        } catch (err) {
+          console.error(err);
+        }
+      }
     }
 
     // Deduplicate
@@ -81,7 +90,9 @@ export class RemoteCoScraper extends BaseScraper {
     const url = `${BASE_URL}${category}`;
     console.log(`[Remote.co] Fetching ${url}`);
 
-    const html = await this.fetchWithBrowser(url, ".job_listings", { timeout: 60000 });
+    const html = await this.fetchWithBrowser(url, ".job_listings", {
+      timeout: 60000,
+    });
     const $ = cheerio.load(html);
     const jobs: ScrapedJob[] = [];
     const jobUrls: string[] = [];
@@ -207,7 +218,7 @@ export class RemoteCoScraper extends BaseScraper {
       const html = await this.fetchWithBrowser(
         job.source_url,
         ".job_description",
-        { timeout: 60000 }
+        { timeout: 60000 },
       );
       const $ = cheerio.load(html);
 

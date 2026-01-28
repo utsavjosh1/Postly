@@ -23,7 +23,7 @@ export function ChatInput() {
 
     await sendMessage(input.trim());
     setInput("");
-    
+
     // Reset height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -42,13 +42,13 @@ export function ChatInput() {
       <form onSubmit={handleSubmit} className="relative group">
         <div className="relative bg-zinc-800 hover:bg-zinc-800/80 focus-within:bg-zinc-800/80 rounded-[26px] border border-transparent flex items-end overflow-hidden transition-colors">
           {/* Attachment Icon (Placeholder for now) */}
-           <button
-             type="button" 
-             className="p-3 mb-1 ml-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-full"
-             title="Attach file"
-           >
-              <Paperclip className="w-5 h-5" />
-           </button>
+          <button
+            type="button"
+            className="p-3 mb-1 ml-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-full"
+            title="Attach file"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
 
           <textarea
             ref={textareaRef}
@@ -66,9 +66,10 @@ export function ChatInput() {
               type="submit"
               disabled={!input.trim() || isStreaming}
               className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center
-                ${!input.trim() || isStreaming 
-                  ? "bg-transparent text-zinc-600 cursor-not-allowed" 
-                  : "bg-white text-black hover:bg-zinc-200"
+                ${
+                  !input.trim() || isStreaming
+                    ? "bg-transparent text-zinc-600 cursor-not-allowed"
+                    : "bg-white text-black hover:bg-zinc-200"
                 }`}
               aria-label="Send message"
             >

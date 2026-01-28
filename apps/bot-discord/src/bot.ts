@@ -32,13 +32,18 @@ client.on("messageCreate", async (message) => {
 const token = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
 
 if (!token) {
-  console.warn("⚠️ DISCORD_TOKEN or DISCORD_BOT_TOKEN not found in environment variables.");
+  console.warn(
+    "⚠️ DISCORD_TOKEN or DISCORD_BOT_TOKEN not found in environment variables.",
+  );
   console.warn("⚠️ Discord bot will run in dormant mode (no connection).");
-  
+
   // Keep the process alive to prevent container restart loops
-  setInterval(() => {
-    // Heartbeat for dormant mode
-  }, 1000 * 60 * 60); // Check every hour
+  setInterval(
+    () => {
+      // Heartbeat for dormant mode
+    },
+    1000 * 60 * 60,
+  ); // Check every hour
 } else {
   client.login(token).catch((error) => {
     console.error("❌ Failed to login:", error);

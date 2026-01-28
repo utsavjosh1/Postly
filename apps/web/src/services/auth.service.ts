@@ -9,7 +9,10 @@ import { ApiResponse } from "@postly/shared-types";
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>("/auth/login", data);
+    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/auth/login",
+      data,
+    );
     const authData = response.data.data;
 
     if (!authData) throw new Error("No data received");
@@ -23,7 +26,10 @@ export const authService = {
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>("/auth/register", data);
+    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/auth/register",
+      data,
+    );
     const authData = response.data.data;
 
     if (!authData) throw new Error("No data received");
@@ -53,4 +59,3 @@ export const authService = {
     return response.data.data!;
   },
 };
-
