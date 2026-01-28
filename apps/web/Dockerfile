@@ -9,13 +9,17 @@ COPY turbo.json ./
 
 # Copy workspace packages
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
+COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY apps/web/package.json ./apps/web/
 
 # Install dependencies
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source code
 COPY packages/shared-types ./packages/shared-types
+COPY packages/config/typescript-config ./packages/config/typescript-config
+COPY packages/config/eslint-config ./packages/config/eslint-config
 COPY apps/web ./apps/web
 
 # Build shared-types first, then web
