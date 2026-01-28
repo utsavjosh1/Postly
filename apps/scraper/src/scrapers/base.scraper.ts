@@ -45,106 +45,142 @@ export abstract class BaseScraper {
    * Smart Fetch: Attempts to fetch content using multiple strategies.
    * Priority: Browser -> Curl (for Cloudflare bypass)
    */
-  protected async smartFetch(url: string, selector = "body"): Promise<{ content: string; type: "html" | "rss" | "json"; }> {
-      try {
-          // 1. Try Browser first (best for SPAs)
-          console.log(`[${this.source}] smartFetch: Trying browser...`);
-          const html = await this.fetchWithBrowser(url, selector, { timeout: 30000, retries: 1 });
-          
-          if (html.trim().startsWith("<?xml") || html.includes("<rss") || html.includes("<feed")) {
-              return { content: html, type: "rss" };
-          }
-          return { content: html, type: "html" };
-      } catch (browserError) {
-          console.warn(`[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`);
-          
-          // 2. Try Curl (best for static sites protected by simple bot block)
-          try {
-              const { stdout } = await execAsync(`curl -L -s --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`, { maxBuffer: 10 * 1024 * 1024 });
-              
-              if (stdout && (stdout.trim().startsWith("<?xml") || stdout.includes("<rss"))) {
-                   return { content: stdout, type: "rss" };
-              }
-              if (stdout && stdout.trim().startsWith("{")) {
-                  try {
-                      JSON.parse(stdout);
-                      return { content: stdout, type: "json" };
-                  } catch {}
-              }
+  protected async smartFetch(
+    url: string,
+    selector = "body",
+  ): Promise<{ content: string; type: "html" | "rss" | "json" }> {
+    try {
+      // 1. Try Browser first (best for SPAs)
+      console.log(`[${this.source}] smartFetch: Trying browser...`);
+      const html = await this.fetchWithBrowser(url, selector, {
+        timeout: 30000,
+        retries: 1,
+      });
 
-              return { content: stdout, type: "html" };
-          } catch (curlError) {
-              console.error(`[${this.source}] smartFetch: All methods failed for ${url}`);
-              throw new Error(`Failed to fetch ${url}`);
-          }
+      if (
+        html.trim().startsWith("<?xml") ||
+        html.includes("<rss") ||
+        html.includes("<feed")
+      ) {
+        return { content: html, type: "rss" };
       }
+      return { content: html, type: "html" };
+    } catch {
+      console.warn(
+        `[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`,
+      );
+
+      // 2. Try Curl (best for static sites protected by simple bot block)
+      try {
+        const { stdout } = await execAsync(
+          `curl -L -s --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`,
+          { maxBuffer: 10 * 1024 * 1024 },
+        );
+
+        if (
+          stdout &&
+          (stdout.trim().startsWith("<?xml") || stdout.includes("<rss"))
+        ) {
+          return { content: stdout, type: "rss" };
+        }
+        if (stdout && stdout.trim().startsWith("{")) {
+          try {
+            JSON.parse(stdout);
+            return { content: stdout, type: "json" };
+          } catch {
+            // ignore
+          }
+        }
+
+        return { content: stdout, type: "html" };
+      } catch {
+        console.error(
+          `[${this.source}] smartFetch: All methods failed for ${url}`,
+        );
+        throw new Error(`Failed to fetch ${url}`);
+      }
+    }
   }
 
   /**
    * Extracts data from standard formats (RSS, JSON-LD) to save AI tokens.
    */
-  protected async extractResolvableData(content: string, type: "html" | "rss" | "json", baseUrl: string): Promise<ScrapedJob[]> {
-      const jobs: ScrapedJob[] = [];
+  protected async extractResolvableData(
+    content: string,
+    type: "html" | "rss" | "json",
+    baseUrl: string,
+  ): Promise<ScrapedJob[]> {
+    const jobs: ScrapedJob[] = [];
 
-      // 1. RSS/Atom
-      if (type === "rss" || content.includes("<rss") || content.includes("<feed")) {
-           const $ = cheerio.load(content, { xmlMode: true });
-           $("item, entry").each((_, el) => {
-                const $el = $(el);
-                const title = $el.find("title").text().trim();
-                const link = $el.find("link").text().trim() || $el.find("link").attr("href");
-                const desc = $el.find("description, content, summary").text().trim();
-                if (title && link) {
-                    jobs.push({
-                        title,
-                        company_name: "Unknown", // RSS rarely has clean company name without parsing title
-                        description: desc || title,
-                        location: "Remote",
-                        remote: true,
-                        source_url: link,
-                        posted_at: new Date(),
-                        skills_required: this.extractSkills(desc + " " + title)
-                    });
-                }
-           });
-           if (jobs.length > 0) return jobs;
-      }
-
-      // 2. JSON-LD in HTML
-      if (type === "html") {
-          const $ = cheerio.load(content);
-          $('script[type="application/ld+json"]').each((_, el) => {
-              try {
-                  const json = JSON.parse($(el).html() || "{}");
-                  const items = Array.isArray(json) ? json : [json];
-                  
-                  for (const item of items) {
-                      if (item["@type"] === "JobPosting") {
-                          jobs.push({
-                              title: item.title,
-                              company_name: item.hiringOrganization?.name || "Unknown",
-                              description: item.description || "",
-                              location: item.jobLocation?.address?.addressLocality || "Remote",
-                              remote: !!item.jobLocation?.address?.addressLocality?.toLowerCase().includes("remote"), // Heuristic
-                              source_url: item.url || baseUrl,
-                              posted_at: item.datePosted ? new Date(item.datePosted) : new Date(),
-                              skills_required: this.extractSkills(item.description || "")
-                          });
-                      }
-                  }
-              } catch (e) {
-                  // ignore
-              }
+    // 1. RSS/Atom
+    if (
+      type === "rss" ||
+      content.includes("<rss") ||
+      content.includes("<feed")
+    ) {
+      const $ = cheerio.load(content, { xmlMode: true });
+      $("item, entry").each((_, el) => {
+        const $el = $(el);
+        const title = $el.find("title").text().trim();
+        const link =
+          $el.find("link").text().trim() || $el.find("link").attr("href");
+        const desc = $el.find("description, content, summary").text().trim();
+        if (title && link) {
+          jobs.push({
+            title,
+            company_name: "Unknown", // RSS rarely has clean company name without parsing title
+            description: desc || title,
+            location: "Remote",
+            remote: true,
+            source_url: link,
+            posted_at: new Date(),
+            skills_required: this.extractSkills(desc + " " + title),
           });
-      }
+        }
+      });
+      if (jobs.length > 0) return jobs;
+    }
 
-      return jobs;
+    // 2. JSON-LD in HTML
+    if (type === "html") {
+      const $ = cheerio.load(content);
+      $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+          const json = JSON.parse($(el).html() || "{}");
+          const items = Array.isArray(json) ? json : [json];
+
+          for (const item of items) {
+            if (item["@type"] === "JobPosting") {
+              jobs.push({
+                title: item.title,
+                company_name: item.hiringOrganization?.name || "Unknown",
+                description: item.description || "",
+                location:
+                  item.jobLocation?.address?.addressLocality || "Remote",
+                remote: !!item.jobLocation?.address?.addressLocality
+                  ?.toLowerCase()
+                  .includes("remote"), // Heuristic
+                source_url: item.url || baseUrl,
+                posted_at: item.datePosted
+                  ? new Date(item.datePosted)
+                  : new Date(),
+                skills_required: this.extractSkills(item.description || ""),
+              });
+            }
+          }
+        } catch {
+          // ignore
+        }
+      });
+    }
+
+    return jobs;
   }
 
   // Generate embedding for job matching
   protected async generateJobEmbedding(job: ScrapedJob): Promise<number[]> {
     const text = `${job.title} at ${job.company_name}. ${job.description.substring(0, 1000)}. Skills: ${job.skills_required?.join(", ") || "Not specified"}. Location: ${job.location || "Not specified"}`;
-    return generateEmbedding(text); 
+    return generateEmbedding(text);
   }
 
   // Calculate expiration date (default 90 days from posted, max 1 year)
@@ -491,23 +527,29 @@ export abstract class BaseScraper {
     return stats;
   }
 
-
-
-
   // Extract jobs from HTML using AI
   // Extract jobs from HTML using AI
-  protected async extractJobsFromHtml(html: string, baseUrl: string = ""): Promise<ScrapedJob[]> {
+  protected async extractJobsFromHtml(
+    html: string,
+    baseUrl: string = "",
+  ): Promise<ScrapedJob[]> {
     if (!html) return [];
 
     // 0. Optimization: Check for structured data first to avoid AI costs/latency
     // In a real pipeline, we might pass the 'type' from smartFetch, but here we assume HTML if we are this deep.
-    // If it was RSS, we would have caught it earlier in smartFetch flow. 
+    // If it was RSS, we would have caught it earlier in smartFetch flow.
     // But smartFetch returns {content, type}. The caller should handle that.
     // However, for backwards compatibility or direct calls, let's try to extract JSON-LD here too.
-    const structuredJobs = await this.extractResolvableData(html, "html", baseUrl);
+    const structuredJobs = await this.extractResolvableData(
+      html,
+      "html",
+      baseUrl,
+    );
     if (structuredJobs.length > 0) {
-        console.log(`[${this.source}] Found ${structuredJobs.length} jobs via JSON-LD. Skipping AI.`);
-        return structuredJobs;
+      console.log(
+        `[${this.source}] Found ${structuredJobs.length} jobs via JSON-LD. Skipping AI.`,
+      );
+      return structuredJobs;
     }
 
     console.log(`[${this.source}] extracting jobs using AI...`);
@@ -516,10 +558,10 @@ export abstract class BaseScraper {
     const $ = cheerio.load(html);
     $("script").remove();
     $("style").remove();
-    $("noscript").remove(); 
+    $("noscript").remove();
     $("nav").remove(); // Remove navs to reduce noise
     $("footer").remove(); // Remove footers
-    
+
     // Remove comments
     $.root()
       .find("*")
@@ -561,7 +603,7 @@ export abstract class BaseScraper {
 
     try {
       const text = await generateText(prompt);
-      
+
       // Robust JSON extraction: Find [ ... ]
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       let jsonString = jsonMatch ? jsonMatch[0] : text;
@@ -597,12 +639,12 @@ export abstract class BaseScraper {
   }
 
   private normalizeUrl(url: string, baseUrl: string): string {
-      if (!url) return baseUrl;
-      if (url.startsWith("http")) return url;
-      try {
-          return new URL(url, baseUrl).toString();
-      } catch {
-          return url;
-      }
+    if (!url) return baseUrl;
+    if (url.startsWith("http")) return url;
+    try {
+      return new URL(url, baseUrl).toString();
+    } catch {
+      return url;
+    }
   }
 }

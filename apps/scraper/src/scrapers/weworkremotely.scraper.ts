@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { ScrapedJob, BaseScraper } from "./base.scraper.js";
-// @ts-ignore
+
 import type { JobSource } from "@postly/shared-types";
 
 const execAsync = promisify(exec);
@@ -45,63 +45,65 @@ export class WeWorkRemotelyScraper extends BaseScraper {
     console.log(`[WWR] Fetching RSS feed: ${url}`);
 
     try {
-        // Use curl to bypass Node.js TLS fingerprinting which triggers Cloudflare
-        const { stdout } = await execAsync(`curl -L -s --user-agent "curl/7.64.1" "${url}"`, { maxBuffer: 10 * 1024 * 1024 });
-        
-        const xml = stdout;
-        
-        if (!xml.trim().startsWith("<?xml") && !xml.includes("<rss")) {
-             console.warn(`[WWR] Response for ${url} does not look like RSS XML.`);
-             // console.warn(`[WWR] Preview: ${xml.substring(0, 100)}...`);
-             return [];
+      // Use curl to bypass Node.js TLS fingerprinting which triggers Cloudflare
+      const { stdout } = await execAsync(
+        `curl -L -s --user-agent "curl/7.64.1" "${url}"`,
+        { maxBuffer: 10 * 1024 * 1024 },
+      );
+
+      const xml = stdout;
+
+      if (!xml.trim().startsWith("<?xml") && !xml.includes("<rss")) {
+        console.warn(`[WWR] Response for ${url} does not look like RSS XML.`);
+        // console.warn(`[WWR] Preview: ${xml.substring(0, 100)}...`);
+        return [];
+      }
+
+      const $ = cheerio.load(xml, { xmlMode: true });
+      const jobs: ScrapedJob[] = [];
+
+      $("item").each((_, element) => {
+        const item = $(element);
+        const link = item.find("link").text().trim();
+        const guid = item.find("guid").text().trim();
+        const dateStr = item.find("pubDate").text().trim();
+
+        const fullTitle = item.find("title").text().trim();
+        let company = "Unknown";
+        let title = fullTitle;
+
+        if (fullTitle.includes(":")) {
+          const parts = fullTitle.split(":");
+          company = parts[0].trim();
+          title = parts.slice(1).join(":").trim();
         }
 
-        const $ = cheerio.load(xml, { xmlMode: true });
-        const jobs: ScrapedJob[] = [];
+        const descriptionHtml = item.find("description").text();
+        const $desc = cheerio.load(descriptionHtml);
+        const description = $desc.text().trim() || descriptionHtml;
 
-        $("item").each((_, element) => {
-            const item = $(element);
-            const link = item.find("link").text().trim();
-            const guid = item.find("guid").text().trim();
-            const dateStr = item.find("pubDate").text().trim();
-            
-            let fullTitle = item.find("title").text().trim();
-            let company = "Unknown";
-            let title = fullTitle;
+        const job: ScrapedJob = {
+          title,
+          company_name: company,
+          description: description,
+          location: "Remote",
+          salary_min: undefined,
+          salary_max: undefined,
+          job_type: undefined,
+          remote: true,
+          source_url: link || guid,
+          posted_at: this.parsePostedDate(dateStr) || new Date(),
+          skills_required: this.extractSkills(description + " " + title),
+        };
 
-            if (fullTitle.includes(":")) {
-                const parts = fullTitle.split(":");
-                company = parts[0].trim();
-                title = parts.slice(1).join(":").trim();
-            }
+        jobs.push(job);
+      });
 
-            const descriptionHtml = item.find("description").text();
-            const $desc = cheerio.load(descriptionHtml);
-            const description = $desc.text().trim() || descriptionHtml;
-
-            const job: ScrapedJob = {
-                title,
-                company_name: company,
-                description: description,
-                location: "Remote",
-                salary_min: undefined,
-                salary_max: undefined,
-                job_type: undefined,
-                remote: true,
-                source_url: link || guid,
-                posted_at: this.parsePostedDate(dateStr) || new Date(),
-                skills_required: this.extractSkills(description + " " + title)
-            };
-
-            jobs.push(job);
-        });
-
-        console.log(`[WWR] Found ${jobs.length} jobs in ${category}`);
-        return jobs;
-
+      console.log(`[WWR] Found ${jobs.length} jobs in ${category}`);
+      return jobs;
     } catch (error) {
-        console.error(`[WWR] Error scraping ${category}:`, error);
-        return [];
+      console.error(`[WWR] Error scraping ${category}:`, error);
+      return [];
     }
   }
 
