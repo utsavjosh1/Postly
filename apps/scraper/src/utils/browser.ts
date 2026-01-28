@@ -126,7 +126,11 @@ class BrowserManager {
     return page;
   }
 
-  async fetchPage(url: string, waitForSelector?: string, timeout = 30000): Promise<string> {
+  async fetchPage(
+    url: string,
+    waitForSelector?: string,
+    timeout = 30000,
+  ): Promise<string> {
     const page = await this.getPage();
 
     try {
@@ -207,7 +211,12 @@ export async function fetchWithBrowser(
     timeout?: number;
   } = {},
 ): Promise<string> {
-  const { waitForSelector, retries = 3, retryDelay = 2000, timeout = 30000 } = options;
+  const {
+    waitForSelector,
+    retries = 3,
+    retryDelay = 2000,
+    timeout = 30000,
+  } = options;
 
   let lastError: Error | null = null;
 

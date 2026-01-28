@@ -9,7 +9,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   const { login, loginWithGoogle, isLoading, error } = useAuthStore();
   const urlError = searchParams.get("error");
 
@@ -38,7 +38,10 @@ export function LoginPage() {
         <div className="bg-card py-8 px-6 shadow-lg rounded-xl border border-border">
           {(error || urlError) && (
             <div className="mb-4 p-3 rounded bg-destructive/10 text-destructive text-sm font-medium">
-              {error || (urlError === "access_denied" ? "Access denied" : "Authentication failed")}
+              {error ||
+                (urlError === "access_denied"
+                  ? "Access denied"
+                  : "Authentication failed")}
             </div>
           )}
 
@@ -75,7 +78,9 @@ export function LoginPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
               </div>
             </div>
 
@@ -89,7 +94,7 @@ export function LoginPage() {
                 placeholder="you@example.com"
                 className="h-11"
               />
-              
+
               <Input
                 label="Password"
                 type="password"
@@ -100,8 +105,8 @@ export function LoginPage() {
                 className="h-11"
               />
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-11 text-base transition-all"
                 isLoading={isLoading}
               >

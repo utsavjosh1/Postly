@@ -52,13 +52,13 @@ export async function generateText(prompt: string): Promise<string> {
     client.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
-    })
+    }),
   );
-  
+
   if (result.text) {
-      return result.text;
+    return result.text;
   }
-  
+
   // Fallback or empty if something goes wrong
   return "";
 }
@@ -71,13 +71,13 @@ export async function streamText(
     client.models.generateContentStream({
       model: "gemini-2.5-flash",
       contents: prompt,
-    })
+    }),
   );
 
   async function* streamGenerator() {
     for await (const chunk of result) {
       if (chunk.text) {
-         yield chunk.text;
+        yield chunk.text;
       }
     }
   }
@@ -88,16 +88,19 @@ export async function streamText(
 // Helper for embeddings
 export async function generateEmbedding(text: string): Promise<number[]> {
   const client = getClient();
-  const result = await withRetry(() => 
-      client.models.embedContent({
-          model: "text-embedding-004",
-          contents: text
-      })
+  const result = await withRetry(() =>
+    client.models.embedContent({
+      model: "text-embedding-004",
+      contents: text,
+    }),
   );
-  
-  if (result.embeddings && result.embeddings[0] && result.embeddings[0].values) {
-      return result.embeddings[0].values;
+
+  if (
+    result.embeddings &&
+    result.embeddings[0] &&
+    result.embeddings[0].values
+  ) {
+    return result.embeddings[0].values;
   }
   return [];
 }
-

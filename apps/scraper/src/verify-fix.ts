@@ -1,4 +1,3 @@
-
 import { WeWorkRemotelyScraper } from "./scrapers/weworkremotely.scraper.js";
 import { RemoteCoScraper } from "./scrapers/remote-co.scraper.js";
 import { browserManager } from "./utils/browser.js";
@@ -13,11 +12,11 @@ async function verify() {
     // Monkey patch fetchWithBrowser to save file
     const originalFetch = wwr["fetchWithBrowser"].bind(wwr);
     wwr["fetchWithBrowser"] = async (url, selector, options) => {
-        const html = await originalFetch(url, selector, options);
-        const fs = await import("fs");
-        fs.writeFileSync("debug-wwr-browser.html", html);
-        console.log("💾 Saved WWR HTML to debug-wwr-browser.html");
-        return html;
+      const html = await originalFetch(url, selector, options);
+      const fs = await import("fs");
+      fs.writeFileSync("debug-wwr-browser.html", html);
+      console.log("💾 Saved WWR HTML to debug-wwr-browser.html");
+      return html;
     };
 
     const jobs = await wwr.scrape();
@@ -35,10 +34,10 @@ async function verify() {
   try {
     console.log("\n🧪 Testing Remote.co Scraper...");
     const remoteCo = new RemoteCoScraper();
-    
+
     const jobs = await remoteCo.scrape();
     console.log(`✅ Remote.co Success! Found ${jobs.length} jobs.`);
-     if (jobs.length > 0) {
+    if (jobs.length > 0) {
       console.log("Sample job:", jobs[0]);
     }
   } catch (error) {
