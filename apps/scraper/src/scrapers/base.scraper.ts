@@ -45,106 +45,238 @@ export abstract class BaseScraper {
    * Smart Fetch: Attempts to fetch content using multiple strategies.
    * Priority: Browser -> Curl (for Cloudflare bypass)
    */
-  protected async smartFetch(url: string, selector = "body"): Promise<{ content: string; type: "html" | "rss" | "json"; }> {
-      try {
-          // 1. Try Browser first (best for SPAs)
-          console.log(`[${this.source}] smartFetch: Trying browser...`);
-          const html = await this.fetchWithBrowser(url, selector, { timeout: 30000, retries: 1 });
-          
-          if (html.trim().startsWith("<?xml") || html.includes("<rss") || html.includes("<feed")) {
-              return { content: html, type: "rss" };
-          }
-          return { content: html, type: "html" };
-      } catch (browserError) {
-          console.warn(`[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`);
-          
-          // 2. Try Curl (best for static sites protected by simple bot block)
-          try {
-              const { stdout } = await execAsync(`curl -L -s --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`, { maxBuffer: 10 * 1024 * 1024 });
-              
-              if (stdout && (stdout.trim().startsWith("<?xml") || stdout.includes("<rss"))) {
-                   return { content: stdout, type: "rss" };
-              }
-              if (stdout && stdout.trim().startsWith("{")) {
-                  try {
-                      JSON.parse(stdout);
-                      return { content: stdout, type: "json" };
-                  } catch {}
-              }
+  /**
+   * Smart Fetch: Attempts to fetch content using multiple strategies.
+   * Priority: HTTP (fastest) -> Browser (robust) -> Curl (impersonation)
+   */
+  protected async smartFetch(
+    url: string,
+    selector = "body",
+  ): Promise<{ content: string; type: "html" | "rss" | "json" }> {
+    // 1. Try HTTP first (Cheerio/Fetch) - Fastest & Cheapest
+    try {
+      console.log(`[${this.source}] smartFetch: Trying HTTP (fetch)...`);
+      const { content, type } = await this.fetchWithHttp(url);
 
-              return { content: stdout, type: "html" };
-          } catch (curlError) {
-              console.error(`[${this.source}] smartFetch: All methods failed for ${url}`);
-              throw new Error(`Failed to fetch ${url}`);
-          }
+      if (!this.isBlocked(content)) {
+        return { content, type };
       }
+      console.warn(
+        `[${this.source}] smartFetch: HTTP request likely blocked (soft block detected).`,
+      );
+    } catch (httpError) {
+      console.warn(
+        `[${this.source}] smartFetch: HTTP failed (${(httpError as Error).message}). Switching to Browser...`,
+      );
+    }
+
+    // 2. Try Browser (Playwright) - More expensive but handles JS/Auth/Fingerprinting
+    try {
+      console.log(`[${this.source}] smartFetch: Trying browser...`);
+      const html = await this.fetchWithBrowser(url, selector, {
+        timeout: 45000,
+        retries: 1,
+      });
+
+      if (
+        html.trim().startsWith("<?xml") ||
+        html.includes("<rss") ||
+        html.includes("<feed")
+      ) {
+        return { content: html, type: "rss" };
+      }
+      // Basic check if browser also got blocked (though less likely with good steering)
+      if (this.isBlocked(html)) {
+        console.warn(
+          `[${this.source}] smartFetch: Browser also seems blocked.`,
+        );
+        throw new Error("Browser blocked");
+      }
+
+      return { content: html, type: "html" };
+    } catch (browserError) {
+      console.warn(
+        `[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`,
+      );
+
+      // 3. Try Curl (best for static sites protected by simple bot block or TLS fingerprinting)
+      try {
+        // Increased max-time and added compressed flag
+        const { stdout } = await execAsync(
+          `curl -L -s --compressed --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`,
+          { maxBuffer: 10 * 1024 * 1024 },
+        );
+
+        if (
+          stdout &&
+          (stdout.trim().startsWith("<?xml") || stdout.includes("<rss"))
+        ) {
+          return { content: stdout, type: "rss" };
+        }
+        if (stdout && stdout.trim().startsWith("{")) {
+          try {
+            JSON.parse(stdout);
+            return { content: stdout, type: "json" };
+          } catch {}
+        }
+
+        return { content: stdout, type: "html" };
+      } catch (curlError) {
+        console.error(
+          `[${this.source}] smartFetch: All methods failed for ${url}`,
+        );
+        throw new Error(`Failed to fetch ${url}`);
+      }
+    }
+  }
+
+  /**
+   * Fast HTTP fetch using Node's native fetch
+   */
+  protected async fetchWithHttp(
+    url: string,
+  ): Promise<{ content: string; type: "html" | "rss" | "json" }> {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      signal: AbortSignal.timeout(15000), // 15s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const text = await response.text();
+
+    if (contentType.includes("application/json")) {
+      return { content: text, type: "json" };
+    }
+    if (
+      contentType.includes("xml") ||
+      text.trim().startsWith("<?xml") ||
+      text.includes("<rss")
+    ) {
+      return { content: text, type: "rss" };
+    }
+
+    return { content: text, type: "html" };
+  }
+
+  /**
+   * Detects common "soft blocks" like Cloudflare challenges or "Enable JS" messages
+   */
+  protected isBlocked(html: string): boolean {
+    if (!html) return true;
+    const lower = html.toLowerCase();
+
+    // Common block indicators
+    const indicators = [
+      "just a moment...",
+      "enable javascript",
+      "javascript is required",
+      "captcha-delivery",
+      "challenge-platform",
+      "cloudflare-ray",
+      "access denied",
+      "security check",
+      "verify you are human",
+    ];
+
+    // If content is very short (< 500 chars) AND contains one of these, it's likely a block/challenge page
+    // Real job pages are usually larger.
+    if (html.length < 2000 && indicators.some((ind) => lower.includes(ind))) {
+      return true;
+    }
+    return false;
   }
 
   /**
    * Extracts data from standard formats (RSS, JSON-LD) to save AI tokens.
    */
-  protected async extractResolvableData(content: string, type: "html" | "rss" | "json", baseUrl: string): Promise<ScrapedJob[]> {
-      const jobs: ScrapedJob[] = [];
+  protected async extractResolvableData(
+    content: string,
+    type: "html" | "rss" | "json",
+    baseUrl: string,
+  ): Promise<ScrapedJob[]> {
+    const jobs: ScrapedJob[] = [];
 
-      // 1. RSS/Atom
-      if (type === "rss" || content.includes("<rss") || content.includes("<feed")) {
-           const $ = cheerio.load(content, { xmlMode: true });
-           $("item, entry").each((_, el) => {
-                const $el = $(el);
-                const title = $el.find("title").text().trim();
-                const link = $el.find("link").text().trim() || $el.find("link").attr("href");
-                const desc = $el.find("description, content, summary").text().trim();
-                if (title && link) {
-                    jobs.push({
-                        title,
-                        company_name: "Unknown", // RSS rarely has clean company name without parsing title
-                        description: desc || title,
-                        location: "Remote",
-                        remote: true,
-                        source_url: link,
-                        posted_at: new Date(),
-                        skills_required: this.extractSkills(desc + " " + title)
-                    });
-                }
-           });
-           if (jobs.length > 0) return jobs;
-      }
-
-      // 2. JSON-LD in HTML
-      if (type === "html") {
-          const $ = cheerio.load(content);
-          $('script[type="application/ld+json"]').each((_, el) => {
-              try {
-                  const json = JSON.parse($(el).html() || "{}");
-                  const items = Array.isArray(json) ? json : [json];
-                  
-                  for (const item of items) {
-                      if (item["@type"] === "JobPosting") {
-                          jobs.push({
-                              title: item.title,
-                              company_name: item.hiringOrganization?.name || "Unknown",
-                              description: item.description || "",
-                              location: item.jobLocation?.address?.addressLocality || "Remote",
-                              remote: !!item.jobLocation?.address?.addressLocality?.toLowerCase().includes("remote"), // Heuristic
-                              source_url: item.url || baseUrl,
-                              posted_at: item.datePosted ? new Date(item.datePosted) : new Date(),
-                              skills_required: this.extractSkills(item.description || "")
-                          });
-                      }
-                  }
-              } catch (e) {
-                  // ignore
-              }
+    // 1. RSS/Atom
+    if (
+      type === "rss" ||
+      content.includes("<rss") ||
+      content.includes("<feed")
+    ) {
+      const $ = cheerio.load(content, { xmlMode: true });
+      $("item, entry").each((_, el) => {
+        const $el = $(el);
+        const title = $el.find("title").text().trim();
+        const link =
+          $el.find("link").text().trim() || $el.find("link").attr("href");
+        const desc = $el.find("description, content, summary").text().trim();
+        if (title && link) {
+          jobs.push({
+            title,
+            company_name: "Unknown", // RSS rarely has clean company name without parsing title
+            description: desc || title,
+            location: "Remote",
+            remote: true,
+            source_url: link,
+            posted_at: new Date(),
+            skills_required: this.extractSkills(desc + " " + title),
           });
-      }
+        }
+      });
+      if (jobs.length > 0) return jobs;
+    }
 
-      return jobs;
+    // 2. JSON-LD in HTML
+    if (type === "html") {
+      const $ = cheerio.load(content);
+      $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+          const json = JSON.parse($(el).html() || "{}");
+          const items = Array.isArray(json) ? json : [json];
+
+          for (const item of items) {
+            if (item["@type"] === "JobPosting") {
+              jobs.push({
+                title: item.title,
+                company_name: item.hiringOrganization?.name || "Unknown",
+                description: item.description || "",
+                location:
+                  item.jobLocation?.address?.addressLocality || "Remote",
+                remote: !!item.jobLocation?.address?.addressLocality
+                  ?.toLowerCase()
+                  .includes("remote"), // Heuristic
+                source_url: item.url || baseUrl,
+                posted_at: item.datePosted
+                  ? new Date(item.datePosted)
+                  : new Date(),
+                skills_required: this.extractSkills(item.description || ""),
+              });
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      });
+    }
+
+    return jobs;
   }
 
   // Generate embedding for job matching
   protected async generateJobEmbedding(job: ScrapedJob): Promise<number[]> {
     const text = `${job.title} at ${job.company_name}. ${job.description.substring(0, 1000)}. Skills: ${job.skills_required?.join(", ") || "Not specified"}. Location: ${job.location || "Not specified"}`;
-    return generateEmbedding(text); 
+    return generateEmbedding(text);
   }
 
   // Calculate expiration date (default 90 days from posted, max 1 year)
@@ -491,23 +623,29 @@ export abstract class BaseScraper {
     return stats;
   }
 
-
-
-
   // Extract jobs from HTML using AI
   // Extract jobs from HTML using AI
-  protected async extractJobsFromHtml(html: string, baseUrl: string = ""): Promise<ScrapedJob[]> {
+  protected async extractJobsFromHtml(
+    html: string,
+    baseUrl: string = "",
+  ): Promise<ScrapedJob[]> {
     if (!html) return [];
 
     // 0. Optimization: Check for structured data first to avoid AI costs/latency
     // In a real pipeline, we might pass the 'type' from smartFetch, but here we assume HTML if we are this deep.
-    // If it was RSS, we would have caught it earlier in smartFetch flow. 
+    // If it was RSS, we would have caught it earlier in smartFetch flow.
     // But smartFetch returns {content, type}. The caller should handle that.
     // However, for backwards compatibility or direct calls, let's try to extract JSON-LD here too.
-    const structuredJobs = await this.extractResolvableData(html, "html", baseUrl);
+    const structuredJobs = await this.extractResolvableData(
+      html,
+      "html",
+      baseUrl,
+    );
     if (structuredJobs.length > 0) {
-        console.log(`[${this.source}] Found ${structuredJobs.length} jobs via JSON-LD. Skipping AI.`);
-        return structuredJobs;
+      console.log(
+        `[${this.source}] Found ${structuredJobs.length} jobs via JSON-LD. Skipping AI.`,
+      );
+      return structuredJobs;
     }
 
     console.log(`[${this.source}] extracting jobs using AI...`);
@@ -516,10 +654,10 @@ export abstract class BaseScraper {
     const $ = cheerio.load(html);
     $("script").remove();
     $("style").remove();
-    $("noscript").remove(); 
+    $("noscript").remove();
     $("nav").remove(); // Remove navs to reduce noise
     $("footer").remove(); // Remove footers
-    
+
     // Remove comments
     $.root()
       .find("*")
@@ -561,7 +699,7 @@ export abstract class BaseScraper {
 
     try {
       const text = await generateText(prompt);
-      
+
       // Robust JSON extraction: Find [ ... ]
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       let jsonString = jsonMatch ? jsonMatch[0] : text;
@@ -597,12 +735,12 @@ export abstract class BaseScraper {
   }
 
   private normalizeUrl(url: string, baseUrl: string): string {
-      if (!url) return baseUrl;
-      if (url.startsWith("http")) return url;
-      try {
-          return new URL(url, baseUrl).toString();
-      } catch {
-          return url;
-      }
+    if (!url) return baseUrl;
+    if (url.startsWith("http")) return url;
+    try {
+      return new URL(url, baseUrl).toString();
+    } catch {
+      return url;
+    }
   }
 }

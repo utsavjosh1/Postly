@@ -38,91 +38,78 @@ const cleanupQueue = new Queue("job-cleanup", { connection: redisConnection });
 const scrapingWorker = new Worker(
   "job-scraping",
   async (job) => {
-    const { source, scrapeAll } = job.data as {
+    const { source, scrapeAll, targetUrl } = job.data as {
       source?: JobSource;
       scrapeAll?: boolean;
+      targetUrl?: string; // For generic scraper dynamic targets
     };
 
-    console.log(`\n${"=".repeat(50)}`);
-    console.log(`Processing scraping job: ${job.id}`);
-    console.log(`Source: ${source || "all"}, Scrape All: ${scrapeAll}`);
-    console.log(`${"=".repeat(50)}\n`);
+    // Dispatcher Mode: If scrapeAll is true, dispatch individual jobs for parallelism
+    if (scrapeAll) {
+      console.log(`\n📢 [Dispatcher] Starting batch scrape for all sources...`);
+      const scrapers = getAllScrapers();
+      const jobs = scrapers.map((scraper) => ({
+        name: `scrape-${scraper.source}`,
+        data: { source: scraper.source },
+        opts: { jobId: `${scraper.source}-${Date.now()}` },
+      }));
 
-    const results = {
-      totalSaved: 0,
-      totalUpdated: 0,
-      totalSkipped: 0,
-      totalErrors: 0,
-      sources: [] as {
-        source: string;
-        saved: number;
-        updated: number;
-        skipped: number;
-        errors: number;
-      }[],
-    };
+      await scrapingQueue.addBulk(jobs);
+      console.log(
+        `✅ [Dispatcher] Queued ${jobs.length} source jobs for parallel processing.`,
+      );
+      return { dispatched: jobs.length };
+    }
+
+    // Worker Mode: Process specific source
+    if (!source) {
+      throw new Error("Job missing 'source' or 'scrapeAll' flag");
+    }
+
+    console.log(`Processing scraping job: ${job.id} (Source: ${source})`);
 
     try {
-      // Initialize browser before scraping
+      // Initialize browser (lazy init if not already ready)
       await browserManager.initialize();
 
-      if (scrapeAll || !source) {
-        // Scrape all sources
-        const scrapers = getAllScrapers();
-        for (const scraper of scrapers) {
-          try {
-            const stats = await scraper.scrapeAndSave();
-            results.totalSaved += stats.saved;
-            results.totalUpdated += stats.updated;
-            results.totalSkipped += stats.skipped;
-            results.totalErrors += stats.errors;
-            results.sources.push({ source: scraper.source, ...stats });
-
-            // Rotate browser context between sources to avoid detection
-            await browserManager.rotateContext();
-          } catch (error) {
-            console.error(`Failed to scrape ${scraper.source}:`, error);
-            results.totalErrors++;
-            results.sources.push({
-              source: scraper.source,
-              saved: 0,
-              updated: 0,
-              skipped: 0,
-              errors: 1,
-            });
-          }
-        }
+      let scraper;
+      // Special handling for generic scraper to accept dynamic URLs
+      if (source === "generic" && targetUrl) {
+        const { GenericScraper } =
+          await import("./scrapers/generic.scraper.js");
+        scraper = new GenericScraper([targetUrl]);
       } else {
-        // Scrape specific source
-        const { targetUrl } = job.data as { targetUrl?: string };
-
-        let scraper;
-        // Special handling for generic scraper to accept dynamic URLs
-        if (source === "generic" && targetUrl) {
-          const { GenericScraper } =
-            await import("./scrapers/generic.scraper.js");
-          scraper = new GenericScraper([targetUrl]);
-        } else {
-          scraper = getScraper(source);
-        }
-
-        const stats = await scraper.scrapeAndSave();
-        results.totalSaved = stats.saved;
-        results.totalUpdated = stats.updated;
-        results.totalSkipped = stats.skipped;
-        results.totalErrors = stats.errors;
-        results.sources.push({ source, ...stats });
+        scraper = getScraper(source);
       }
 
-      return results;
+      if (!scraper) {
+        throw new Error(`No scraper found for source: ${source}`);
+      }
+
+      const stats = await scraper.scrapeAndSave();
+
+      // Rotate browser context between jobs to minimize fingerprinting
+      if (Math.random() > 0.7) {
+        // 30% chance to rotate after a job
+        await browserManager.rotateContext();
+      }
+
+      return {
+        source,
+        ...stats,
+      };
     } catch (error) {
-      console.error("Scraping job failed:", error);
+      console.error(`❌ Job failed for source ${source}:`, error);
       throw error;
     }
   },
   {
     connection: redisConnection,
-    concurrency: 1, // Process one scraping job at a time
+    concurrency: 5, // Run up to 5 scrapers simultaneously
+    limiter: {
+      max: 10, // Limit to 10 jobs
+      duration: 1000, // per second (though scrape jobs take longer, this throttles rapid dispatches)
+    },
   },
 );
 
