@@ -101,7 +101,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       client.models.embedContent({
         model: "gemini-embedding-001",
         contents: [{ parts: [{ text }] }],
-        outputDimensionality: 768,
+        config: {
+          outputDimensionality: 768,
+        },
       }),
     );
 
