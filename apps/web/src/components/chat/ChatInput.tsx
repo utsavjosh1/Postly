@@ -7,7 +7,7 @@ export function ChatInput() {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage, stopGeneration } = useSSEChat();
-  const { conversationState } = useChatStore();
+  const conversationState = useChatStore((state) => state.conversationState);
   const isBlocking =
     conversationState === "thinking" || conversationState === "streaming";
 

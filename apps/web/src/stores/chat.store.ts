@@ -3,7 +3,6 @@ import type {
   Conversation,
   Message,
   ConversationState,
-  MessageStatus,
 } from "@postly/shared-types";
 
 interface ChatState {

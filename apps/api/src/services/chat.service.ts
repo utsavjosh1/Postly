@@ -64,7 +64,7 @@ Be professional, encouraging, and specific in your responses.${resumeContext}`;
 
       // 6. Stream AI response
       let fullResponse = "";
-      let metadata: MessageMetadata = {};
+      const metadata: MessageMetadata = {};
       const stream = await streamTextWithMeta(fullPrompt);
 
       for await (const chunk of stream) {

@@ -17,12 +17,12 @@ import {
 import { Button } from "../ui/Button";
 
 export function ChatSidebar() {
-  const {
-    addConversation,
-    setActiveConversation,
-    isSidebarOpen,
-    toggleSidebar,
-  } = useChatStore();
+  const addConversation = useChatStore((state) => state.addConversation);
+  const setActiveConversation = useChatStore(
+    (state) => state.setActiveConversation,
+  );
+  const isSidebarOpen = useChatStore((state) => state.isSidebarOpen);
+  const toggleSidebar = useChatStore((state) => state.toggleSidebar);
   const { user, logout } = useAuthStore();
 
   const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
