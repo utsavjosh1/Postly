@@ -1,17 +1,31 @@
 import { useEffect, useRef } from "react";
 import { useChatStore } from "../../stores/chat.store";
 import ReactMarkdown from "react-markdown";
-import { User, Bot, Copy, Check } from "lucide-react";
+import { User, Bot, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 export function MessageList() {
-  const { messages, isStreaming, streamingContent } = useChatStore();
+  const { messages, conversationState, streamingContent, deleteMessage } =
+    useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, conversationState]);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const handleRegenerate = (id: string) => {
+    // TODO: Implement regenerate logic
+    console.log("Regenerate", id);
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMessage(id);
+  };
 
   return (
     <div className="h-full overflow-y-auto px-0 py-0 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
@@ -38,9 +52,38 @@ export function MessageList() {
               </div>
 
               {/* Content */}
-              <div className="relative flex-1 overflow-hidden">
-                <div className="font-semibold text-sm mb-1 opacity-90">
-                  {message.role === "assistant" ? "Postly" : "You"}
+              <div className="relative flex-1 overflow-hidden group/message">
+                <div className="flex items-center justify-between mb-1 opacity-90">
+                  <span className="font-semibold text-sm">
+                    {message.role === "assistant" ? "Postly" : "You"}
+                  </span>
+
+                  {/* Message Actions */}
+                  <div className="invisible group-hover/message:visible flex items-center gap-1 opacity-60">
+                    <button
+                      onClick={() => handleCopy(message.content)}
+                      className="p-1 hover:text-white transition-colors"
+                      title="Copy"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    {message.role === "assistant" && (
+                      <button
+                        onClick={() => handleRegenerate(message.id)}
+                        className="p-1 hover:text-white transition-colors"
+                        title="Regenerate"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(message.id)}
+                      className="p-1 hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <ReactMarkdown
@@ -107,9 +150,11 @@ export function MessageList() {
           </div>
         ))}
 
-        {/* Streaming message */}
-        {isStreaming && streamingContent && (
-          <div className="w-full px-4 py-8 border-b border-white/5 bg-transparent">
+        {/* State Indicators */}
+        {(conversationState === "streaming" ||
+          conversationState === "thinking" ||
+          conversationState === "typing") && (
+          <div className="w-full px-4 py-8 border-b border-white/5 bg-transparent animate-in fade-in slide-in-from-bottom-2">
             <div className="max-w-3xl mx-auto flex gap-6">
               <div className="w-8 h-8 rounded-full bg-transparent border border-white/10 text-white flex items-center justify-center shrink-0">
                 <Bot className="w-5 h-5" />
@@ -119,14 +164,26 @@ export function MessageList() {
                 <div className="font-semibold text-sm mb-1 opacity-90">
                   Postly
                 </div>
-                <ReactMarkdown className="prose prose-sm max-w-none prose-invert prose-p:leading-7">
-                  {streamingContent}
-                </ReactMarkdown>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                </div>
+
+                {conversationState === "streaming" ? (
+                  <>
+                    <ReactMarkdown className="prose prose-sm max-w-none prose-invert prose-p:leading-7">
+                      {streamingContent}
+                    </ReactMarkdown>
+                    <span className="inline-block w-2 H-4 ml-1 align-middle bg-zinc-400 animate-pulse">
+                      |
+                    </span>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-zinc-400 text-sm italic">
+                    {conversationState === "thinking" && (
+                      <span className="animate-pulse">Thinking...</span>
+                    )}
+                    {conversationState === "typing" && (
+                      <span className="animate-pulse">Typing...</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

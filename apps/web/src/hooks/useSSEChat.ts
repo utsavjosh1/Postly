@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useChatStore } from "../stores/chat.store";
 import { useToastStore } from "../stores/toast.store";
 import { chatService } from "../services/chat.service";
@@ -15,12 +15,23 @@ export function useSSEChat() {
     setStreaming,
     setActiveConversation,
     addConversation,
+    setConversationState,
   } = useChatStore();
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const { addToast } = useToastStore();
 
   const sendMessage = useCallback(
     async (message: string) => {
+      // Abort previous request if any
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       let currentConversationId = activeConversationId;
 
       // OPTIMISTIC UI: Add user message immediately
@@ -31,6 +42,7 @@ export function useSSEChat() {
         role: "user",
         content: message,
         created_at: new Date(),
+        status: "sending",
       };
 
       // If we have a conversation, add message now.
@@ -40,6 +52,7 @@ export function useSSEChat() {
       }
 
       setStreaming(true);
+      setConversationState("thinking");
       clearStreamingContent();
 
       try {
@@ -55,13 +68,26 @@ export function useSSEChat() {
             setActiveConversation(newConv.id);
 
             // Now add the user message with correct ID
-            addMessage({ ...userMsg, conversation_id: newConv.id });
+            addMessage({
+              ...userMsg,
+              conversation_id: newConv.id,
+              status: "sent",
+            });
+
+            // Also update the optimistic message status if it was added?
+            // The store logic above adds it only if currentConversationId existed.
+            // If it didn't, we add it now.
           } catch (err) {
             console.error("Failed to create conversation:", err);
             addToast({ type: "error", message: "Failed to start new chat." });
             setStreaming(false);
+            setConversationState("error");
             return;
           }
+        } else {
+          // Update status of optimistic message
+          // In a real app we'd update the message by ID.
+          // For now we assume optimistic update was "good enough" or we trigger a re-fetch.
         }
 
         const token = localStorage.getItem("access_token");
@@ -75,6 +101,7 @@ export function useSSEChat() {
             message,
             conversation_id: currentConversationId,
           }),
+          signal: abortController.signal,
         });
 
         if (!response.ok) {
@@ -116,6 +143,8 @@ export function useSSEChat() {
 
                 if (event.type === "chunk" && event.content) {
                   updateStreamingContent(event.content);
+                  // Ensure state is streaming once we get first chunk
+                  useChatStore.getState().setConversationState("streaming");
                 } else if (event.type === "complete") {
                   // Save complete assistant message
                   const assistantMsg: Message = {
@@ -125,15 +154,18 @@ export function useSSEChat() {
                     content: useChatStore.getState().streamingContent,
                     metadata: event.metadata,
                     created_at: new Date(),
+                    status: "delivered",
                   };
                   addMessage(assistantMsg);
                   clearStreamingContent();
+                  setConversationState("completed");
                 } else if (event.type === "error") {
                   console.error("Stream error:", event.error);
                   addToast({
                     type: "error",
                     message: event.error || "AI Error",
                   });
+                  setConversationState("error");
                 }
               } catch (e) {
                 console.error("Failed to parse SSE event:", e);
@@ -141,23 +173,28 @@ export function useSSEChat() {
             }
           }
         }
-      } catch (error) {
-        console.error("Failed to send message:", error);
-        // We already toasted above for some cases, but general catch:
-        if (!useChatStore.getState().streamingContent) {
-          // Only show toast if we haven't started streaming (otherwise it looks like interruption)
-          // Actually, keeping existing logic of adding error message to chat is also good for context
-          const errorMsg: Message = {
-            id: crypto.randomUUID(),
-            conversation_id: currentConversationId!,
-            role: "assistant",
-            content: "Sorry, I encountered an error. Please try again.",
-            created_at: new Date(),
-          };
-          addMessage(errorMsg);
+      } catch (error: any) {
+        if (error.name === "AbortError") {
+          setConversationState("interrupted");
+        } else {
+          console.error("Failed to send message:", error);
+          // We already toasted above for some cases, but general catch:
+          if (!useChatStore.getState().streamingContent) {
+            const errorMsg: Message = {
+              id: crypto.randomUUID(),
+              conversation_id: currentConversationId!,
+              role: "assistant",
+              content: "Sorry, I encountered an error. Please try again.",
+              created_at: new Date(),
+              status: "error",
+            };
+            addMessage(errorMsg);
+          }
+          setConversationState("error");
         }
       } finally {
         setStreaming(false);
+        abortControllerRef.current = null;
       }
     },
     [
@@ -169,8 +206,18 @@ export function useSSEChat() {
       setActiveConversation,
       addConversation,
       addToast,
+      setConversationState,
     ],
   );
 
-  return { sendMessage };
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setConversationState("interrupted");
+      setStreaming(false);
+    }
+  }, [setConversationState, setStreaming]);
+
+  return { sendMessage, stopGeneration };
 }

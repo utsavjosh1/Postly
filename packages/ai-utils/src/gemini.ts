@@ -90,6 +90,31 @@ export async function streamText(
   return streamGenerator();
 }
 
+export async function streamTextWithMeta(
+  prompt: string,
+): Promise<AsyncIterable<{ text?: string; usage?: any }>> {
+  const client = getClient();
+  const response = await withRetry(() =>
+    client.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    }),
+  );
+
+  async function* streamGenerator() {
+    for await (const chunk of response) {
+      if (chunk.text && chunk.text.length > 0) {
+        yield { text: chunk.text };
+      }
+      if (chunk.usageMetadata) {
+        yield { usage: chunk.usageMetadata };
+      }
+    }
+  }
+
+  return streamGenerator();
+}
+
 // Helper for embeddings
 
 export async function generateEmbedding(text: string): Promise<number[]> {
