@@ -15,7 +15,7 @@ export interface Message {
   conversation_id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: Date;
 }
 

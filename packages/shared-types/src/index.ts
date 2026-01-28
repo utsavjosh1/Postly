@@ -194,24 +194,47 @@ export interface Conversation {
   user_id: string;
   title: string;
   resume_id: string | null;
+  state?: ConversationState;
   last_message_at: Date;
   created_at: Date;
   updated_at: Date;
 }
+
+export type ConversationState =
+  | "idle"
+  | "typing"
+  | "thinking"
+  | "streaming"
+  | "completed"
+  | "error"
+  | "interrupted";
 
 export interface Message {
   id: string;
   conversation_id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
+  status?: MessageStatus;
   metadata?: MessageMetadata;
   created_at: Date;
 }
+
+export type MessageStatus = "sending" | "sent" | "delivered" | "error";
 
 export interface MessageMetadata {
   job_matches?: JobMatch[];
   resume_feedback?: ResumeFeedback;
   error?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  timing?: {
+    start: number;
+    end: number;
+    duration: number;
+  };
 }
 
 export interface CreateConversationRequest {
@@ -249,3 +272,13 @@ export interface PaginatedResponse<T> {
   limit: number;
   total_pages: number;
 }
+
+export const AI_ERROR_CODES = {
+  QUOTA_EXCEEDED: "AI_QUOTA_EXCEEDED",
+  TIMEOUT: "AI_TIMEOUT",
+  POLICY_VIOLATION: "AI_POLICY_VIOLATION",
+  SERVER_ERROR: "AI_SERVER_ERROR",
+  UNKNOWN: "AI_UNKNOWN_ERROR",
+} as const;
+
+export type AIErrorCode = (typeof AI_ERROR_CODES)[keyof typeof AI_ERROR_CODES];

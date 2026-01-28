@@ -53,7 +53,8 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch (error) {
           set({
-            error: error instanceof Error ? error.message : "Registration failed",
+            error:
+              error instanceof Error ? error.message : "Registration failed",
             isLoading: false,
           });
           throw error;
@@ -81,18 +82,21 @@ export const useAuthStore = create<AuthState>()(
             set({ user: null, isAuthenticated: false, isLoading: false });
           }
         } else {
-           set({ user: null, isAuthenticated: false, isLoading: false });
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
       setAuth: (user: User, token: string) => {
         localStorage.setItem("access_token", token);
         set({ user, isAuthenticated: true });
-      }
+      },
     }),
     {
       name: "auth-storage",
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-    }
-  )
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
 );

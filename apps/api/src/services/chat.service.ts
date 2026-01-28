@@ -1,4 +1,4 @@
-import { streamText, generateText } from "@postly/ai-utils";
+import { streamTextWithMeta, generateText } from "@postly/ai-utils";
 import { conversationQueries, resumeQueries } from "@postly/database";
 import type {
   StreamChatResponse,
@@ -64,15 +64,24 @@ Be professional, encouraging, and specific in your responses.${resumeContext}`;
 
       // 6. Stream AI response
       let fullResponse = "";
-      const stream = await streamText(fullPrompt);
+      const metadata: MessageMetadata = {};
+      const stream = await streamTextWithMeta(fullPrompt);
 
       for await (const chunk of stream) {
-        fullResponse += chunk;
-        yield { type: "chunk", content: chunk };
+        if (chunk.text) {
+          fullResponse += chunk.text;
+          yield { type: "chunk", content: chunk.text };
+        }
+        if (chunk.usage) {
+          metadata.usage = {
+            prompt_tokens: chunk.usage.promptTokenCount || 0,
+            completion_tokens: chunk.usage.candidatesTokenCount || 0,
+            total_tokens: chunk.usage.totalTokenCount || 0,
+          };
+        }
       }
 
       // 7. Save assistant message to database
-      const metadata: MessageMetadata = {};
       const savedMsg = await conversationQueries.createMessage(
         conversationId,
         "assistant",

@@ -1,10 +1,15 @@
 import { create } from "zustand";
-import type { Conversation, Message } from "@postly/shared-types";
+import type {
+  Conversation,
+  Message,
+  ConversationState,
+} from "@postly/shared-types";
 
 interface ChatState {
   // Sidebar state
   conversations: Conversation[];
   activeConversationId: string | null;
+  conversationState: ConversationState;
   isSidebarOpen: boolean;
 
   // Active conversation
@@ -27,11 +32,15 @@ interface ChatState {
   setLoading: (loading: boolean) => void;
   setStreaming: (streaming: boolean) => void;
   toggleSidebar: () => void;
+  setConversationState: (state: ConversationState) => void;
+  updateMessage: (id: string, updates: Partial<Message>) => void;
+  deleteMessage: (id: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
   activeConversationId: null,
+  conversationState: "idle",
   isSidebarOpen: true,
   messages: [],
   isLoading: false,
@@ -77,4 +86,18 @@ export const useChatStore = create<ChatState>((set) => ({
   setStreaming: (streaming) => set({ isStreaming: streaming }),
   toggleSidebar: () =>
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  setConversationState: (state) => set({ conversationState: state }),
+
+  updateMessage: (id, updates) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, ...updates } : msg,
+      ),
+    })),
+
+  deleteMessage: (id) =>
+    set((state) => ({
+      messages: state.messages.filter((msg) => msg.id !== id),
+    })),
 }));
