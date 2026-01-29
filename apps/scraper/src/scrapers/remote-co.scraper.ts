@@ -215,20 +215,14 @@ export class RemoteCoScraper extends BaseScraper {
 
   private async scrapeJobDetails(job: ScrapedJob): Promise<ScrapedJob> {
     try {
-      const html = await this.fetchWithBrowser(
-        job.source_url,
-        ".job_description",
-        { timeout: 60000 },
-      );
-      const $ = cheerio.load(html);
+      // Use smartFetch to handle potential blocks
+      const { content } = await this.smartFetch(job.source_url);
+      const $ = cheerio.load(content);
 
       // Get full description
       const description =
         $(".job_description").text().trim() ||
         $(".entry-content, .job-content, article").text().trim();
-
-      // Look for company info
-      // const companyLocation = $('.company_location, .job-meta').text().trim();
 
       // Look for salary
       const salaryText = $('[class*="salary"], .compensation, .job-salary')

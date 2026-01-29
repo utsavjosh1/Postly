@@ -4,16 +4,19 @@ import { RemoteCoScraper } from "./remote-co.scraper.js";
 import type { JobSource } from "@postly/shared-types";
 
 import { GenericScraper } from "./generic.scraper.js";
+import { LinkedInScraper } from "./linkedin.scraper.js";
 
 export { BaseScraper, type ScrapedJob } from "./base.scraper.js";
 export { WeWorkRemotelyScraper } from "./weworkremotely.scraper.js";
 export { RemoteCoScraper } from "./remote-co.scraper.js";
 export { GenericScraper } from "./generic.scraper.js";
+export { LinkedInScraper } from "./linkedin.scraper.js";
 
 const scrapers: Record<string, new () => BaseScraper> = {
   weworkremotely: WeWorkRemotelyScraper,
   remote_co: RemoteCoScraper,
   generic: GenericScraper,
+  linkedin: LinkedInScraper,
 };
 
 export function getScraper(source: JobSource): BaseScraper {

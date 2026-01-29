@@ -11,6 +11,9 @@ import { browserManager } from "./utils/browser.js";
 import { runCleanup } from "./workers/cleanup.worker.js";
 import type { JobSource } from "@postly/shared-types";
 
+// Explicitly register scrapers if needed, or rely on index.ts
+import { GenericScraper } from "./scrapers/generic.scraper.js";
+
 const isDev = process.env.NODE_ENV === "development";
 const __dirname = path.resolve();
 const root = isDev ? __dirname : path.resolve(__dirname, "../..");
@@ -44,7 +47,7 @@ const scrapingWorker = new Worker(
       targetUrl?: string; // For generic scraper dynamic targets
     };
 
-    // Dispatcher Mode: If scrapeAll is true, dispatch individual jobs for parallelism
+    // Dispatcher Mode
     if (scrapeAll) {
       console.log(`\n📢 [Dispatcher] Starting batch scrape for all sources...`);
       const scrapers = getAllScrapers();
@@ -61,7 +64,7 @@ const scrapingWorker = new Worker(
       return { dispatched: jobs.length };
     }
 
-    // Worker Mode: Process specific source
+    // Worker Mode
     if (!source) {
       throw new Error("Job missing 'source' or 'scrapeAll' flag");
     }
@@ -69,14 +72,10 @@ const scrapingWorker = new Worker(
     console.log(`Processing scraping job: ${job.id} (Source: ${source})`);
 
     try {
-      // Initialize browser (lazy init if not already ready)
       await browserManager.initialize();
 
       let scraper;
-      // Special handling for generic scraper to accept dynamic URLs
       if (source === "generic" && targetUrl) {
-        const { GenericScraper } =
-          await import("./scrapers/generic.scraper.js");
         scraper = new GenericScraper([targetUrl]);
       } else {
         scraper = getScraper(source);
@@ -88,9 +87,8 @@ const scrapingWorker = new Worker(
 
       const stats = await scraper.scrapeAndSave();
 
-      // Rotate browser context between jobs to minimize fingerprinting
+      // Rotate browser context between jobs
       if (Math.random() > 0.7) {
-        // 30% chance to rotate after a job
         await browserManager.rotateContext();
       }
 
@@ -105,10 +103,10 @@ const scrapingWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 5, // Run up to 5 scrapers simultaneously
+    concurrency: 5,
     limiter: {
-      max: 10, // Limit to 10 jobs
-      duration: 1000, // per second (though scrape jobs take longer, this throttles rapid dispatches)
+      max: 10,
+      duration: 1000,
     },
   },
 );
@@ -161,7 +159,6 @@ cleanupWorker.on("failed", (job, err) => {
 async function setupScheduledJobs() {
   console.log("🕐 Setting up scheduled jobs...");
 
-  // Clear any existing repeatable jobs
   const scrapingRepeatableJobs = await scrapingQueue.getRepeatableJobs();
   for (const job of scrapingRepeatableJobs) {
     await scrapingQueue.removeRepeatableByKey(job.key);
@@ -172,33 +169,30 @@ async function setupScheduledJobs() {
     await cleanupQueue.removeRepeatableByKey(job.key);
   }
 
-  // Schedule scraping every 4 hours
   await scrapingQueue.add(
     "scrape-all",
     { scrapeAll: true },
     {
       repeat: {
-        pattern: "0 */4 * * *", // Every 4 hours
+        pattern: "0 */4 * * *",
       },
       jobId: "scheduled-scrape-all",
     },
   );
   console.log('   ✓ Scheduled "scrape-all" to run every 4 hours');
 
-  // Schedule cleanup daily at 3 AM
   await cleanupQueue.add(
     "daily-cleanup",
     {},
     {
       repeat: {
-        pattern: "0 3 * * *", // Daily at 3 AM
+        pattern: "0 3 * * *",
       },
       jobId: "scheduled-cleanup",
     },
   );
   console.log('   ✓ Scheduled "cleanup" to run daily at 3 AM');
 
-  // Add an immediate initial scrape job if no active jobs
   const existingJobs = await scrapingQueue.getJobs(["waiting", "active"]);
   if (existingJobs.length === 0) {
     await scrapingQueue.add(
@@ -231,7 +225,6 @@ async function handleCommand(command: string) {
 
       if (source && AVAILABLE_SOURCES.includes(source)) {
         console.log(`Adding ${source} scrape job...`);
-        // Pass targetUrl in job data if present (only used by generic scraper)
         await scrapingQueue.add(
           `manual-${source}`,
           { source, targetUrl },
@@ -303,7 +296,6 @@ async function main() {
   console.log(`📍 Connecting to Redis at ${redisHost}:${redisPort}`);
   console.log(`📋 Available sources: ${AVAILABLE_SOURCES.join(", ")}`);
 
-  // Initialize browser on startup
   console.log("🌐 Initializing browser...");
   await browserManager.initialize();
 
@@ -312,7 +304,6 @@ async function main() {
   console.log("\n🚀 Scraper service started and ready!");
   console.log('   Type "help" for available commands\n');
 
-  // Handle stdin commands (for manual triggering)
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", async (data) => {
     const command = data.toString().trim();
@@ -321,12 +312,10 @@ async function main() {
     }
   });
 
-  // Handle command line arguments (e.g. npm start -- scrape generic https://...)
   const args = process.argv.slice(2);
   if (args.length > 0) {
     const command = args.join(" ");
     console.log(`\n📦 Processing CLI command: ${command}`);
-    // Wait a bit for initialization
     await new Promise((resolve) => setTimeout(resolve, 1000));
     await handleCommand(command);
   }
@@ -334,22 +323,14 @@ async function main() {
 
 main().catch(console.error);
 
-// Graceful shutdown
 async function shutdown(signal: string) {
   console.log(`\n${signal} received, shutting down...`);
 
-  // Close browser
   await browserManager.close();
-
-  // Close workers
   await scrapingWorker.close();
   await cleanupWorker.close();
-
-  // Close queues
   await scrapingQueue.close();
   await cleanupQueue.close();
-
-  // Close Redis
   await redis.quit();
 
   console.log("Shutdown complete");
