@@ -59,7 +59,7 @@ export async function generateText(prompt: string): Promise<string> {
   const client = getClient();
   const response = await withRetry(() =>
     client.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemma-3-27b-it",
       contents: prompt,
     }),
   );
@@ -85,7 +85,7 @@ export async function streamText(
   const client = getClient();
   const response = await withRetry(() =>
     client.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model: "gemma-3-27b-it",
       contents: prompt,
     }),
   );
@@ -107,7 +107,7 @@ export async function streamTextWithMeta(
   const client = getClient();
   const response = await withRetry(() =>
     client.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model: "gemma-3-27b-it",
       contents: prompt,
     }),
   );
