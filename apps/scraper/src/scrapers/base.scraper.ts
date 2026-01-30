@@ -599,7 +599,7 @@ export abstract class BaseScraper {
           let embedding: number[] | undefined;
           try {
             embedding = await this.generateJobEmbedding(job);
-          } catch (embError) {
+          } catch {
             console.warn(
               `⚠️ [${this.source}] Embedding generation failed for: "${job.title}"`,
             );
