@@ -215,7 +215,7 @@ export async function fetchWithBrowser(
     waitForSelector,
     retries = 3,
     retryDelay = 2000,
-    timeout = 30000,
+    timeout = 15000,
   } = options;
 
   let lastError: Error | null = null;

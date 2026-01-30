@@ -6,8 +6,12 @@ export class GenericScraper extends BaseScraper {
 
   // Default targets, but can be overridden
   private targetUrls: string[] = [
-    "https://www.ycombinator.com/jobs",
-    "https://weworkremotely.com/categories/remote-programming-jobs", // Should trigger RSS detection
+    "https://weworkremotely.com/categories/remote-sales-marketing-jobs",
+    "https://weworkremotely.com/categories/remote-management-finance-jobs",
+    "https://weworkremotely.com/categories/remote-customer-support-jobs",
+    "https://remoteok.com/remote-non-tech-jobs",
+    "https://remoteok.com/remote-marketing-jobs",
+    "https://remoteok.com/remote-customer-support-jobs",
   ];
 
   constructor(urls?: string[]) {

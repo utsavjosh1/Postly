@@ -556,17 +556,34 @@ export abstract class BaseScraper {
   }> {
     const stats = { saved: 0, updated: 0, errors: 0, skipped: 0 };
 
-    console.log(`[${this.source}] Starting scrape...`);
+    console.log(`\n📢 [${this.source}] Starting scrape process...`);
 
     try {
       const jobs = await this.scrape();
-      console.log(`[${this.source}] Found ${jobs.length} jobs`);
+      console.log(
+        `🔍 [${this.source}] Scrape phase finished. Found ${jobs.length} potential jobs.`,
+      );
 
-      for (const job of jobs) {
+      if (jobs.length === 0) {
+        console.warn(
+          `⚠️ [${this.source}] No jobs found during scrape. Check selectors or network.`,
+        );
+      }
+
+      for (const [index, job] of jobs.entries()) {
         try {
+          // Progress log every 10 jobs
+          if (index > 0 && index % 10 === 0) {
+            console.log(
+              `⏳ [${this.source}] Processed ${index}/${jobs.length} jobs...`,
+            );
+          }
+
           // Skip jobs older than 1 year
           if (this.isJobTooOld(job.posted_at)) {
-            console.log(`[${this.source}] Skipping old job: ${job.title}`);
+            console.log(
+              `⏩ [${this.source}] Skipping old job: "${job.title}" (${job.posted_at?.toISOString().split("T")[0]})`,
+            );
             stats.skipped++;
             continue;
           }
@@ -582,11 +599,11 @@ export abstract class BaseScraper {
           let embedding: number[] | undefined;
           try {
             embedding = await this.generateJobEmbedding(job);
-          } catch (embError) {
+          } catch {
             console.warn(
-              `[${this.source}] Failed to generate embedding for job: ${job.title}`,
-              embError,
+              `⚠️ [${this.source}] Embedding generation failed for: "${job.title}"`,
             );
+            // Non-critical, continue
           }
 
           // Save or update the job
@@ -598,16 +615,20 @@ export abstract class BaseScraper {
           });
 
           if (existing) {
+            // console.log(`🔄 [${this.source}] Updated: "${job.title}"`);
             stats.updated++;
           } else {
+            console.log(
+              `✅ [${this.source}] Saved New: "${job.title}" at ${job.company_name}`,
+            );
             stats.saved++;
           }
 
           // Small delay between saves to avoid overwhelming the database
-          await this.delay(100);
+          await this.delay(50);
         } catch (jobError) {
           console.error(
-            `[${this.source}] Failed to save job: ${job.title}`,
+            `❌ [${this.source}] Failed to save job: "${job.title}"`,
             jobError,
           );
           stats.errors++;
@@ -615,10 +636,14 @@ export abstract class BaseScraper {
       }
 
       console.log(
-        `[${this.source}] Completed - Saved: ${stats.saved}, Updated: ${stats.updated}, Skipped: ${stats.skipped}, Errors: ${stats.errors}`,
+        `🎉 [${this.source}] Cycle Complete. Results:
+        - 🆕 Saved:   ${stats.saved}
+        - 🔄 Updated: ${stats.updated}
+        - ⏩ Skipped: ${stats.skipped}
+        - ❌ Errors:  ${stats.errors}`,
       );
     } catch (error) {
-      console.error(`[${this.source}] Scraping failed:`, error);
+      console.error(`💥 [${this.source}] Fatal Scraper Error:`, error);
       throw error;
     }
 
