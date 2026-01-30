@@ -1,24 +1,42 @@
-import { geminiEmbeddingModel } from './gemini';
+import { generateEmbedding } from "./gemini";
 
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const result = await geminiEmbeddingModel.embedContent(text);
-  return result.embedding.values;
-}
+export async function generateBatchEmbeddings(
+  texts: string[],
+  concurrency: number = 5,
+): Promise<number[][]> {
+  const embeddings: number[][] = new Array(texts.length);
+  const queue = texts.map((text, index) => ({ text, index }));
 
-export async function generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
-  const embeddings: number[][] = [];
+  // Helper to process queue items
+  const worker = async () => {
+    while (queue.length > 0) {
+      const { text, index } = queue.shift()!; // Take next item
+      try {
+        const embedding = await generateEmbedding(text);
+        embeddings[index] = embedding;
+      } catch (error) {
+        console.error(`Failed to embed text at index ${index}`, error);
+        // Depending on requirements, we might want to throw or return null.
+        // For now, we'll leave it undefined to indicate failure, or could retry here.
+        // Since generateEmbedding uses withRetry, transient errors are already handled.
+      }
+    }
+  };
 
-  for (const text of texts) {
-    const embedding = await generateEmbedding(text);
-    embeddings.push(embedding);
-  }
+  // Start workers
+  const workers = Array(Math.min(concurrency, texts.length))
+    .fill(null)
+    .map(() => worker());
+
+  await Promise.all(workers);
 
   return embeddings;
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have the same length');
+  if (!a || !b || a.length !== b.length) {
+    // Graceful handling if one embedding failed
+    return 0;
   }
 
   let dotProduct = 0;

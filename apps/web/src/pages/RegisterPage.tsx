@@ -1,176 +1,170 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { Card } from '../components/ui/Card';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { authService } from '../services/auth.service';
-import type { ApiError } from '../types/auth';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../stores/auth.store";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
 
 export function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [userType, setUserType] = useState<"job_seeker" | "employer">(
+    "job_seeker",
+  );
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    userType: '' as 'job_seeker' | 'employer' | '',
-  });
-  const [errors, setErrors] = useState<{
-    name?: string;
-    email?: string;
-    password?: string;
-    userType?: string;
-    general?: string;
-  }>({});
+
+  const { register, loginWithGoogle, isLoading, error } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setErrors({});
-
-    if (!formData.userType) {
-      setErrors({ userType: 'Please select your role' });
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      await authService.register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        userType: formData.userType as 'job_seeker' | 'employer',
-      });
-      navigate('/');
-    } catch (error: any) {
-      if (error.response?.data) {
-        const apiError = error.response.data as ApiError;
-        if (apiError.errors) {
-          setErrors(apiError.errors);
-        } else {
-          setErrors({ general: apiError.message || 'Registration failed. Please try again.' });
-        }
-      } else {
-        setErrors({ general: 'Network error. Please check your connection.' });
-      }
-    } finally {
-      setIsLoading(false);
+      await register({ name, email, password, userType });
+      navigate("/chat");
+    } catch {
+      // Error handled by store
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
-      <Card className="w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Create an account</h1>
-          <p className="text-muted-foreground">Start your journey to finding the perfect job</p>
+    <div className="min-h-[80vh] flex items-center justify-center py-12 bg-background">
+      <div className="w-full max-w-md space-y-8 px-4">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Create an account
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Start your journey to finding the perfect job
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.general && (
-            <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
-              <p className="text-sm text-error">{errors.general}</p>
+        <div className="bg-card py-8 px-6 shadow-lg rounded-xl border border-border">
+          {error && (
+            <div className="mb-4 p-3 rounded bg-destructive/10 text-destructive text-sm font-medium">
+              {error}
             </div>
           )}
 
-          <Input
-            type="text"
-            label="Full Name"
-            placeholder="John Doe"
-            required
-            autoComplete="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            error={errors.name}
-          />
-
-          <Input
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            required
-            autoComplete="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            error={errors.email}
-          />
-
-          <div className="relative">
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              label="Password"
-              placeholder="Create a password"
-              required
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              error={errors.password}
-              helperText="Use at least 12 characters with uppercase, numbers, and symbols"
-            />
-            <button
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2 h-11 text-base font-medium transition-all hover:bg-muted"
+              onClick={loginWithGoogle}
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9 text-muted-foreground hover:text-foreground text-sm transition-colors"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Sign up with Google
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                label="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="John Doe"
+                className="h-11"
+              />
+
+              <Input
+                label="Email address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                className="h-11"
+              />
+
+              <Input
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                helperText="Must be at least 8 characters"
+                className="h-11"
+              />
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  I am a...
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setUserType("job_seeker")}
+                    className={`h-11 rounded-lg border text-sm font-medium transition-all ${
+                      userType === "job_seeker"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input hover:border-ring text-muted-foreground"
+                    }`}
+                  >
+                    Job Seeker
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserType("employer")}
+                    className={`h-11 rounded-lg border text-sm font-medium transition-all ${
+                      userType === "employer"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input hover:border-ring text-muted-foreground"
+                    }`}
+                  >
+                    Employer
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base transition-all"
+                isLoading={isLoading}
+              >
+                Create Account
+              </Button>
+            </form>
           </div>
 
-          <div>
-            <label htmlFor="user-type" className="block text-sm font-medium text-foreground mb-1.5">
-              I am a... <span className="text-error" aria-label="required">*</span>
-            </label>
-            <select
-              id="user-type"
-              required
-              value={formData.userType}
-              onChange={(e) => setFormData({ ...formData, userType: e.target.value as 'job_seeker' | 'employer' })}
-              className={`w-full px-3 py-2.5 rounded-lg bg-background border text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/50 ${
-                errors.userType ? 'border-error' : 'border-border'
-              }`}
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:text-primary/90 hover:underline transition-colors"
             >
-              <option value="">Select your role</option>
-              <option value="job_seeker">Job Seeker</option>
-              <option value="employer">Employer</option>
-            </select>
-            {errors.userType && <p className="mt-1.5 text-sm text-error">{errors.userType}</p>}
-          </div>
-
-          <div className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              id="terms"
-              required
-              className="mt-1 w-4 h-4 rounded border-border text-foreground focus:ring-ring"
-            />
-            <label htmlFor="terms" className="text-sm text-muted-foreground">
-              I agree to the{' '}
-              <Link to="/terms" className="text-foreground hover:underline font-medium">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-foreground hover:underline font-medium">
-                Privacy Policy
-              </Link>
-            </label>
-          </div>
-
-          <Button type="submit" variant="primary" className="w-full" isLoading={isLoading}>
-            Create Account
-          </Button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-muted-foreground text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="text-foreground font-medium hover:underline">
               Sign in
             </Link>
           </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

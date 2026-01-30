@@ -1,20 +1,20 @@
-import { Router } from 'express';
+import { Router } from "express";
+import { authenticateToken } from "../middleware/auth.js";
+import { JobController } from "../controllers/job.controller.js";
 
 const router = Router();
+const jobController = new JobController();
 
-// GET /api/v1/jobs
-router.get('/', (_req, res) => {
-  res.json({ message: 'Get jobs - Coming soon' });
-});
+// Public routes
+router.get("/", jobController.getJobs);
+router.get("/:id", jobController.getJobById);
 
-// GET /api/v1/jobs/:id
-router.get('/:id', (req, res) => {
-  res.json({ message: `Get job ${req.params.id} - Coming soon` });
-});
-
-// POST /api/v1/jobs (for employers)
-router.post('/', (_req, res) => {
-  res.json({ message: 'Create job - Coming soon' });
-});
+// Protected routes
+router.use(authenticateToken);
+router.get("/matches/:resumeId", jobController.getMatches);
+router.get("/saved", jobController.getSavedMatches);
+router.post("/matches/:jobId/save", jobController.saveMatch);
+router.delete("/matches/:jobId/save", jobController.unsaveMatch);
+router.post("/matches/:jobId/apply", jobController.markAsApplied);
 
 export default router;

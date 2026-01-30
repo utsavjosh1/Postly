@@ -1,70 +1,99 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSSEChat } from '../../hooks/useSSEChat';
-import { useChatStore } from '../../stores/chat.store';
+import { useState, useRef, useEffect } from "react";
+import { useSSEChat } from "../../hooks/useSSEChat";
+import { useChatStore } from "../../stores/chat.store";
+import { Send, Paperclip, Square } from "lucide-react";
 
 export function ChatInput() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { sendMessage } = useSSEChat();
-  const { isStreaming } = useChatStore();
+  const { sendMessage, stopGeneration } = useSSEChat();
+  const conversationState = useChatStore((state) => state.conversationState);
+  const isBlocking =
+    conversationState === "thinking" || conversationState === "streaming";
 
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 240)}px`;
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [input]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isBlocking) return;
 
     await sendMessage(input.trim());
-    setInput('');
+    setInput("");
+
+    // Reset height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
   return (
-    <div className="border-t border-zinc-800 bg-darker-charcoal p-4">
-      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-        <div className="relative">
+    <div className="relative">
+      <form onSubmit={handleSubmit} className="relative group">
+        <div className="relative bg-zinc-800 hover:bg-zinc-800/80 focus-within:bg-zinc-800/80 rounded-[26px] border border-transparent flex items-end overflow-hidden transition-colors">
+          {/* Attachment Icon (Placeholder for now) */}
+          <button
+            type="button"
+            className="p-3 mb-1 ml-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-full"
+            title="Attach file"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about jobs, resumes, or career advice..."
-            className="w-full px-4 py-3 pr-12 bg-charcoal border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 resize-none"
-            style={{ maxHeight: '240px' }}
-            disabled={isStreaming}
+            placeholder="Message AI Career Assistant..."
+            className="w-full px-3 py-4 bg-transparent text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-[200px] min-h-[52px]"
+            disabled={isBlocking}
             rows={1}
           />
 
-          <button
-            type="submit"
-            disabled={!input.trim() || isStreaming}
-            className="absolute right-2 bottom-2 p-2 bg-zinc-100 hover:bg-white disabled:bg-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-500 rounded-lg transition-colors"
-            aria-label="Send message"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </button>
+          <div className="pr-3 pb-2 flex items-center gap-2">
+            {conversationState === "streaming" ? (
+              <button
+                type="button"
+                onClick={stopGeneration}
+                className="p-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-200 flex items-center justify-center animate-in fade-in zoom-in"
+                aria-label="Stop generating"
+              >
+                <Square className="w-4 h-4 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim() || isBlocking}
+                className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center
+                    ${
+                      !input.trim() || isBlocking
+                        ? "bg-transparent text-zinc-600 cursor-not-allowed"
+                        : "bg-white text-black hover:bg-zinc-200"
+                    }`}
+                aria-label="Send message"
+              >
+                {conversationState === "thinking" ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin text-zinc-600" />
+                ) : (
+                  <Send className="w-4 h-4 ml-0.5" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
-
-        <p className="text-xs text-zinc-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
       </form>
     </div>
   );

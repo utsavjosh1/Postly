@@ -1,15 +1,15 @@
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useChatStore } from '../stores/chat.store';
-import { chatService } from '../services/chat.service';
-import { ChatSidebar } from '../components/chat/ChatSidebar';
-import { ChatMain } from '../components/chat/ChatMain';
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useChatStore } from "../stores/chat.store";
+import { chatService } from "../services/chat.service";
+import { ChatSidebar } from "../components/chat/ChatSidebar";
+import { ChatMain } from "../components/chat/ChatMain";
 
 export function ChatPage() {
   const { setConversations } = useChatStore();
 
   const { data: conversations } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ["conversations"],
     queryFn: chatService.getConversations,
   });
 

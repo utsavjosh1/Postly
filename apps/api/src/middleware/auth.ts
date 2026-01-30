@@ -1,19 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+/* eslint-disable @typescript-eslint/no-namespace */
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/secrets.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { User } from "@postly/shared-types";
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: string;
-}
-
-// Extend Express Request type
+// Extend Express Request type to include User from shared-types
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthUser;
+      user?: User;
     }
   }
 }
@@ -21,26 +17,33 @@ declare global {
 /**
  * Middleware to authenticate JWT token
  */
-export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+export function authenticateToken(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
   if (!token) {
+    console.log("[AuthMiddleware] No token provided in header.");
     res.status(401).json({
       success: false,
-      error: { message: 'Access token required' },
+      error: { message: "Access token required" },
     });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+    const decoded = jwt.verify(token, JWT_SECRET) as User;
+    console.log("[AuthMiddleware] Token verified for user:", decoded.id);
     req.user = decoded;
     next();
-  } catch {
+  } catch (error) {
+    console.error("[AuthMiddleware] Token verification failed:", error);
     res.status(401).json({
       success: false,
-      error: { message: 'Invalid or expired token' },
+      error: { message: "Invalid or expired token" },
     });
   }
 }

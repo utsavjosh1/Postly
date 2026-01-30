@@ -24,6 +24,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 180M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postly}"]
@@ -49,6 +50,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.1'
           memory: 50M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -60,13 +62,15 @@ services:
 
   # API Server
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: utsavjoshi/postly-api:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/api/Dockerfile
     container_name: postly-api
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=200"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-postly}
@@ -89,7 +93,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          cpus: '0.3'
+          memory: 220M
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
       interval: 30s
@@ -123,13 +128,15 @@ services:
 
   # Scraper Worker (BullMQ)
   scraper:
-    build:
-      context: .
-      dockerfile: apps/scraper/Dockerfile
+    image: utsavjoshi/postly-scraper:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/scraper/Dockerfile
     container_name: postly-scraper
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=128"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-postly}
@@ -145,7 +152,36 @@ services:
     deploy:
       resources:
         limits:
-          memory: 60M
+          cpus: '0.2'
+          memory: 150M
+    networks:
+      - postly-network
+
+  # Discord Bot
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot-discord/Dockerfile
+    container_name: postly-bot
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=100"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-postly}
+      DB_USER: ${DB_USER:-postly}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      DISCORD_TOKEN: ${DISCORD_TOKEN:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 120M
     networks:
       - postly-network
 

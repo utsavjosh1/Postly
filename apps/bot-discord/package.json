@@ -7,12 +7,12 @@
     "dev": "tsx watch src/bot.ts",
     "build": "tsc",
     "start": "node dist/bot.js",
-    "lint": "eslint src --ext ts"
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext ts"
   },
   "dependencies": {
     "@postly/database": "*",
     "@postly/shared-types": "*",
-    "discord.js": "^14.17.3",
+    "discord.js": "^13.17.1",
     "dotenv": "^16.4.7"
   },
   "devDependencies": {

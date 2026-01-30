@@ -1,4 +1,4 @@
-import { pool } from '../pool';
+import { pool } from "../pool";
 
 export interface Conversation {
   id: string;
@@ -13,9 +13,9 @@ export interface Conversation {
 export interface Message {
   id: string;
   conversation_id: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: Date;
 }
 
@@ -28,7 +28,7 @@ export const conversationQueries = {
       `INSERT INTO conversations (user_id, resume_id)
        VALUES ($1, $2)
        RETURNING *`,
-      [userId, resumeId || null]
+      [userId, resumeId || null],
     );
     return result.rows[0];
   },
@@ -42,7 +42,7 @@ export const conversationQueries = {
        WHERE user_id = $1
        ORDER BY last_message_at DESC
        LIMIT $2`,
-      [userId, limit]
+      [userId, limit],
     );
     return result.rows;
   },
@@ -54,7 +54,7 @@ export const conversationQueries = {
     const result = await pool.query<Conversation>(
       `SELECT * FROM conversations
        WHERE id = $1 AND user_id = $2`,
-      [id, userId]
+      [id, userId],
     );
     return result.rows[0] || null;
   },
@@ -67,7 +67,7 @@ export const conversationQueries = {
       `UPDATE conversations
        SET title = $2, updated_at = NOW()
        WHERE id = $1`,
-      [id, title]
+      [id, title],
     );
   },
 
@@ -78,7 +78,7 @@ export const conversationQueries = {
     const result = await pool.query(
       `DELETE FROM conversations
        WHERE id = $1 AND user_id = $2`,
-      [id, userId]
+      [id, userId],
     );
     return result.rowCount !== null && result.rowCount > 0;
   },
@@ -88,15 +88,20 @@ export const conversationQueries = {
    */
   async createMessage(
     conversationId: string,
-    role: Message['role'],
+    role: Message["role"],
     content: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<Message> {
     const result = await pool.query<Message>(
       `INSERT INTO messages (conversation_id, role, content, metadata)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [conversationId, role, content, metadata ? JSON.stringify(metadata) : null]
+      [
+        conversationId,
+        role,
+        content,
+        metadata ? JSON.stringify(metadata) : null,
+      ],
     );
     return result.rows[0];
   },
@@ -110,7 +115,7 @@ export const conversationQueries = {
        WHERE conversation_id = $1
        ORDER BY created_at ASC
        LIMIT $2`,
-      [conversationId, limit]
+      [conversationId, limit],
     );
     return result.rows;
   },
