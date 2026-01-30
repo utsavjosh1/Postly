@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@google/genai": "^1.35.0",
+    "@google/genai": "^1.38.0",
     "@postly/shared-types": "*",
     "langchain": "^0.3.12"
   },
