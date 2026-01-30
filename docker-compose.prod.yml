@@ -60,9 +60,10 @@ services:
 
   # API Server
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: utsavjoshi/postly-api:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/api/Dockerfile
     container_name: postly-api
     restart: unless-stopped
     environment:
@@ -123,9 +124,10 @@ services:
 
   # Scraper Worker (BullMQ)
   scraper:
-    build:
-      context: .
-      dockerfile: apps/scraper/Dockerfile
+    image: utsavjoshi/postly-scraper:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/scraper/Dockerfile
     container_name: postly-scraper
     restart: unless-stopped
     environment:

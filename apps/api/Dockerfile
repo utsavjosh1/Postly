@@ -10,6 +10,7 @@ COPY turbo.json ./
 # Copy workspace packages
 COPY packages/database/package.json ./packages/database/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
 COPY apps/api/package.json ./apps/api/
@@ -20,6 +21,7 @@ RUN npm ci
 # Copy source code
 COPY packages/database ./packages/database
 COPY packages/ai-utils ./packages/ai-utils
+COPY packages/config ./packages/config
 COPY packages/shared-types ./packages/shared-types
 COPY packages/logger ./packages/logger
 COPY apps/api ./apps/api

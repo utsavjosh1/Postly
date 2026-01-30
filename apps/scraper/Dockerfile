@@ -9,6 +9,7 @@ COPY turbo.json ./
 
 # Copy workspace packages
 COPY packages/database/package.json ./packages/database/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
 COPY apps/scraper/package.json ./apps/scraper/
@@ -18,6 +19,7 @@ RUN npm ci
 
 # Copy source code
 COPY packages/shared-types ./packages/shared-types
+COPY packages/config ./packages/config
 COPY packages/logger ./packages/logger
 COPY packages/database ./packages/database
 COPY apps/scraper ./apps/scraper
