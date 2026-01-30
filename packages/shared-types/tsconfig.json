@@ -1,7 +1,7 @@
 {
   "extends": "@postly/typescript-config/node.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "dist/cjs",
     "rootDir": "src"
   },
   "include": ["src/**/*"],

@@ -5,7 +5,10 @@ import { Menu } from "lucide-react";
 import { useSSEChat } from "../../hooks/useSSEChat";
 
 export function ChatMain() {
-  const { activeConversationId, toggleSidebar } = useChatStore();
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId,
+  );
+  const toggleSidebar = useChatStore((state) => state.toggleSidebar);
   const { sendMessage } = useSSEChat();
 
   const handlePillClick = (text: string) => {

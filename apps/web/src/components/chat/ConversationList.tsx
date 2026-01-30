@@ -31,13 +31,15 @@ const getRelativeDateGroup = (dateStr: string | Date | undefined) => {
 };
 
 export function ConversationList() {
-  const {
-    conversations,
-    activeConversationId,
-    setActiveConversation,
-    setMessages,
-    deleteConversation,
-  } = useChatStore();
+  const conversations = useChatStore((state) => state.conversations);
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId,
+  );
+  const setActiveConversation = useChatStore(
+    (state) => state.setActiveConversation,
+  );
+  const setMessages = useChatStore((state) => state.setMessages);
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
   const { addToast } = useToastStore();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { AI_ERROR_CODES } from "@postly/shared-types";
 
 // Lazy initialization
 let genAI: GoogleGenAI | null = null;
@@ -13,6 +14,16 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       return await operation();
     } catch (error: any) {
       lastError = error;
+
+      // Check for specific error types to map
+      if (error.status === 429) {
+        error.code = AI_ERROR_CODES.QUOTA_EXCEEDED;
+      } else if (error.status === 503 || error.status === 500) {
+        error.code = AI_ERROR_CODES.SERVER_ERROR;
+      } else if (error.message?.includes("policy")) {
+        error.code = AI_ERROR_CODES.POLICY_VIOLATION;
+      }
+
       // 429 = Too Many Requests
       const isRetryable =
         !error.status || [429, 500, 503, 504].includes(error.status);
@@ -83,6 +94,31 @@ export async function streamText(
     for await (const chunk of response) {
       if (chunk.text) {
         yield chunk.text;
+      }
+    }
+  }
+
+  return streamGenerator();
+}
+
+export async function streamTextWithMeta(
+  prompt: string,
+): Promise<AsyncIterable<{ text?: string; usage?: any }>> {
+  const client = getClient();
+  const response = await withRetry(() =>
+    client.models.generateContentStream({
+      model: "gemma-3-27b-it",
+      contents: prompt,
+    }),
+  );
+
+  async function* streamGenerator() {
+    for await (const chunk of response) {
+      if (chunk.text && chunk.text.length > 0) {
+        yield { text: chunk.text };
+      }
+      if (chunk.usageMetadata) {
+        yield { usage: chunk.usageMetadata };
       }
     }
   }
