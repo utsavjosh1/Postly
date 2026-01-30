@@ -1,10 +1,15 @@
-import { create } from 'zustand';
-import type { Conversation, Message } from '@postly/shared-types';
+import { create } from "zustand";
+import type {
+  Conversation,
+  Message,
+  ConversationState,
+} from "@postly/shared-types";
 
 interface ChatState {
   // Sidebar state
   conversations: Conversation[];
   activeConversationId: string | null;
+  conversationState: ConversationState;
   isSidebarOpen: boolean;
 
   // Active conversation
@@ -27,16 +32,20 @@ interface ChatState {
   setLoading: (loading: boolean) => void;
   setStreaming: (streaming: boolean) => void;
   toggleSidebar: () => void;
+  setConversationState: (state: ConversationState) => void;
+  updateMessage: (id: string, updates: Partial<Message>) => void;
+  deleteMessage: (id: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
   activeConversationId: null,
+  conversationState: "idle",
   isSidebarOpen: true,
   messages: [],
   isLoading: false,
   isStreaming: false,
-  streamingContent: '',
+  streamingContent: "",
 
   setConversations: (conversations) => set({ conversations }),
 
@@ -49,13 +58,14 @@ export const useChatStore = create<ChatState>((set) => ({
     set({
       activeConversationId: id,
       messages: [],
-      streamingContent: '',
+      streamingContent: "",
     }),
 
   deleteConversation: (id) =>
     set((state) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
-      activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+      activeConversationId:
+        state.activeConversationId === id ? null : state.activeConversationId,
     })),
 
   setMessages: (messages) => set({ messages }),
@@ -70,9 +80,24 @@ export const useChatStore = create<ChatState>((set) => ({
       streamingContent: state.streamingContent + content,
     })),
 
-  clearStreamingContent: () => set({ streamingContent: '' }),
+  clearStreamingContent: () => set({ streamingContent: "" }),
 
   setLoading: (loading) => set({ isLoading: loading }),
   setStreaming: (streaming) => set({ isStreaming: streaming }),
-  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  setConversationState: (state) => set({ conversationState: state }),
+
+  updateMessage: (id, updates) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, ...updates } : msg,
+      ),
+    })),
+
+  deleteMessage: (id) =>
+    set((state) => ({
+      messages: state.messages.filter((msg) => msg.id !== id),
+    })),
 }));

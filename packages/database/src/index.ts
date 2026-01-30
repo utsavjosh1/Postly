@@ -1,2 +1,2 @@
-export { pool, default as db } from './pool';
-export * from './queries';
+export { pool, default as db } from "./pool";
+export * from "./queries";

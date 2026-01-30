@@ -1,5 +1,5 @@
 // User types
-export type UserRole = 'job_seeker' | 'employer' | 'admin';
+export type UserRole = "job_seeker" | "employer" | "admin";
 
 export interface User {
   id: string;
@@ -23,7 +23,7 @@ export interface LoginInput {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password_hash'>;
+  user: Omit<User, "password_hash">;
   access_token: string;
   refresh_token?: string;
 }
@@ -37,6 +37,7 @@ export interface Resume {
   skills?: string[];
   experience_years?: number;
   education?: EducationEntry[];
+  embedding?: number[] | string;
   created_at: Date;
 }
 
@@ -55,9 +56,17 @@ export interface ResumeAnalysis {
 }
 
 // Job types
-export type JobType = 'full-time' | 'part-time' | 'contract' | 'internship';
-export type JobSource = 'indeed' | 'linkedin' | 'company_direct' | 'remote_co' | 'weworkremotely';
-export type JobStatus = 'active' | 'expired' | 'filled';
+export type JobType = "full-time" | "part-time" | "contract" | "internship";
+export type JobSource =
+  | "indeed"
+  | "linkedin"
+  | "company_direct"
+  | "remote_co"
+  | "remote_ok"
+  | "weworkremotely"
+  | "google_jobs"
+  | "generic";
+export type JobStatus = "active" | "expired" | "filled";
 
 export interface Job {
   id: string;
@@ -124,8 +133,8 @@ export interface JobSearchFilters {
 }
 
 // Bot Subscription types
-export type CommunityType = 'discord' | 'reddit';
-export type SubscriptionTier = 'basic' | 'premium';
+export type CommunityType = "discord" | "reddit";
+export type SubscriptionTier = "basic" | "premium";
 
 export interface BotSubscription {
   id: string;
@@ -140,7 +149,7 @@ export interface BotSubscription {
 }
 
 // Scraping types
-export type ScrapingStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type ScrapingStatus = "pending" | "running" | "completed" | "failed";
 
 export interface ScrapingJob {
   id: string;
@@ -155,7 +164,7 @@ export interface ScrapingJob {
 
 // AI Chat types
 export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
 }
@@ -185,24 +194,47 @@ export interface Conversation {
   user_id: string;
   title: string;
   resume_id: string | null;
+  state?: ConversationState;
   last_message_at: Date;
   created_at: Date;
   updated_at: Date;
 }
 
+export type ConversationState =
+  | "idle"
+  | "typing"
+  | "thinking"
+  | "streaming"
+  | "completed"
+  | "error"
+  | "interrupted";
+
 export interface Message {
   id: string;
   conversation_id: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
+  status?: MessageStatus;
   metadata?: MessageMetadata;
   created_at: Date;
 }
+
+export type MessageStatus = "sending" | "sent" | "delivered" | "error";
 
 export interface MessageMetadata {
   job_matches?: JobMatch[];
   resume_feedback?: ResumeFeedback;
   error?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  timing?: {
+    start: number;
+    end: number;
+    duration: number;
+  };
 }
 
 export interface CreateConversationRequest {
@@ -216,7 +248,7 @@ export interface SendMessageRequest {
 }
 
 export interface StreamChatResponse {
-  type: 'chunk' | 'complete' | 'error' | 'metadata';
+  type: "chunk" | "complete" | "error" | "metadata";
   content?: string;
   metadata?: MessageMetadata;
   message_id?: string;
@@ -240,3 +272,13 @@ export interface PaginatedResponse<T> {
   limit: number;
   total_pages: number;
 }
+
+export const AI_ERROR_CODES = {
+  QUOTA_EXCEEDED: "AI_QUOTA_EXCEEDED",
+  TIMEOUT: "AI_TIMEOUT",
+  POLICY_VIOLATION: "AI_POLICY_VIOLATION",
+  SERVER_ERROR: "AI_SERVER_ERROR",
+  UNKNOWN: "AI_UNKNOWN_ERROR",
+} as const;
+
+export type AIErrorCode = (typeof AI_ERROR_CODES)[keyof typeof AI_ERROR_CODES];

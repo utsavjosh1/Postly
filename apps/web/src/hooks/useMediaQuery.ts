@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
@@ -13,8 +13,8 @@ export function useMediaQuery(query: string): boolean {
 
     // Modern browsers
     if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
     }
     // Fallback for older browsers
     else {
@@ -28,13 +28,13 @@ export function useMediaQuery(query: string): boolean {
 
 // Convenience hooks for common breakpoints
 export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 768px)');
+  return useMediaQuery("(max-width: 768px)");
 }
 
 export function useIsTablet(): boolean {
-  return useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
+  return useMediaQuery("(min-width: 769px) and (max-width: 1024px)");
 }
 
 export function useIsDesktop(): boolean {
-  return useMediaQuery('(min-width: 1025px)');
+  return useMediaQuery("(min-width: 1025px)");
 }

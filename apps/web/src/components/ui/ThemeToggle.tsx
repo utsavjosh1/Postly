@@ -1,20 +1,29 @@
-import { useThemeStore } from '../../stores/theme.store';
+import { useThemeStore } from "../../stores/theme.store";
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useThemeStore();
 
   const cycleTheme = () => {
-    const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+    const themes: Array<"light" | "dark" | "system"> = [
+      "light",
+      "dark",
+      "system",
+    ];
     const currentIndex = themes.indexOf(theme);
     const nextTheme = themes[(currentIndex + 1) % themes.length];
     setTheme(nextTheme);
   };
 
   const getIcon = () => {
-    if (theme === 'system') {
+    if (theme === "system") {
       // Monitor icon for system
       return (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -25,10 +34,15 @@ export function ThemeToggle() {
       );
     }
 
-    if (resolvedTheme === 'dark') {
+    if (resolvedTheme === "dark") {
       // Moon icon
       return (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -41,7 +55,12 @@ export function ThemeToggle() {
 
     // Sun icon
     return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -54,12 +73,12 @@ export function ThemeToggle() {
 
   const getLabel = () => {
     switch (theme) {
-      case 'light':
-        return 'Light mode';
-      case 'dark':
-        return 'Dark mode';
-      case 'system':
-        return 'System theme';
+      case "light":
+        return "Light mode";
+      case "dark":
+        return "Dark mode";
+      case "system":
+        return "System theme";
     }
   };
 

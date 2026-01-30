@@ -1,14 +1,14 @@
-import { Pool } from 'pg';
-import fs from 'fs';
-import path from 'path';
+import { Pool } from "pg";
+import fs from "fs";
+import path from "path";
 
 // Database connection
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'postly',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  host: process.env.DB_HOST || "localhost",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  database: process.env.DB_NAME || "postly",
+  user: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD || "postgres",
 });
 
 // Migrations table setup
@@ -25,21 +25,21 @@ async function ensureMigrationsTable(): Promise<void> {
 }
 
 async function getExecutedMigrations(): Promise<string[]> {
-  const result = await pool.query('SELECT name FROM migrations ORDER BY id');
+  const result = await pool.query("SELECT name FROM migrations ORDER BY id");
   return result.rows.map((row) => row.name);
 }
 
 async function markMigrationExecuted(name: string): Promise<void> {
-  await pool.query('INSERT INTO migrations (name) VALUES ($1)', [name]);
+  await pool.query("INSERT INTO migrations (name) VALUES ($1)", [name]);
 }
 
 async function markMigrationReverted(name: string): Promise<void> {
-  await pool.query('DELETE FROM migrations WHERE name = $1', [name]);
+  await pool.query("DELETE FROM migrations WHERE name = $1", [name]);
 }
 
 function getMigrationFiles(): string[] {
   // Go up from dist/migrations to find the SQL migrations folder
-  const migrationsDir = path.resolve(__dirname, '../../migrations');
+  const migrationsDir = path.resolve(__dirname, "../../migrations");
 
   if (!fs.existsSync(migrationsDir)) {
     console.error(`Migrations directory not found: ${migrationsDir}`);
@@ -48,17 +48,17 @@ function getMigrationFiles(): string[] {
 
   return fs
     .readdirSync(migrationsDir)
-    .filter((file) => file.endsWith('.sql'))
+    .filter((file) => file.endsWith(".sql"))
     .sort();
 }
 
 async function runMigrations(): Promise<void> {
-  console.log('Running migrations...\n');
+  console.log("Running migrations...\n");
 
   await ensureMigrationsTable();
   const executed = await getExecutedMigrations();
   const files = getMigrationFiles();
-  const migrationsDir = path.resolve(__dirname, '../../migrations');
+  const migrationsDir = path.resolve(__dirname, "../../migrations");
 
   let count = 0;
   for (const file of files) {
@@ -68,7 +68,7 @@ async function runMigrations(): Promise<void> {
     }
 
     const filePath = path.join(migrationsDir, file);
-    const sql = fs.readFileSync(filePath, 'utf-8');
+    const sql = fs.readFileSync(filePath, "utf-8");
 
     console.log(`  → Running ${file}...`);
 
@@ -84,20 +84,20 @@ async function runMigrations(): Promise<void> {
   }
 
   if (count === 0) {
-    console.log('\nNo new migrations to run.');
+    console.log("\nNo new migrations to run.");
   } else {
     console.log(`\n✓ ${count} migration(s) completed successfully.`);
   }
 }
 
 async function revertLastMigration(): Promise<void> {
-  console.log('Reverting last migration...\n');
+  console.log("Reverting last migration...\n");
 
   await ensureMigrationsTable();
   const executed = await getExecutedMigrations();
 
   if (executed.length === 0) {
-    console.log('No migrations to revert.');
+    console.log("No migrations to revert.");
     return;
   }
 
@@ -107,7 +107,9 @@ async function revertLastMigration(): Promise<void> {
   // For now, just mark as reverted (proper down migrations would need separate .down.sql files)
   await markMigrationReverted(lastMigration);
   console.log(`  ✓ ${lastMigration} marked as reverted`);
-  console.log('\nNote: Tables were not dropped. Run DROP statements manually if needed.');
+  console.log(
+    "\nNote: Tables were not dropped. Run DROP statements manually if needed.",
+  );
 }
 
 async function showStatus(): Promise<void> {
@@ -115,10 +117,10 @@ async function showStatus(): Promise<void> {
   const executed = await getExecutedMigrations();
   const files = getMigrationFiles();
 
-  console.log('Migration Status:\n');
+  console.log("Migration Status:\n");
 
   for (const file of files) {
-    const status = executed.includes(file) ? '✓' : '○';
+    const status = executed.includes(file) ? "✓" : "○";
     console.log(`  ${status} ${file}`);
   }
 
@@ -130,24 +132,24 @@ async function main(): Promise<void> {
 
   try {
     switch (command) {
-      case 'up':
+      case "up":
         await runMigrations();
         break;
-      case 'down':
+      case "down":
         await revertLastMigration();
         break;
-      case 'status':
+      case "status":
         await showStatus();
         break;
       default:
-        console.log('Usage: migrate.js <up|down|status>');
-        console.log('  up     - Run all pending migrations');
-        console.log('  down   - Revert the last migration');
-        console.log('  status - Show migration status');
+        console.log("Usage: migrate.js <up|down|status>");
+        console.log("  up     - Run all pending migrations");
+        console.log("  down   - Revert the last migration");
+        console.log("  status - Show migration status");
         process.exit(1);
     }
   } catch (error) {
-    console.error('Migration error:', error);
+    console.error("Migration error:", error);
     process.exit(1);
   } finally {
     await pool.end();
