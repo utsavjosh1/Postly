@@ -18,9 +18,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@google/genai": "^1.35.0",
+    "@google/genai": "^1.38.0",
     "@postly/shared-types": "*",
-    "langchain": "^0.3.12"
+    "langchain": "^1.2.15"
   },
   "devDependencies": {
     "@postly/typescript-config": "*",
