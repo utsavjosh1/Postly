@@ -62,9 +62,10 @@ services:
 
   # API Server
   api:
-    build:
-      context: .
-      dockerfile: utsavjoshi/postly-api:v0.0.1
+    image: utsavjoshi/postly-api:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/api/Dockerfile
     container_name: postly-api
     restart: unless-stopped
     environment:
@@ -103,34 +104,34 @@ services:
       - postly-network
 
   # Web Frontend (Nginx serving static React build)
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    container_name: postly-web
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 30M
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/nginx-health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - postly-network
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web/Dockerfile
+  #   container_name: postly-web
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - api
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 20M
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost/nginx-health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - postly-network
 
   # Scraper Worker (BullMQ)
   scraper:
-    build:
-      context: .
-      dockerfile: apps/scraper/Dockerfile
+    image: utsavjoshi/postly-scraper:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/scraper/Dockerfile
     container_name: postly-scraper
     restart: unless-stopped
     environment:

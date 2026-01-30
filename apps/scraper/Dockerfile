@@ -9,6 +9,7 @@ COPY turbo.json ./
 
 # Copy workspace packages
 COPY packages/database/package.json ./packages/database/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
@@ -22,6 +23,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci --fetch-retry-maxtimeout=600000 
 
 # Copy source code
 COPY packages/shared-types ./packages/shared-types
+COPY packages/config ./packages/config
 COPY packages/logger ./packages/logger
 COPY packages/ai-utils ./packages/ai-utils
 COPY packages/config/typescript-config ./packages/config/typescript-config
