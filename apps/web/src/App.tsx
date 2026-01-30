@@ -8,6 +8,7 @@ import { ChatPage } from "@pages/ChatPage";
 import { ResumePage } from "@pages/ResumePage";
 import { JobsPage } from "@pages/JobsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ToastContainer } from "./components/ui/Toast";
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
           <Route path="auth/callback" element={<AuthCallbackPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-        
+
         <Route
           path="chat"
           element={
@@ -46,6 +47,7 @@ function App() {
           }
         />
       </Routes>
+      <ToastContainer />
     </BrowserRouter>
   );
 }

@@ -1,9 +1,4 @@
-import { geminiEmbeddingModel } from "./gemini";
-
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const result = await geminiEmbeddingModel.embedContent(text);
-  return result.embedding.values;
-}
+import { generateEmbedding } from "./gemini";
 
 export async function generateBatchEmbeddings(
   texts: string[],

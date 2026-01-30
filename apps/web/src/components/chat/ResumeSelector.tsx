@@ -49,7 +49,16 @@ export function ResumeSelector({
   };
 
   return (
-    <Select value={value || ""} onValueChange={(v) => onChange(v || undefined)}>
+    <Select
+      value={value || ""}
+      onValueChange={(v) => {
+        if (v === "upload_new") {
+          window.location.href = "/resume"; // Simple navigation for now, or use useNavigate
+          return;
+        }
+        onChange(v || undefined);
+      }}
+    >
       <SelectTrigger className={className}>
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-muted-foreground" />
@@ -88,6 +97,16 @@ export function ResumeSelector({
             </a>
           </div>
         )}
+        <div className="h-px bg-zinc-800 my-1 mx-1" />
+        <SelectItem
+          value="upload_new"
+          className="text-indigo-400 focus:text-indigo-300 focus:bg-indigo-500/10"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xl leading- none">+</span>
+            <span>Upload New Resume</span>
+          </div>
+        </SelectItem>
       </SelectContent>
     </Select>
   );

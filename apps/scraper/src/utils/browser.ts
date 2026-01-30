@@ -51,6 +51,7 @@ class BrowserManager {
         "--window-position=0,0",
         "--ignore-certifcate-errors",
         "--ignore-certifcate-errors-spki-list",
+        "--disable-http2",
       ],
     });
 
@@ -125,7 +126,11 @@ class BrowserManager {
     return page;
   }
 
-  async fetchPage(url: string, waitForSelector?: string): Promise<string> {
+  async fetchPage(
+    url: string,
+    waitForSelector?: string,
+    timeout = 30000,
+  ): Promise<string> {
     const page = await this.getPage();
 
     try {
@@ -133,7 +138,7 @@ class BrowserManager {
 
       await page.goto(url, {
         waitUntil: "domcontentloaded",
-        timeout: 30000,
+        timeout,
       });
 
       // Wait for specific selector if provided
@@ -203,15 +208,21 @@ export async function fetchWithBrowser(
     waitForSelector?: string;
     retries?: number;
     retryDelay?: number;
+    timeout?: number;
   } = {},
 ): Promise<string> {
-  const { waitForSelector, retries = 3, retryDelay = 2000 } = options;
+  const {
+    waitForSelector,
+    retries = 3,
+    retryDelay = 2000,
+    timeout = 30000,
+  } = options;
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      return await browserManager.fetchPage(url, waitForSelector);
+      return await browserManager.fetchPage(url, waitForSelector, timeout);
     } catch (error) {
       lastError = error as Error;
       console.warn(

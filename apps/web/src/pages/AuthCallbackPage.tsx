@@ -24,10 +24,12 @@ export function AuthCallbackPage() {
         try {
           // Store token temporarily to fetch profile
           localStorage.setItem("access_token", token);
-          
+
           // Fetch user profile to ensure token is valid and get user details
-          const response = await apiClient.get<{ data: User }>("/users/profile");
-          
+          const response = await apiClient.get<{ data: User }>(
+            "/users/profile",
+          );
+
           if (response.data.data) {
             setAuth(response.data.data, token);
             navigate("/chat");
@@ -50,8 +52,12 @@ export function AuthCallbackPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Authenticating...</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">Please wait while we log you in.</p>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          Authenticating...
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">
+          Please wait while we log you in.
+        </p>
       </div>
     </div>
   );

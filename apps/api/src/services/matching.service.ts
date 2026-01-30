@@ -1,6 +1,11 @@
 import { generateText, generateEmbedding } from "@postly/ai-utils";
 import { resumeQueries, jobQueries } from "@postly/database";
-import type { Job, JobMatch, Resume, EducationEntry } from "@postly/shared-types";
+import type {
+  Job,
+  JobMatch,
+  Resume,
+  EducationEntry,
+} from "@postly/shared-types";
 import { pool } from "@postly/database";
 
 interface MatchedJob extends Job {

@@ -1,16 +1,9 @@
-import {
-  GoogleGenerativeAI,
-  GenerativeModel,
-  HarmCategory,
-  HarmBlockThreshold,
-} from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-// Lazy initialization - only create client when first used
-let genAI: GoogleGenerativeAI | null = null;
-let geminiModelInstance: GenerativeModel | null = null;
-let geminiEmbeddingModelInstance: GenerativeModel | null = null;
+// Lazy initialization
+let genAI: GoogleGenAI | null = null;
 
-const RETRY_DELAYS = [1000, 2000, 4000, 8000]; // Exponential backoff delays in ms
+const RETRY_DELAYS = [1000, 2000, 4000, 8000];
 
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
   let lastError: any;
@@ -20,12 +13,9 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       return await operation();
     } catch (error: any) {
       lastError = error;
-
-      // Don't retry if it's a permanent error (like checking safety ratings)
-      // Only retry 500s, 503s, or 429s (Rate Limit) if identified
+      // 429 = Too Many Requests
       const isRetryable =
-        !error.response ||
-        [429, 500, 503, 504].includes(error.response?.status);
+        !error.status || [429, 500, 503, 504].includes(error.status);
 
       if (!isRetryable || i === RETRY_DELAYS.length) {
         throw error;
@@ -42,83 +32,75 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
   throw lastError;
 }
 
-function getGenAI(): GoogleGenerativeAI {
+function getClient(): GoogleGenAI {
   if (!genAI) {
+    // The SDK automatically reads GEMINI_API_KEY from env if not provided
+    // but explicit is better for our error handling
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
-    genAI = new GoogleGenerativeAI(apiKey);
+    genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
 }
 
-function getGeminiModel(): GenerativeModel {
-  if (!geminiModelInstance) {
-    geminiModelInstance = getGenAI().getGenerativeModel({
-      model: "gemini-pro",
-      safetySettings: [
-        {
-          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-      ],
-    });
-  }
-  return geminiModelInstance;
-}
-
-function getGeminiEmbeddingModel(): GenerativeModel {
-  if (!geminiEmbeddingModelInstance) {
-    geminiEmbeddingModelInstance = getGenAI().getGenerativeModel({
-      model: "text-embedding-004",
-    });
-  }
-  return geminiEmbeddingModelInstance;
-}
-
-// Export getters for backward compatibility
-export const geminiModel = {
-  get instance() {
-    return getGeminiModel();
-  },
-  generateContent: (prompt: string) =>
-    withRetry(() => getGeminiModel().generateContent(prompt)),
-  generateContentStream: (prompt: string) =>
-    withRetry(() => getGeminiModel().generateContentStream(prompt)),
-};
-
-export const geminiEmbeddingModel = {
-  get instance() {
-    return getGeminiEmbeddingModel();
-  },
-  embedContent: (content: string) =>
-    withRetry(() => getGeminiEmbeddingModel().embedContent(content)),
-};
-
+// Helper to get text generation
 export async function generateText(prompt: string): Promise<string> {
-  const model = getGeminiModel();
-  const result = await withRetry(() => model.generateContent(prompt));
-  const response = result.response;
-  return response.text();
+  const client = getClient();
+  const result = await withRetry(() =>
+    client.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    }),
+  );
+
+  if (result.text) {
+    return result.text;
+  }
+
+  // Fallback or empty if something goes wrong
+  return "";
 }
 
 export async function streamText(
   prompt: string,
 ): Promise<AsyncIterable<string>> {
-  const model = getGeminiModel();
-  const result = await withRetry(() => model.generateContentStream(prompt));
+  const client = getClient();
+  const result = await withRetry(() =>
+    client.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    }),
+  );
 
   async function* streamGenerator() {
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      yield chunkText;
+    for await (const chunk of result) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
     }
   }
 
   return streamGenerator();
+}
+
+// Helper for embeddings
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const client = getClient();
+  const result = await withRetry(() =>
+    client.models.embedContent({
+      model: "text-embedding-004",
+      contents: text,
+    }),
+  );
+
+  if (
+    result.embeddings &&
+    result.embeddings[0] &&
+    result.embeddings[0].values
+  ) {
+    return result.embeddings[0].values;
+  }
+  return [];
 }

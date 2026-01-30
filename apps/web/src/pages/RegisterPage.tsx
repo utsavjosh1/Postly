@@ -8,9 +8,11 @@ export function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState<"job_seeker" | "employer">("job_seeker");
+  const [userType, setUserType] = useState<"job_seeker" | "employer">(
+    "job_seeker",
+  );
   const navigate = useNavigate();
-  
+
   const { register, loginWithGoogle, isLoading, error } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +39,7 @@ export function RegisterPage() {
 
         <div className="bg-card py-8 px-6 shadow-lg rounded-xl border border-border">
           {error && (
-             <div className="mb-4 p-3 rounded bg-destructive/10 text-destructive text-sm font-medium">
+            <div className="mb-4 p-3 rounded bg-destructive/10 text-destructive text-sm font-medium">
               {error}
             </div>
           )}
@@ -75,7 +77,9 @@ export function RegisterPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
               </div>
             </div>
 
@@ -98,7 +102,7 @@ export function RegisterPage() {
                 placeholder="you@example.com"
                 className="h-11"
               />
-              
+
               <Input
                 label="Password"
                 type="password"
@@ -140,8 +144,8 @@ export function RegisterPage() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-11 text-base transition-all"
                 isLoading={isLoading}
               >
