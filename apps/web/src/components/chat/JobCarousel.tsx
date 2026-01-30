@@ -1,9 +1,9 @@
-import { JobCard } from "./JobCard";
+import { JobCard, JobData } from "./JobCard";
 import { ChevronRight } from "lucide-react";
 
 interface JobCarouselProps {
   message: string;
-  data: any[];
+  data: JobData[];
   suggested_actions?: string[];
   onApply?: (id: string | number) => void;
 }

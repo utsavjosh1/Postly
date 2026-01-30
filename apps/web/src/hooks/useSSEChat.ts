@@ -174,7 +174,8 @@ export function useSSEChat() {
             }
           }
         }
-      } catch (error: any) {
+      } catch (err: unknown) {
+        const error = err as { name?: string; code?: string; message?: string };
         if (error.name === "AbortError") {
           setConversationState("interrupted");
         } else {

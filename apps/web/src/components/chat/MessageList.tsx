@@ -33,9 +33,10 @@ const MessageItem = memo(
         if (typeof parsed === "object" && parsed !== null) {
           return parsed;
         }
-      } catch (e) {
+      } catch {
         return null;
       }
+
       return null;
     };
 

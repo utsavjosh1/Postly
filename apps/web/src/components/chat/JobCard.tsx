@@ -1,6 +1,6 @@
 import { Building2, MapPin, DollarSign, ArrowRight, Star } from "lucide-react";
 
-interface JobData {
+export interface JobData {
   id: string | number;
   title: string;
   company: string;
