@@ -11,6 +11,9 @@ import { browserManager } from "./utils/browser.js";
 import { runCleanup } from "./workers/cleanup.worker.js";
 import type { JobSource } from "@postly/shared-types";
 
+// Explicitly register scrapers if needed, or rely on index.ts
+import { GenericScraper } from "./scrapers/generic.scraper.js";
+
 const isDev = process.env.NODE_ENV === "development";
 const __dirname = path.resolve();
 const root = isDev ? __dirname : path.resolve(__dirname, "../..");
@@ -38,91 +41,73 @@ const cleanupQueue = new Queue("job-cleanup", { connection: redisConnection });
 const scrapingWorker = new Worker(
   "job-scraping",
   async (job) => {
-    const { source, scrapeAll } = job.data as {
+    const { source, scrapeAll, targetUrl } = job.data as {
       source?: JobSource;
       scrapeAll?: boolean;
+      targetUrl?: string; // For generic scraper dynamic targets
     };
 
-    console.log(`\n${"=".repeat(50)}`);
-    console.log(`Processing scraping job: ${job.id}`);
-    console.log(`Source: ${source || "all"}, Scrape All: ${scrapeAll}`);
-    console.log(`${"=".repeat(50)}\n`);
+    // Dispatcher Mode
+    if (scrapeAll) {
+      console.log(`\n📢 [Dispatcher] Starting batch scrape for all sources...`);
+      const scrapers = getAllScrapers();
+      const jobs = scrapers.map((scraper) => ({
+        name: `scrape-${scraper.source}`,
+        data: { source: scraper.source },
+        opts: { jobId: `${scraper.source}-${Date.now()}` },
+      }));
 
-    const results = {
-      totalSaved: 0,
-      totalUpdated: 0,
-      totalSkipped: 0,
-      totalErrors: 0,
-      sources: [] as {
-        source: string;
-        saved: number;
-        updated: number;
-        skipped: number;
-        errors: number;
-      }[],
-    };
+      await scrapingQueue.addBulk(jobs);
+      console.log(
+        `✅ [Dispatcher] Queued ${jobs.length} source jobs for parallel processing.`,
+      );
+      return { dispatched: jobs.length };
+    }
+
+    // Worker Mode
+    if (!source) {
+      throw new Error("Job missing 'source' or 'scrapeAll' flag");
+    }
+
+    console.log(`Processing scraping job: ${job.id} (Source: ${source})`);
 
     try {
-      // Initialize browser before scraping
       await browserManager.initialize();
 
-      if (scrapeAll || !source) {
-        // Scrape all sources
-        const scrapers = getAllScrapers();
-        for (const scraper of scrapers) {
-          try {
-            const stats = await scraper.scrapeAndSave();
-            results.totalSaved += stats.saved;
-            results.totalUpdated += stats.updated;
-            results.totalSkipped += stats.skipped;
-            results.totalErrors += stats.errors;
-            results.sources.push({ source: scraper.source, ...stats });
-
-            // Rotate browser context between sources to avoid detection
-            await browserManager.rotateContext();
-          } catch (error) {
-            console.error(`Failed to scrape ${scraper.source}:`, error);
-            results.totalErrors++;
-            results.sources.push({
-              source: scraper.source,
-              saved: 0,
-              updated: 0,
-              skipped: 0,
-              errors: 1,
-            });
-          }
-        }
+      let scraper;
+      if (source === "generic" && targetUrl) {
+        scraper = new GenericScraper([targetUrl]);
       } else {
-        // Scrape specific source
-        const { targetUrl } = job.data as { targetUrl?: string };
-
-        let scraper;
-        // Special handling for generic scraper to accept dynamic URLs
-        if (source === "generic" && targetUrl) {
-          const { GenericScraper } =
-            await import("./scrapers/generic.scraper.js");
-          scraper = new GenericScraper([targetUrl]);
-        } else {
-          scraper = getScraper(source);
-        }
-
-        const stats = await scraper.scrapeAndSave();
-        results.totalSaved = stats.saved;
-        results.totalUpdated = stats.updated;
-        results.totalSkipped = stats.skipped;
-        results.totalErrors = stats.errors;
-        results.sources.push({ source, ...stats });
+        scraper = getScraper(source);
       }
 
-      return results;
+      if (!scraper) {
+        throw new Error(`No scraper found for source: ${source}`);
+      }
+
+      const stats = await scraper.scrapeAndSave();
+
+      // Rotate browser context between jobs
+      if (Math.random() > 0.7) {
+        await browserManager.rotateContext();
+      }
+
+      return {
+        source,
+        ...stats,
+      };
     } catch (error) {
-      console.error("Scraping job failed:", error);
+      console.error(`❌ Job failed for source ${source}:`, error);
       throw error;
     }
   },
   {
     connection: redisConnection,
-    concurrency: 1, // Process one scraping job at a time
+    concurrency: 5,
+    limiter: {
+      max: 10,
+      duration: 1000,
+    },
   },
 );
 
@@ -174,7 +159,6 @@ cleanupWorker.on("failed", (job, err) => {
 async function setupScheduledJobs() {
   console.log("🕐 Setting up scheduled jobs...");
 
-  // Clear any existing repeatable jobs
   const scrapingRepeatableJobs = await scrapingQueue.getRepeatableJobs();
   for (const job of scrapingRepeatableJobs) {
     await scrapingQueue.removeRepeatableByKey(job.key);
@@ -185,33 +169,30 @@ async function setupScheduledJobs() {
     await cleanupQueue.removeRepeatableByKey(job.key);
   }
 
-  // Schedule scraping every 4 hours
   await scrapingQueue.add(
     "scrape-all",
     { scrapeAll: true },
     {
       repeat: {
-        pattern: "0 */4 * * *", // Every 4 hours
+        pattern: "0 */4 * * *",
       },
       jobId: "scheduled-scrape-all",
     },
   );
   console.log('   ✓ Scheduled "scrape-all" to run every 4 hours');
 
-  // Schedule cleanup daily at 3 AM
   await cleanupQueue.add(
     "daily-cleanup",
     {},
     {
       repeat: {
-        pattern: "0 3 * * *", // Daily at 3 AM
+        pattern: "0 3 * * *",
       },
       jobId: "scheduled-cleanup",
     },
   );
   console.log('   ✓ Scheduled "cleanup" to run daily at 3 AM');
 
-  // Add an immediate initial scrape job if no active jobs
   const existingJobs = await scrapingQueue.getJobs(["waiting", "active"]);
   if (existingJobs.length === 0) {
     await scrapingQueue.add(
@@ -244,7 +225,6 @@ async function handleCommand(command: string) {
 
       if (source && AVAILABLE_SOURCES.includes(source)) {
         console.log(`Adding ${source} scrape job...`);
-        // Pass targetUrl in job data if present (only used by generic scraper)
         await scrapingQueue.add(
           `manual-${source}`,
           { source, targetUrl },
@@ -316,7 +296,6 @@ async function main() {
   console.log(`📍 Connecting to Redis at ${redisHost}:${redisPort}`);
   console.log(`📋 Available sources: ${AVAILABLE_SOURCES.join(", ")}`);
 
-  // Initialize browser on startup
   console.log("🌐 Initializing browser...");
   await browserManager.initialize();
 
@@ -325,7 +304,6 @@ async function main() {
   console.log("\n🚀 Scraper service started and ready!");
   console.log('   Type "help" for available commands\n');
 
-  // Handle stdin commands (for manual triggering)
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", async (data) => {
     const command = data.toString().trim();
@@ -334,12 +312,10 @@ async function main() {
     }
   });
 
-  // Handle command line arguments (e.g. npm start -- scrape generic https://...)
   const args = process.argv.slice(2);
   if (args.length > 0) {
     const command = args.join(" ");
     console.log(`\n📦 Processing CLI command: ${command}`);
-    // Wait a bit for initialization
     await new Promise((resolve) => setTimeout(resolve, 1000));
     await handleCommand(command);
   }
@@ -347,22 +323,14 @@ async function main() {
 
 main().catch(console.error);
 
-// Graceful shutdown
 async function shutdown(signal: string) {
   console.log(`\n${signal} received, shutting down...`);
 
-  // Close browser
   await browserManager.close();
-
-  // Close workers
   await scrapingWorker.close();
   await cleanupWorker.close();
-
-  // Close queues
   await scrapingQueue.close();
   await cleanupQueue.close();
-
-  // Close Redis
   await redis.quit();
 
   console.log("Shutdown complete");

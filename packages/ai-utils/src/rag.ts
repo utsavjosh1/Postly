@@ -24,9 +24,14 @@ export function buildVectorSearchQuery(
   `;
 }
 
+export interface VectorSearchResult {
+  similarity: number;
+  [key: string]: unknown;
+}
+
 export function buildContextPrompt(
   query: string,
-  results: any[],
+  results: VectorSearchResult[],
   contentKey: string = "description",
 ): string {
   if (!results || results.length === 0) {
@@ -43,7 +48,10 @@ Answer the user's query to the best of your ability using general knowledge, but
 
   const contextStr = results
     .map((r, i) => {
-      return `[Result ${i + 1}] (Similarity: ${(r.similarity * 100).toFixed(1)}%)\n${r[contentKey]}`;
+      // Safely handle unknown content content
+      const content =
+        r[contentKey] !== undefined ? String(r[contentKey]) : "N/A";
+      return `[Result ${i + 1}] (Similarity: ${(r.similarity * 100).toFixed(1)}%)\n${content}`;
     })
     .join("\n\n");
 

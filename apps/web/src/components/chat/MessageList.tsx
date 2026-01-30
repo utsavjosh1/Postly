@@ -46,7 +46,14 @@ export function MessageList() {
                 <ReactMarkdown
                   className="prose prose-sm max-w-none prose-invert prose-p:leading-7 prose-pre:p-0 prose-pre:bg-transparent"
                   components={{
-                    code: ({ inline, className, children, ...props }: any) => {
+                    code: ({
+                      inline,
+                      className,
+                      children,
+                      ...props
+                    }: React.ComponentPropsWithoutRef<"code"> & {
+                      inline?: boolean;
+                    }) => {
                       const [copied, setCopied] = useState(false);
                       const code = String(children).replace(/\n$/, "");
 
@@ -73,9 +80,9 @@ export function MessageList() {
                               )}
                             </button>
                           </div>
-                          <pre className="!m-0 !p-4 overflow-x-auto !bg-transparent">
+                          <pre className="m-0! p-4! overflow-x-auto bg-transparent!">
                             <code
-                              className={`!bg-transparent font-mono text-sm ${className}`}
+                              className={`bg-transparent! font-mono text-sm ${className}`}
                               {...props}
                             >
                               {children}

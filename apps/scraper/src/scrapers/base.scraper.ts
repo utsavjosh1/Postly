@@ -45,15 +45,36 @@ export abstract class BaseScraper {
    * Smart Fetch: Attempts to fetch content using multiple strategies.
    * Priority: Browser -> Curl (for Cloudflare bypass)
    */
+  /**
+   * Smart Fetch: Attempts to fetch content using multiple strategies.
+   * Priority: HTTP (fastest) -> Browser (robust) -> Curl (impersonation)
+   */
   protected async smartFetch(
     url: string,
     selector = "body",
   ): Promise<{ content: string; type: "html" | "rss" | "json" }> {
+    // 1. Try HTTP first (Cheerio/Fetch) - Fastest & Cheapest
     try {
-      // 1. Try Browser first (best for SPAs)
+      console.log(`[${this.source}] smartFetch: Trying HTTP (fetch)...`);
+      const { content, type } = await this.fetchWithHttp(url);
+
+      if (!this.isBlocked(content)) {
+        return { content, type };
+      }
+      console.warn(
+        `[${this.source}] smartFetch: HTTP request likely blocked (soft block detected).`,
+      );
+    } catch (httpError) {
+      console.warn(
+        `[${this.source}] smartFetch: HTTP failed (${(httpError as Error).message}). Switching to Browser...`,
+      );
+    }
+
+    // 2. Try Browser (Playwright) - More expensive but handles JS/Auth/Fingerprinting
+    try {
       console.log(`[${this.source}] smartFetch: Trying browser...`);
       const html = await this.fetchWithBrowser(url, selector, {
-        timeout: 30000,
+        timeout: 45000,
         retries: 1,
       });
 
@@ -64,16 +85,25 @@ export abstract class BaseScraper {
       ) {
         return { content: html, type: "rss" };
       }
+      // Basic check if browser also got blocked (though less likely with good steering)
+      if (this.isBlocked(html)) {
+        console.warn(
+          `[${this.source}] smartFetch: Browser also seems blocked.`,
+        );
+        throw new Error("Browser blocked");
+      }
+
       return { content: html, type: "html" };
     } catch {
       console.warn(
         `[${this.source}] smartFetch: Browser failed, trying curl (Cloudflare bypass)...`,
       );
 
-      // 2. Try Curl (best for static sites protected by simple bot block)
+      // 3. Try Curl (best for static sites protected by simple bot block or TLS fingerprinting)
       try {
+        // Increased max-time and added compressed flag
         const { stdout } = await execAsync(
-          `curl -L -s --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`,
+          `curl -L -s --compressed --max-time 30 --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${url}"`,
           { maxBuffer: 10 * 1024 * 1024 },
         );
 
@@ -100,6 +130,74 @@ export abstract class BaseScraper {
         throw new Error(`Failed to fetch ${url}`);
       }
     }
+  }
+
+  /**
+   * Fast HTTP fetch using Node's native fetch
+   */
+  protected async fetchWithHttp(
+    url: string,
+  ): Promise<{ content: string; type: "html" | "rss" | "json" }> {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      signal: AbortSignal.timeout(15000), // 15s timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const text = await response.text();
+
+    if (contentType.includes("application/json")) {
+      return { content: text, type: "json" };
+    }
+    if (
+      contentType.includes("xml") ||
+      text.trim().startsWith("<?xml") ||
+      text.includes("<rss")
+    ) {
+      return { content: text, type: "rss" };
+    }
+
+    return { content: text, type: "html" };
+  }
+
+  /**
+   * Detects common "soft blocks" like Cloudflare challenges or "Enable JS" messages
+   */
+  protected isBlocked(html: string): boolean {
+    if (!html) return true;
+    const lower = html.toLowerCase();
+
+    // Common block indicators
+    const indicators = [
+      "just a moment...",
+      "enable javascript",
+      "javascript is required",
+      "captcha-delivery",
+      "challenge-platform",
+      "cloudflare-ray",
+      "access denied",
+      "security check",
+      "verify you are human",
+    ];
+
+    // If content is very short (< 500 chars) AND contains one of these, it's likely a block/challenge page
+    // Real job pages are usually larger.
+    if (html.length < 2000 && indicators.some((ind) => lower.includes(ind))) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -458,17 +556,34 @@ export abstract class BaseScraper {
   }> {
     const stats = { saved: 0, updated: 0, errors: 0, skipped: 0 };
 
-    console.log(`[${this.source}] Starting scrape...`);
+    console.log(`\n📢 [${this.source}] Starting scrape process...`);
 
     try {
       const jobs = await this.scrape();
-      console.log(`[${this.source}] Found ${jobs.length} jobs`);
+      console.log(
+        `🔍 [${this.source}] Scrape phase finished. Found ${jobs.length} potential jobs.`,
+      );
 
-      for (const job of jobs) {
+      if (jobs.length === 0) {
+        console.warn(
+          `⚠️ [${this.source}] No jobs found during scrape. Check selectors or network.`,
+        );
+      }
+
+      for (const [index, job] of jobs.entries()) {
         try {
+          // Progress log every 10 jobs
+          if (index > 0 && index % 10 === 0) {
+            console.log(
+              `⏳ [${this.source}] Processed ${index}/${jobs.length} jobs...`,
+            );
+          }
+
           // Skip jobs older than 1 year
           if (this.isJobTooOld(job.posted_at)) {
-            console.log(`[${this.source}] Skipping old job: ${job.title}`);
+            console.log(
+              `⏩ [${this.source}] Skipping old job: "${job.title}" (${job.posted_at?.toISOString().split("T")[0]})`,
+            );
             stats.skipped++;
             continue;
           }
@@ -484,11 +599,11 @@ export abstract class BaseScraper {
           let embedding: number[] | undefined;
           try {
             embedding = await this.generateJobEmbedding(job);
-          } catch (embError) {
+          } catch {
             console.warn(
-              `[${this.source}] Failed to generate embedding for job: ${job.title}`,
-              embError,
+              `⚠️ [${this.source}] Embedding generation failed for: "${job.title}"`,
             );
+            // Non-critical, continue
           }
 
           // Save or update the job
@@ -500,16 +615,20 @@ export abstract class BaseScraper {
           });
 
           if (existing) {
+            // console.log(`🔄 [${this.source}] Updated: "${job.title}"`);
             stats.updated++;
           } else {
+            console.log(
+              `✅ [${this.source}] Saved New: "${job.title}" at ${job.company_name}`,
+            );
             stats.saved++;
           }
 
           // Small delay between saves to avoid overwhelming the database
-          await this.delay(100);
+          await this.delay(50);
         } catch (jobError) {
           console.error(
-            `[${this.source}] Failed to save job: ${job.title}`,
+            `❌ [${this.source}] Failed to save job: "${job.title}"`,
             jobError,
           );
           stats.errors++;
@@ -517,10 +636,14 @@ export abstract class BaseScraper {
       }
 
       console.log(
-        `[${this.source}] Completed - Saved: ${stats.saved}, Updated: ${stats.updated}, Skipped: ${stats.skipped}, Errors: ${stats.errors}`,
+        `🎉 [${this.source}] Cycle Complete. Results:
+        - 🆕 Saved:   ${stats.saved}
+        - 🔄 Updated: ${stats.updated}
+        - ⏩ Skipped: ${stats.skipped}
+        - ❌ Errors:  ${stats.errors}`,
       );
     } catch (error) {
-      console.error(`[${this.source}] Scraping failed:`, error);
+      console.error(`💥 [${this.source}] Fatal Scraper Error:`, error);
       throw error;
     }
 
@@ -566,6 +689,7 @@ export abstract class BaseScraper {
     $.root()
       .find("*")
       .contents()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((_, el: any) => el.type === "comment")
       .remove();
 
@@ -618,6 +742,7 @@ export abstract class BaseScraper {
       }
 
       // Map to ScrapedJob interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return parsed.map((job: any) => ({
         title: job.title || "Unknown Job",
         company_name: job.company_name || "Unknown Company",

@@ -23,7 +23,7 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
 
       console.warn(
         `AI Operation failed, retrying in ${RETRY_DELAYS[i]}ms...`,
-        lastError.message,
+        lastError?.message || String(lastError),
       );
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[i]));
     }
@@ -34,8 +34,6 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
 
 function getClient(): GoogleGenAI {
   if (!genAI) {
-    // The SDK automatically reads GEMINI_API_KEY from env if not provided
-    // but explicit is better for our error handling
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
@@ -48,18 +46,25 @@ function getClient(): GoogleGenAI {
 // Helper to get text generation
 export async function generateText(prompt: string): Promise<string> {
   const client = getClient();
-  const result = await withRetry(() =>
+  const response = await withRetry(() =>
     client.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemma-3-27b-it",
       contents: prompt,
     }),
   );
 
-  if (result.text) {
-    return result.text;
+  // Safely access text response
+  if (response.text?.length) {
+    return response.text;
   }
 
-  // Fallback or empty if something goes wrong
+  if (response.candidates && response.candidates.length > 0) {
+    const part = response.candidates[0].content?.parts?.[0];
+    if (part && "text" in part) {
+      return part.text as string;
+    }
+  }
+
   return "";
 }
 
@@ -67,15 +72,15 @@ export async function streamText(
   prompt: string,
 ): Promise<AsyncIterable<string>> {
   const client = getClient();
-  const result = await withRetry(() =>
+  const response = await withRetry(() =>
     client.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model: "gemma-3-27b-it",
       contents: prompt,
     }),
   );
 
   async function* streamGenerator() {
-    for await (const chunk of result) {
+    for await (const chunk of response) {
       if (chunk.text) {
         yield chunk.text;
       }
@@ -86,21 +91,45 @@ export async function streamText(
 }
 
 // Helper for embeddings
+
 export async function generateEmbedding(text: string): Promise<number[]> {
   const client = getClient();
-  const result = await withRetry(() =>
-    client.models.embedContent({
-      model: "text-embedding-004",
-      contents: text,
-    }),
-  );
 
-  if (
-    result.embeddings &&
-    result.embeddings[0] &&
-    result.embeddings[0].values
-  ) {
-    return result.embeddings[0].values;
+  try {
+    const response = await withRetry(() =>
+      client.models.embedContent({
+        model: "gemini-embedding-001",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          outputDimensionality: 768,
+        },
+      }),
+    );
+
+    if (response.embeddings?.[0]?.values) {
+      return response.embeddings[0].values;
+    }
+  } catch (error: any) {
+    console.warn(
+      "Embedding generation failed, trying fallback...",
+      error?.message || String(error),
+    );
+    // If the error is a 404 (Model Not Found), try the legacy model silently
+    if (error.status === 404 || error.message?.includes("not found")) {
+      const fallbackResponse = await withRetry(() =>
+        client.models.embedContent({
+          model: "embedding-001",
+          contents: [{ parts: [{ text }] }],
+        }),
+      );
+
+      if (fallbackResponse.embeddings?.[0]?.values) {
+        return fallbackResponse.embeddings[0].values;
+      }
+    }
+
+    throw error;
   }
+
   return [];
 }

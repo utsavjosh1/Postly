@@ -2,7 +2,6 @@ import * as cheerio from "cheerio";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { ScrapedJob, BaseScraper } from "./base.scraper.js";
-
 import type { JobSource } from "@postly/shared-types";
 
 const execAsync = promisify(exec);
@@ -20,8 +19,10 @@ export class WeWorkRemotelyScraper extends BaseScraper {
     "/categories/remote-product-jobs",
     "/categories/remote-customer-support-jobs",
     "/categories/remote-sales-marketing-jobs",
-    "/categories/remote-sales-and-marketing-jobs",
     "/categories/remote-copywriting-jobs",
+    "/categories/remote-back-end-programming-jobs",
+    "/categories/remote-front-end-programming-jobs",
+    "/categories/remote-full-stack-programming-jobs",
   ];
 
   async scrape(): Promise<ScrapedJob[]> {
