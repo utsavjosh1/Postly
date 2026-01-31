@@ -10,6 +10,13 @@ import mammoth from "mammoth";
 
 export class ResumeService {
   /**
+   * Sanitize text before logging to avoid log injection (e.g. newline injection).
+   */
+  private sanitizeForLog(input: string): string {
+    return input.replace(/[\r\n]/g, " ");
+  }
+
+  /**
    * Parse file content based on type
    */
   async parseFile(buffer: Buffer, mimetype: string): Promise<string> {
@@ -93,7 +100,9 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
     } catch (error) {
       console.error(
         "Failed to parse AI response:",
-        error instanceof Error ? error.message : "Unknown error",
+        error instanceof Error
+          ? this.sanitizeForLog(error.message)
+          : "Unknown error",
       );
       // Return default analysis if parsing fails
       return {
@@ -143,7 +152,9 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
       // Safe error logging to avoid log injection
       console.error(
         "Error processing resume:",
-        error instanceof Error ? error.message : "Unknown error",
+        error instanceof Error
+          ? this.sanitizeForLog(error.message)
+          : "Unknown error",
       );
       // The user can retry analysis later
       return resume;
