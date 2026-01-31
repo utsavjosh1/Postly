@@ -1,4 +1,4 @@
-import type { JobSource, JobType } from "@postly/shared-types";
+import { type JobSource, type JobType, ScrapedJobSchema } from "@postly/shared-types";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { generateEmbedding, generateText } from "@postly/ai-utils";
@@ -577,6 +577,17 @@ export abstract class BaseScraper {
             console.log(
               `⏳ [${this.source}] Processed ${index}/${jobs.length} jobs...`,
             );
+          }
+
+          // Validation Step
+          const validationResult = ScrapedJobSchema.safeParse(job);
+          if (!validationResult.success) {
+            console.error(
+              `❌ [${this.source}] Validation failed for job: "${job.title}"`,
+              validationResult.error.format(),
+            );
+            stats.errors++;
+            continue;
           }
 
           // Skip jobs older than 1 year
