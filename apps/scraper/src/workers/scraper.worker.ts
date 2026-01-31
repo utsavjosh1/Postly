@@ -63,7 +63,18 @@ const worker = new Worker(
       const stats = await scraper.scrapeAndSave();
       console.log(`[ScraperWorker] Finished. Stats: ${JSON.stringify(stats)}`);
     } catch (error) {
-      console.error(`[ScraperWorker] Error processing job:`, error);
+      const msg = error instanceof Error ? error.message : String(error);
+
+      // Error Classification
+      if (msg.includes("Selector Integrity Error")) {
+        console.error(`🚨 [Selector Integrity] BROKEN SCRAPER: ${msg}`);
+      } else if (msg.includes("Browser blocked") || msg.includes("HTTP")) {
+        console.error(`🛡️ [Anti-Bot] BLOCKED: ${msg} - Suggest rotating proxy/UA.`);
+      } else {
+        console.error(`💥 [System Failure] Unhandled error: ${msg}`);
+      }
+
+      console.error(`[ScraperWorker] Full Error Stack:`, error);
       throw error;
     }
   },
