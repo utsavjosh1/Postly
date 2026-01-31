@@ -42,11 +42,12 @@ export const createStrictRateLimiter = (config: RateLimitConfig) => {
       const key = `${config.keyPrefix}:${userId}`;
 
       // Get dynamic max limit
-      let maxLimit = 3; // Default fallback
+      let maxLimit: number;
       if (typeof config.max === "function") {
-        maxLimit = await config.max(req);
+        const dynamicMax = await config.max(req);
+        maxLimit = dynamicMax ?? 3; // Default fallback if dynamicMax is null/undefined
       } else {
-        maxLimit = config.max;
+        maxLimit = (config.max as number) ?? 3; // Default fallback if config.max is undefined
       }
 
       // Get current count
