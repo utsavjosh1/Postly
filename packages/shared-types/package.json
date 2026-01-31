@@ -22,5 +22,8 @@
     "@postly/eslint-config": "*",
     "@postly/typescript-config": "*",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
   }
 }

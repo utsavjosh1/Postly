@@ -1,5 +1,8 @@
 import { BaseScraper, type ScrapedJob } from "./base.scraper.js";
 import { JobSource } from "@postly/shared-types";
+import * as cheerio from "cheerio";
+
+const RESULTS_SELECTOR = ".jobs-search__results-list";
 
 export class LinkedInScraper extends BaseScraper {
   source: JobSource = "linkedin";
@@ -43,8 +46,14 @@ export class LinkedInScraper extends BaseScraper {
 
           const html = await this.fetchWithBrowser(
             searchUrl,
-            ".jobs-search__results-list",
+            RESULTS_SELECTOR,
           );
+
+          // Verify Selector Integrity
+          const $ = cheerio.load(html);
+          if ($(RESULTS_SELECTOR).length === 0) {
+            throw new Error(`Selector Integrity Error: "${RESULTS_SELECTOR}" missing on ${searchUrl}`);
+          }
 
           const extracted = await this.extractJobsFromHtml(html, searchUrl);
           console.log(
