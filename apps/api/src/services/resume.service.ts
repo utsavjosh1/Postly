@@ -11,9 +11,10 @@ import mammoth from "mammoth";
 export class ResumeService {
   /**
    * Sanitize text before logging to avoid log injection (e.g. newline injection).
+   * Removes control characters (including newlines) and normalizes to a single line.
    */
   private sanitizeForLog(input: string): string {
-    return input.replace(/[\r\n]/g, " ");
+    return String(input).replace(/[\x00-\x1F\x7F]/g, " ");
   }
 
   /**
