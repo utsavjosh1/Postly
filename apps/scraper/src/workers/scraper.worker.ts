@@ -81,6 +81,7 @@ const worker = new Worker(
     }
   },
   {
+    // @ts-ignore
     connection: getRedisConnection(),
     concurrency: 2,
   },

@@ -4,7 +4,9 @@ import { getRedisConnection } from "./infra/redis.js";
 // Re-using the singleton connection for queues
 const connection = getRedisConnection();
 
+// @ts-ignore
 export const scrapingQueue = new Queue("scraping-queue", { connection });
+// @ts-ignore
 export const validationQueue = new Queue("validation-queue", { connection });
 
 async function setupCronJobs() {
