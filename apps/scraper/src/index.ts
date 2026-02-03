@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 import { Worker, Queue } from "bullmq";
 import Redis from "ioredis";
 import {
@@ -14,9 +15,9 @@ import type { JobSource } from "@postly/shared-types";
 // Explicitly register scrapers if needed, or rely on index.ts
 import { GenericScraper } from "./scrapers/generic.scraper.js";
 
-const isDev = process.env.NODE_ENV === "development";
-const __dirname = path.resolve();
-const root = isDev ? __dirname : path.resolve(__dirname, "../..");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const root = path.resolve(__dirname, "../../..");
 // Load environment variables from root .env file
 dotenv.config({ path: path.resolve(root, ".env") });
 
