@@ -267,4 +267,79 @@ export const jobQueries = {
       staleJobs: parseInt(row.stale, 10),
     };
   },
+
+  // Find jobs without embeddings (for async embedding generation)
+  async findWithoutEmbeddings(limit = 100): Promise<Job[]> {
+    const result = await pool.query<Job>(
+      `SELECT * FROM jobs
+       WHERE is_active = true
+         AND embedding IS NULL
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return result.rows;
+  },
+
+  // Update embedding for a specific job
+  async updateEmbedding(jobId: string, embedding: number[]): Promise<void> {
+    await pool.query(
+      `UPDATE jobs
+       SET embedding = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [JSON.stringify(embedding), jobId],
+    );
+  },
+
+  // Vector similarity search for semantic job matching
+  async vectorSearch(
+    queryEmbedding: number[],
+    limit: number = 20,
+    filters?: JobSearchFilters,
+  ): Promise<(Job & { similarity: number })[]> {
+    let query = `
+      SELECT 
+        id, title, company_name, description, location,
+        source_url, remote, job_type, salary_min, salary_max,
+        skills_required, experience_required, posted_at,
+        source, is_active, created_at, updated_at,
+        1 - (embedding <=> $1::vector) as similarity
+      FROM jobs
+      WHERE is_active = true AND embedding IS NOT NULL
+    `;
+
+    const values: any[] = [JSON.stringify(queryEmbedding)];
+    let paramIndex = 2;
+
+    // Add optional filters
+    if (filters?.location) {
+      query += ` AND location ILIKE $${paramIndex}`;
+      values.push(`%${filters.location}%`);
+      paramIndex++;
+    }
+
+    if (filters?.job_type) {
+      query += ` AND job_type = $${paramIndex}`;
+      values.push(filters.job_type);
+      paramIndex++;
+    }
+
+    if (filters?.remote !== undefined) {
+      query += ` AND remote = $${paramIndex}`;
+      values.push(filters.remote);
+      paramIndex++;
+    }
+
+    query += `
+      ORDER BY embedding <=> $1::vector
+      LIMIT $${paramIndex}
+    `;
+    values.push(limit);
+
+    const result = await pool.query<Job & { similarity: number }>(
+      query,
+      values,
+    );
+    return result.rows;
+  },
 };

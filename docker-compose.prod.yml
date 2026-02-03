@@ -61,9 +61,6 @@ services:
   # API Server
   api:
     image: utsavjoshi/postly-api:latest
-    # build:
-    #   context: .
-    #   dockerfile: apps/api/Dockerfile
     container_name: postly-api
     restart: unless-stopped
     environment:
@@ -101,87 +98,43 @@ services:
     networks:
       - postly-network
 
-  # Web Frontend (Nginx serving static React build)
-  # web:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/web/Dockerfile
-  #   container_name: postly-web
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #   depends_on:
-  #     - api
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 20M
-  #   healthcheck:
-  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost/nginx-health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #   networks:
-  #     - postly-network
-
-  # Scraper Worker (BullMQ)
+  # Python Job Scraper with Playwright
   scraper:
     image: utsavjoshi/postly-scraper:latest
-    # build:
-    #   context: .
-    #   dockerfile: apps/scraper/Dockerfile
     container_name: postly-scraper
     restart: unless-stopped
     environment:
-      NODE_ENV: production
-      NODE_OPTIONS: "--max-old-space-size=128"
+      # Database connection (constructed from components)
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-postly}
       DB_USER: ${DB_USER:-postly}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      # AI API Keys
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Health check port
+      HEALTH_PORT: 8080
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+    ports:
+      - "8080:8080"  # Health check endpoint
+    shm_size: '512mb'  # Minimal for Chromium
     deploy:
       resources:
         limits:
-          cpus: '0.2'
-          memory: 150M
+          cpus: '0.3'
+          memory: 400M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
     networks:
       - postly-network
 
-  # Discord Bot
-  # bot:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/bot-discord/Dockerfile
-  #   container_name: postly-bot
-  #   restart: unless-stopped
-  #   environment:
-  #     NODE_ENV: production
-  #     NODE_OPTIONS: "--max-old-space-size=100"
-  #     DB_HOST: postgres
-  #     DB_PORT: 5432
-  #     DB_NAME: ${DB_NAME:-postly}
-  #     DB_USER: ${DB_USER:-postly}
-  #     DB_PASSWORD: ${DB_PASSWORD:?Database password required}
-  #     DISCORD_TOKEN: ${DISCORD_TOKEN:-}
-  #     DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.1'
-  #         memory: 120M
-  #   networks:
-  #     - postly-network
 
 volumes:
   postgres_data:

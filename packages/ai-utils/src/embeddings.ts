@@ -7,23 +7,18 @@ export async function generateBatchEmbeddings(
   const embeddings: number[][] = new Array(texts.length);
   const queue = texts.map((text, index) => ({ text, index }));
 
-  // Helper to process queue items
   const worker = async () => {
     while (queue.length > 0) {
-      const { text, index } = queue.shift()!; // Take next item
+      const { text, index } = queue.shift()!;
       try {
         const embedding = await generateEmbedding(text);
         embeddings[index] = embedding;
       } catch (error) {
         console.error(`Failed to embed text at index ${index}`, error);
-        // Depending on requirements, we might want to throw or return null.
-        // For now, we'll leave it undefined to indicate failure, or could retry here.
-        // Since generateEmbedding uses withRetry, transient errors are already handled.
       }
     }
   };
 
-  // Start workers
   const workers = Array(Math.min(concurrency, texts.length))
     .fill(null)
     .map(() => worker());
@@ -35,7 +30,6 @@ export async function generateBatchEmbeddings(
 
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (!a || !b || a.length !== b.length) {
-    // Graceful handling if one embedding failed
     return 0;
   }
 

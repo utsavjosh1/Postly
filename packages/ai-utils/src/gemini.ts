@@ -150,7 +150,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       "Embedding generation failed, trying fallback...",
       error?.message || String(error),
     );
-    // If the error is a 404 (Model Not Found), try the legacy model silently
     if (error.status === 404 || error.message?.includes("not found")) {
       const fallbackResponse = await withRetry(() =>
         client.models.embedContent({
