@@ -159,13 +159,7 @@ const MessageItem = memo(
               <div className="prose prose-sm max-w-none prose-invert prose-p:leading-7 prose-pre:p-0 prose-pre:bg-transparent">
                 <ReactMarkdown
                   components={{
-                    code: ({
-                      node,
-                      inline,
-                      className,
-                      children,
-                      ...props
-                    }: any) => {
+                    code: ({ inline, className, children, ...props }: any) => {
                       const [copied, setCopied] = useState(false);
                       const code = String(children).replace(/\n$/, "");
 
