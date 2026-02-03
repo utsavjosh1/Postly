@@ -6,13 +6,20 @@ let genAI: GoogleGenAI | null = null;
 
 const RETRY_DELAYS = [1000, 2000, 4000, 8000];
 
+interface APIError {
+  message?: string;
+  status?: number;
+  code?: string;
+}
+
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
-  let lastError: any;
+  let lastError: APIError | undefined;
 
   for (let i = 0; i <= RETRY_DELAYS.length; i++) {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as APIError;
       lastError = error;
 
       // Check for specific error types to map
@@ -103,7 +110,7 @@ export async function streamText(
 
 export async function streamTextWithMeta(
   prompt: string,
-): Promise<AsyncIterable<{ text?: string; usage?: any }>> {
+): Promise<AsyncIterable<{ text?: string; usage?: Record<string, unknown> }>> {
   const client = getClient();
   const response = await withRetry(() =>
     client.models.generateContentStream({
@@ -118,7 +125,7 @@ export async function streamTextWithMeta(
         yield { text: chunk.text };
       }
       if (chunk.usageMetadata) {
-        yield { usage: chunk.usageMetadata };
+        yield { usage: chunk.usageMetadata as Record<string, unknown> };
       }
     }
   }
@@ -145,7 +152,8 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     if (response.embeddings?.[0]?.values) {
       return response.embeddings[0].values;
     }
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as APIError;
     console.warn(
       "Embedding generation failed, trying fallback...",
       error?.message || String(error),

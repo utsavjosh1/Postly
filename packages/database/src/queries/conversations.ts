@@ -90,7 +90,7 @@ export const conversationQueries = {
     conversationId: string,
     role: Message["role"],
     content: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<Message> {
     const result = await pool.query<Message>(
       `INSERT INTO messages (conversation_id, role, content, metadata)

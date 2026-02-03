@@ -51,7 +51,7 @@ export class MatchingService {
     );
 
     // Convert similarity to percentage score
-    return matchedJobs.map((job: any) => ({
+    return matchedJobs.map((job: Job & { similarity: number }) => ({
       ...job,
       match_score: Math.round(job.similarity * 100),
     }));

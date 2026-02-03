@@ -308,7 +308,9 @@ export const jobQueries = {
       WHERE is_active = true AND embedding IS NOT NULL
     `;
 
-    const values: any[] = [JSON.stringify(queryEmbedding)];
+    const values: (string | number | boolean | null)[] = [
+      JSON.stringify(queryEmbedding),
+    ];
     let paramIndex = 2;
 
     // Add optional filters

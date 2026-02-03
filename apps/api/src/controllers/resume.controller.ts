@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { resumeService } from "../services/resume.service.js";
 
+import type { User } from "@postly/shared-types";
+
 export class ResumeController {
   // POST /api/v1/resumes/upload
   uploadResume = async (
@@ -17,7 +19,7 @@ export class ResumeController {
         return;
       }
 
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
 
       // For now, we'll store the file URL as a placeholder
       // In production, you'd upload to S3/GCS and get a real URL
@@ -46,7 +48,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const resumes = await resumeService.getUserResumes(userId);
 
       res.json({
@@ -65,7 +67,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const resume = await resumeService.getResumeById(req.params.id, userId);
 
       if (!resume) {
@@ -92,7 +94,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const deleted = await resumeService.deleteResume(req.params.id, userId);
 
       if (!deleted) {
@@ -119,7 +121,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const resume = await resumeService.reanalyzeResume(req.params.id, userId);
 
       if (!resume) {

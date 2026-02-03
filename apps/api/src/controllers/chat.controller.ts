@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { ChatService } from "../services/chat.service.js";
 import { conversationQueries } from "@postly/database";
 
+import type { User } from "@postly/shared-types";
+
 export class ChatController {
   private chatService: ChatService;
 
@@ -16,7 +18,7 @@ export class ChatController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const conversations = await conversationQueries.findByUser(userId);
 
       res.json({
@@ -35,7 +37,7 @@ export class ChatController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const { resume_id, initial_message } = req.body;
 
       const conversation = await conversationQueries.create(userId, resume_id);
@@ -64,7 +66,7 @@ export class ChatController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const { id } = req.params;
 
       const conversation = await conversationQueries.findById(id, userId);
@@ -97,7 +99,7 @@ export class ChatController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const { id } = req.params;
 
       const deleted = await conversationQueries.delete(id, userId);
@@ -125,7 +127,7 @@ export class ChatController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const { message, conversation_id } = req.body;
 
       if (!message || !conversation_id) {

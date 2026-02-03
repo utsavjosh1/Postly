@@ -233,7 +233,7 @@ export class AuthController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const user = await userQueries.findById((req.user as any).id);
+      const user = await userQueries.findById((req.user as User).id);
       if (!user) {
         res.status(404).json({
           success: false,
