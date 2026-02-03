@@ -69,7 +69,9 @@ const worker = new Worker(
       if (msg.includes("Selector Integrity Error")) {
         console.error(`🚨 [Selector Integrity] BROKEN SCRAPER: ${msg}`);
       } else if (msg.includes("Browser blocked") || msg.includes("HTTP")) {
-        console.error(`🛡️ [Anti-Bot] BLOCKED: ${msg} - Suggest rotating proxy/UA.`);
+        console.error(
+          `🛡️ [Anti-Bot] BLOCKED: ${msg} - Suggest rotating proxy/UA.`,
+        );
       } else {
         console.error(`💥 [System Failure] Unhandled error: ${msg}`);
       }
@@ -79,6 +81,7 @@ const worker = new Worker(
     }
   },
   {
+    // @ts-expect-error ioredis version mismatch
     connection: getRedisConnection(),
     concurrency: 2,
   },

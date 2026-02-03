@@ -1,4 +1,8 @@
-import { type JobSource, type JobType, ScrapedJobSchema } from "@postly/shared-types";
+import {
+  type JobSource,
+  type JobType,
+  ScrapedJobSchema,
+} from "@postly/shared-types";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { generateEmbedding, generateText } from "@postly/ai-utils";

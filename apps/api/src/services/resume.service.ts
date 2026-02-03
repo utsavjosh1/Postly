@@ -5,7 +5,9 @@ import type {
   ResumeAnalysis,
   EducationEntry,
 } from "@postly/shared-types";
-import pdfParse from "pdf-parse";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 import mammoth from "mammoth";
 
 export class ResumeService {
