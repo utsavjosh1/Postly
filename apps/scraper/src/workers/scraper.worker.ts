@@ -81,6 +81,7 @@ const worker = new Worker(
     }
   },
   {
+    // @ts-expect-error ioredis version mismatch
     connection: getRedisConnection(),
     concurrency: 2,
   },

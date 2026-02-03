@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/bot.ts",
-    "build": "tsc",
     "start": "node dist/bot.js",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext ts"
   },
