@@ -52,8 +52,8 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/logger/package.json ./packages/logger/
 COPY apps/api/package.json ./apps/api/
 
-# Install production dependencies only
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+# Install production dependencies only (skip lifecycle scripts including husky)
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts
 
 # Copy built files from builder
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
