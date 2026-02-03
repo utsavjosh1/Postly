@@ -53,9 +53,19 @@ COPY packages/logger/package.json ./packages/logger/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
 COPY apps/scraper/package.json ./apps/scraper/
 
-# Install production dependencies only
-# Install production dependencies only
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --fetch-retry-maxtimeout=600000 --fetch-retries=5
+# Install production dependencies only (skip lifecycle scripts including husky)
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts --fetch-retry-maxtimeout=600000 --fetch-retries=5
+
+# Install Playwright browsers and system dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && npx playwright install-deps chromium || true \
+    && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npx playwright install chromium
 
 # Copy built files from builder
 COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist

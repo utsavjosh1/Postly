@@ -40,7 +40,7 @@ services:
     command: >
       redis-server
       --maxmemory 40mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory-policy noeviction
       --appendonly yes
       --save 60 1
     volumes:
