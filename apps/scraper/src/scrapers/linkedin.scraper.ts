@@ -44,15 +44,14 @@ export class LinkedInScraper extends BaseScraper {
           console.log(`[LinkedIn] Searching for: ${keyword}`);
           const searchUrl = `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keyword)}&location=Remote&f_WT=2&f_TPR=r86400`;
 
-          const html = await this.fetchWithBrowser(
-            searchUrl,
-            RESULTS_SELECTOR,
-          );
+          const html = await this.fetchWithBrowser(searchUrl, RESULTS_SELECTOR);
 
           // Verify Selector Integrity
           const $ = cheerio.load(html);
           if ($(RESULTS_SELECTOR).length === 0) {
-            throw new Error(`Selector Integrity Error: "${RESULTS_SELECTOR}" missing on ${searchUrl}`);
+            throw new Error(
+              `Selector Integrity Error: "${RESULTS_SELECTOR}" missing on ${searchUrl}`,
+            );
           }
 
           const extracted = await this.extractJobsFromHtml(html, searchUrl);

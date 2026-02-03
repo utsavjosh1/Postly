@@ -16,6 +16,7 @@ We take the security of Postly seriously. If you discover a potential security v
 **Please do not report security vulnerabilities through public GitHub issues.**
 
 ### How to report
+
 1. **Email:** Send your report to **utsavjoshi602@gmail.com** (or your preferred contact email).
 2. **What to include:**
    - A clear description of the issue.
@@ -23,10 +24,12 @@ We take the security of Postly seriously. If you discover a potential security v
    - Any potential impact on users or data.
 
 ### Our Commitment
+
 - **Acknowledgement:** We will acknowledge your report within **48 to 72 hours**.
-- **Fixing:** If the vulnerability is confirmed, we will work on a fix immediately. 
+- **Fixing:** If the vulnerability is confirmed, we will work on a fix immediately.
 - **Deployment:** Once fixed, the update will be pushed through our automated CI/CD pipeline to the VPS.
 - **Disclosure:** We ask that you give us reasonable time to patch the issue before making any information public.
 
 ---
-*Thank you for helping keep Postly secure!*
+
+_Thank you for helping keep Postly secure!_
