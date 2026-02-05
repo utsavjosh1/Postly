@@ -10,6 +10,7 @@ import os
 import signal
 import sys
 from pathlib import Path
+from datetime import datetime
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -18,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from database import Database
 from scraper import JobScraper
-from embedder import GeminiBatcher
+from embedder import GeminiBatcher, EmbeddingWorker
 from janitor import JanitorService
 from health import HealthCheckServer
 
@@ -34,6 +35,11 @@ else:
 DATABASE_URL = os.getenv("DATABASE_URL")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+
+# Scraping configuration
+SCRAPE_INTERVAL_MINUTES = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "5"))
+EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
+CLEANUP_HOUR = int(os.getenv("CLEANUP_HOUR", "3"))
 
 # Fallback: construct DATABASE_URL from components
 if not DATABASE_URL:
@@ -52,6 +58,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class ScraperSystem:
     """Main orchestrator for the scraping system."""
     
@@ -59,16 +66,31 @@ class ScraperSystem:
         self.running = True
         self.db = Database(DATABASE_URL)
         self.scraper = JobScraper()
-        self.embedder = GeminiBatcher(GEMINI_API_KEY) if GEMINI_API_KEY else None
-        self.janitor = JanitorService(self.db)
+        self.embedder = GeminiBatcher(
+            GEMINI_API_KEY,
+            batch_size=EMBEDDING_BATCH_SIZE
+        ) if GEMINI_API_KEY else None
+        self.embedding_worker = None
+        self.janitor = None
         self.scheduler = AsyncIOScheduler()
         self.health = HealthCheckServer(port=HEALTH_PORT)
         
-        # Example job URLs - replace with your sources
-        self.job_sources = [
-            "https://weworkremotely.com/remote-jobs/search?term=python",
-            "https://remoteok.com/remote-python-jobs",
-        ]
+        # Job sources - organized by priority
+        self.job_sources = {
+            'high': [
+                # High priority - check every hour
+                "https://weworkremotely.com/remote-jobs/search?term=software",
+                "https://remoteok.com/remote-dev-jobs",
+            ],
+            'medium': [
+                # Medium priority - check every 6 hours
+                # Add your medium priority sources here
+            ],
+            'low': [
+                # Low priority - check every 24 hours
+                # Add your low priority sources here
+            ]
+        }
     
     async def setup(self):
         """Initialize all components."""
@@ -85,67 +107,133 @@ class ScraperSystem:
         await self.scraper.start()
         self.health.update_status(browser_ready=True)
         
-        # Schedule janitor (daily at 03:00 AM)
+        # Initialize janitor
+        self.janitor = JanitorService(self.db)
+        
+        # Start embedding worker if API key available
+        if self.embedder:
+            self.embedding_worker = EmbeddingWorker(
+                self.db,
+                self.embedder,
+                batch_size=EMBEDDING_BATCH_SIZE,
+                interval_seconds=60
+            )
+            asyncio.create_task(self.embedding_worker.start())
+            logger.info("Embedding worker started")
+        
+        # Schedule jobs
+        
+        # High priority sources - every hour
+        self.scheduler.add_job(
+            self._scrape_high_priority,
+            'interval',
+            hours=1,
+            id='scrape_high'
+        )
+        
+        # Medium priority sources - every 6 hours
+        self.scheduler.add_job(
+            self._scrape_medium_priority,
+            'interval',
+            hours=6,
+            id='scrape_medium'
+        )
+        
+        # Low priority sources - every 24 hours
+        self.scheduler.add_job(
+            self._scrape_low_priority,
+            'interval',
+            hours=24,
+            id='scrape_low'
+        )
+        
+        # Full maintenance - daily at CLEANUP_HOUR
         self.scheduler.add_job(
             self.janitor.run_maintenance,
             'cron',
-            hour=3,
+            hour=CLEANUP_HOUR,
             minute=0,
             id='janitor'
         )
+        
+        # Quick cleanup - every 6 hours
+        self.scheduler.add_job(
+            self.janitor.run_quick_cleanup,
+            'interval',
+            hours=6,
+            id='quick_cleanup'
+        )
+        
         self.scheduler.start()
-        logger.info("Janitor scheduled for 03:00 AM daily")
+        logger.info(f"Scheduler started - maintenance at {CLEANUP_HOUR}:00")
         
         logger.info("=== System Ready ===")
     
-    async def scrape_and_store(self):
-        """Main scraping loop."""
-        logger.info("Starting scrape cycle")
+    async def _scrape_high_priority(self):
+        """Scrape high priority sources."""
+        if self.job_sources['high']:
+            await self.scrape_and_store(self.job_sources['high'], 'high')
+    
+    async def _scrape_medium_priority(self):
+        """Scrape medium priority sources."""
+        if self.job_sources['medium']:
+            await self.scrape_and_store(self.job_sources['medium'], 'medium')
+    
+    async def _scrape_low_priority(self):
+        """Scrape low priority sources."""
+        if self.job_sources['low']:
+            await self.scrape_and_store(self.job_sources['low'], 'low')
+    
+    async def scrape_and_store(self, urls: list, priority: str = 'default'):
+        """Main scraping loop for a set of URLs."""
+        logger.info(f"Starting {priority} priority scrape cycle ({len(urls)} sources)")
         
         try:
             # Scrape jobs
-            jobs = await self.scraper.scrape_multiple(self.job_sources)
+            jobs = await self.scraper.scrape_multiple(urls)
             
             if not jobs:
-                logger.warning("No valid jobs found in this cycle")
+                logger.warning(f"No valid jobs found in {priority} cycle")
                 return
             
-            logger.info(f"Scraped {len(jobs)} valid jobs")
+            logger.info(f"Scraped {len(jobs)} valid jobs from {priority} sources")
             
             # Generate embeddings if API key available
             if self.embedder:
                 jobs = await self.embedder.embed_batch(jobs)
             else:
-                logger.warning("No GEMINI_API_KEY - skipping embeddings")
+                logger.warning("No GEMINI_API_KEY - embeddings will be generated by worker")
             
-            # Store in database
-            stored_count = 0
-            for job in jobs:
-                success = await self.db.insert_job(job)
-                if success:
-                    stored_count += 1
+            # Store in database using batch insert
+            stored_count = await self.db.insert_jobs_batch(jobs)
             
             logger.info(f"Stored {stored_count}/{len(jobs)} jobs in database")
             
             # Update health status
-            self.health.update_status(last_scrape=datetime.now().isoformat())
+            self.health.update_status(
+                last_scrape=datetime.now().isoformat(),
+                last_scrape_priority=priority,
+                last_scrape_count=stored_count
+            )
             
         except Exception as e:
             logger.error(f"Scrape cycle error: {e}", exc_info=True)
+            self.health.update_status(last_error=str(e))
     
     async def run(self):
         """Main run loop."""
         await self.setup()
         
-        logger.info("Starting main loop (5-minute cycles)")
+        # Run initial high-priority scrape
+        logger.info("Running initial scrape...")
+        await self._scrape_high_priority()
+        
+        logger.info(f"Entering main loop (scrapes scheduled)")
         
         while self.running:
             try:
-                await self.scrape_and_store()
-                
-                # Wait 5 minutes before next cycle
-                logger.info("Sleeping 5 minutes...")
-                await asyncio.sleep(300)
+                # Just keep running - scheduler handles the work
+                await asyncio.sleep(60)
                 
             except Exception as e:
                 logger.error(f"Loop error: {e}", exc_info=True)
@@ -156,6 +244,9 @@ class ScraperSystem:
         logger.info("Shutting down...")
         self.running = False
         
+        if self.embedding_worker:
+            self.embedding_worker.stop()
+        
         if self.scheduler.running:
             self.scheduler.shutdown()
         
@@ -164,6 +255,7 @@ class ScraperSystem:
         await self.health.stop()
         
         logger.info("Shutdown complete")
+
 
 async def main():
     """Entry point."""
@@ -190,6 +282,7 @@ async def main():
         pass
     finally:
         await system.shutdown()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
