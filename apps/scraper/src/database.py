@@ -32,12 +32,14 @@ class Database:
             )
             logger.info("Database connection pool created")
             await self._init_schema()
+            await self.validate_schema_consistency()
         except Exception as e:
             logger.error(f"Failed to connect to database: {e}")
             raise
 
     async def _init_schema(self):
         """Create tables and indexes if they don't exist."""
+        # Note: We rely on migrations for the authoritative schema, but this ensures dev/test environments work.
         async with self.pool.acquire() as conn:
             # Enable pgvector extension
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
@@ -87,6 +89,9 @@ class Database:
                     CONSTRAINT valid_url CHECK (application_link ~* '^https?://')
                 )
             """)
+            # ... Indexes creation omitted for brevity in this step update, assuming they persist from previous overwrite ...
+            # Wait, writing the file overwrites it. I must include the full content.
+            # I will restore the full content + validation method.
 
             # Create indexes for performance
             await conn.execute("""
@@ -133,13 +138,85 @@ class Database:
                 )
             """)
 
-            logger.info("Database schema initialized with complete job fields")
+            logger.info("Database schema initialized")
+
+    async def validate_schema_consistency(self):
+        """
+        Validate that the database schema matches the expected Python model.
+        This prevents schema drift between the Node.js migrations and Python scraper.
+        """
+        required_columns = {
+            'job_id', 'job_title', 'company_name', 'location', 'job_type',
+            'industry', 'salary_range', 'experience_required', 'skills_required',
+            'job_description', 'application_link', 'job_source', 'embedding',
+            'meta', 'is_valid', 'created_at'
+        }
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'jobs'
+            """)
+            existing_columns = {row['column_name'] for row in rows}
+
+            missing = required_columns - existing_columns
+            if missing:
+                error_msg = f"Schema Drift Detected! Missing columns in 'jobs' table: {missing}"
+                logger.critical(error_msg)
+                raise RuntimeError(error_msg)
+
+            logger.info("Schema validation passed: All required columns present.")
+
+    async def find_similar_job(self, embedding: List[float], company_name: Optional[str] = None, threshold: float = 0.98) -> Optional[Dict[str, Any]]:
+        """
+        Check for a semantically identical job using vector similarity.
+        We restrict match to same company (if known) to avoid false positives across companies.
+        Returns the existing job if found.
+        """
+        if not embedding:
+            return None
+
+        async with self.pool.acquire() as conn:
+            # Note: <=> operator is distance (0 = identical, 1 = opposite)
+            # Similarity = 1 - distance
+            # So we want distance < (1 - threshold)
+            distance_threshold = 1.0 - threshold
+
+            query = """
+                SELECT id, job_id, job_title, company_name, 1 - (embedding <=> $1::vector) as similarity
+                FROM jobs
+                WHERE embedding <=> $1::vector < $2
+            """
+            params = [embedding, distance_threshold]
+
+            if company_name:
+                query += " AND (company_name IS NULL OR LOWER(company_name) = LOWER($3))"
+                params.append(company_name)
+
+            query += " ORDER BY embedding <=> $1::vector ASC LIMIT 1"
+
+            row = await conn.fetchrow(query, *params)
+
+            if row:
+                return dict(row)
+            return None
 
     async def insert_job(self, job_data: Dict[str, Any]) -> bool:
         """
         Insert a job into the database.
         Returns True if inserted, False if duplicate or validation failed.
         """
+        # Check for semantic duplicate first
+        if job_data.get('embedding'):
+            similar_job = await self.find_similar_job(
+                job_data['embedding'],
+                job_data.get('company_name')
+            )
+            if similar_job:
+                logger.info(f"Skipping duplicate job: {job_data.get('job_title')} (Similar to {similar_job['job_id']})")
+                return False
+
         try:
             async with self.pool.acquire() as conn:
                 await conn.execute("""
@@ -188,15 +265,33 @@ class Database:
     async def insert_jobs_batch(self, jobs: List[Dict[str, Any]]) -> int:
         """
         Batch insert jobs for better performance.
+        Checks for vector duplicates before insertion.
         Returns count of successfully inserted jobs.
         """
         if not jobs:
             return 0
 
+        # Filter out semantic duplicates
+        unique_jobs = []
+        for job in jobs:
+            if job.get('embedding'):
+                similar = await self.find_similar_job(
+                    job['embedding'],
+                    job.get('company_name')
+                )
+                if similar:
+                    # Log but continue
+                    logger.debug(f"Skipping duplicate: {job.get('job_title')}")
+                    continue
+            unique_jobs.append(job)
+
+        if not unique_jobs:
+            return 0
+
         inserted = 0
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                for job in jobs:
+                for job in unique_jobs:
                     try:
                         await conn.execute("""
                             INSERT INTO jobs (
@@ -232,7 +327,7 @@ class Database:
                     except Exception as e:
                         logger.warning(f"Failed to insert job {job.get('job_id')}: {e}")
 
-        logger.info(f"Batch inserted {inserted}/{len(jobs)} jobs")
+        logger.info(f"Batch inserted {inserted}/{len(jobs)} jobs (filtered {len(jobs) - len(unique_jobs)} duplicates)")
         return inserted
 
     async def get_jobs_without_embeddings(self, limit: int = 100) -> List[Dict[str, Any]]:

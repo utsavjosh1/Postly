@@ -9,10 +9,12 @@ import logging
 import os
 import signal
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -75,20 +77,11 @@ class ScraperSystem:
         self.scheduler = AsyncIOScheduler()
         self.health = HealthCheckServer(port=HEALTH_PORT)
         
-        # Job sources - organized by priority
+        # Internal job sources (fallback/legacy)
         self.job_sources = {
             'high': [
-                # High priority - check every hour
                 "https://weworkremotely.com/remote-jobs/search?term=software",
                 "https://remoteok.com/remote-dev-jobs",
-            ],
-            'medium': [
-                # Medium priority - check every 6 hours
-                # Add your medium priority sources here
-            ],
-            'low': [
-                # Low priority - check every 24 hours
-                # Add your low priority sources here
             ]
         }
     
@@ -96,6 +89,9 @@ class ScraperSystem:
         """Initialize all components."""
         logger.info("=== Initializing Scraper System ===")
         
+        # Register scrape endpoint
+        self.health.add_route('POST', '/scrape', self.handle_scrape_request)
+
         # Start health check server first
         await self.health.start()
         
@@ -121,31 +117,8 @@ class ScraperSystem:
             asyncio.create_task(self.embedding_worker.start())
             logger.info("Embedding worker started")
         
-        # Schedule jobs
-        
-        # High priority sources - every hour
-        self.scheduler.add_job(
-            self._scrape_high_priority,
-            'interval',
-            hours=1,
-            id='scrape_high'
-        )
-        
-        # Medium priority sources - every 6 hours
-        self.scheduler.add_job(
-            self._scrape_medium_priority,
-            'interval',
-            hours=6,
-            id='scrape_medium'
-        )
-        
-        # Low priority sources - every 24 hours
-        self.scheduler.add_job(
-            self._scrape_low_priority,
-            'interval',
-            hours=24,
-            id='scrape_low'
-        )
+        # Schedule maintenance jobs (Janitor)
+        # Note: Scrape jobs are now handled via HTTP request from BullMQ worker
         
         # Full maintenance - daily at CLEANUP_HOUR
         self.scheduler.add_job(
@@ -167,26 +140,36 @@ class ScraperSystem:
         self.scheduler.start()
         logger.info(f"Scheduler started - maintenance at {CLEANUP_HOUR}:00")
         
-        logger.info("=== System Ready ===")
-    
-    async def _scrape_high_priority(self):
-        """Scrape high priority sources."""
-        if self.job_sources['high']:
-            await self.scrape_and_store(self.job_sources['high'], 'high')
-    
-    async def _scrape_medium_priority(self):
-        """Scrape medium priority sources."""
-        if self.job_sources['medium']:
-            await self.scrape_and_store(self.job_sources['medium'], 'medium')
-    
-    async def _scrape_low_priority(self):
-        """Scrape low priority sources."""
-        if self.job_sources['low']:
-            await self.scrape_and_store(self.job_sources['low'], 'low')
-    
-    async def scrape_and_store(self, urls: list, priority: str = 'default'):
+        logger.info("=== System Ready (Waiting for Scrape Requests) ===")
+
+    async def handle_scrape_request(self, request):
+        """Handle incoming scrape request from BullMQ worker."""
+        try:
+            data = await request.json()
+            urls = data.get('urls', [])
+            priority = data.get('priority', 'default')
+
+            if not urls:
+                return web.json_response({'error': 'No URLs provided'}, status=400)
+
+            # Trigger scraping in background to return response quickly?
+            # Or wait? BullMQ worker expects completion.
+            # Let's wait so the worker knows if it succeeded.
+
+            count = await self.scrape_and_store(urls, priority)
+
+            return web.json_response({
+                'status': 'success',
+                'jobs_scraped': count
+            })
+        except Exception as e:
+            logger.error(f"Scrape request failed: {e}", exc_info=True)
+            return web.json_response({'error': str(e)}, status=500)
+
+    async def scrape_and_store(self, urls: list, priority: str = 'default') -> int:
         """Main scraping loop for a set of URLs."""
         logger.info(f"Starting {priority} priority scrape cycle ({len(urls)} sources)")
+        stored_count = 0
         
         try:
             # Scrape jobs
@@ -194,7 +177,7 @@ class ScraperSystem:
             
             if not jobs:
                 logger.warning(f"No valid jobs found in {priority} cycle")
-                return
+                return 0
             
             logger.info(f"Scraped {len(jobs)} valid jobs from {priority} sources")
             
@@ -219,20 +202,19 @@ class ScraperSystem:
         except Exception as e:
             logger.error(f"Scrape cycle error: {e}", exc_info=True)
             self.health.update_status(last_error=str(e))
+            raise # Re-raise for the API handler
+
+        return stored_count
     
     async def run(self):
         """Main run loop."""
         await self.setup()
         
-        # Run initial high-priority scrape
-        logger.info("Running initial scrape...")
-        await self._scrape_high_priority()
-        
-        logger.info(f"Entering main loop (scrapes scheduled)")
+        logger.info(f"Entering main loop")
         
         while self.running:
             try:
-                # Just keep running - scheduler handles the work
+                # Just keep running - server handles requests
                 await asyncio.sleep(60)
                 
             except Exception as e:

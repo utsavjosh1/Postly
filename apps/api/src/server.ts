@@ -11,6 +11,9 @@ import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import passport from "./config/passport.js";
+import { setupScraperWorker } from "./workers/scraper.worker.js";
+import { schedulerService } from "./services/scheduler.service.js";
+import { queueService } from "./services/queue.service.js";
 
 // Load environment variables
 dotenv.config();
@@ -79,21 +82,31 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🚀 API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`🗄️  Database: ${process.env.DB_NAME || "postly"}`);
+
+  // Initialize Background Workers & Schedules
+  try {
+    setupScraperWorker();
+    await schedulerService.initSchedules();
+  } catch (error) {
+    console.error("Failed to initialize background services:", error);
+  }
 });
 
 // Graceful shutdown
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
-  process.exit(0);
+  await queueService.close();
+  server.close(() => process.exit(0));
 });
 
-process.on("SIGINT", () => {
+process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
-  process.exit(0);
+  await queueService.close();
+  server.close(() => process.exit(0));
 });
 
 export default app;

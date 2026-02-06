@@ -8,12 +8,12 @@ import asyncio
 import logging
 from aiohttp import web
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 logger = logging.getLogger(__name__)
 
 class HealthCheckServer:
-    """Lightweight HTTP server for health checks."""
+    """Lightweight HTTP server for health checks and simple API endpoints."""
     
     def __init__(self, port: int = 8080):
         self.port = port
@@ -31,10 +31,14 @@ class HealthCheckServer:
             "errors": []
         }
         
-        # Setup routes
+        # Setup default routes
         self.app.router.add_get('/health', self.health_check)
         self.app.router.add_get('/ready', self.readiness_check)
         self.app.router.add_get('/metrics', self.metrics)
+
+    def add_route(self, method: str, path: str, handler: Callable):
+        """Add a custom route to the server."""
+        self.app.router.add_route(method, path, handler)
     
     async def health_check(self, request) -> web.Response:
         """Liveness probe - is the service running?"""
@@ -100,6 +104,7 @@ scraper_errors_total {len(self.status["errors"])}
             logger.info(f"Health check server started on port {self.port}")
         except Exception as e:
             logger.error(f"Failed to start health server: {e}")
+            raise # Propagate error to fail fast
     
     async def stop(self):
         """Stop the health check server."""
