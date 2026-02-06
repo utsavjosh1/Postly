@@ -69,7 +69,10 @@ export class ChatController {
       const userId = (req.user as User).id;
       const { id } = req.params;
 
-      const conversation = await conversationQueries.findById(id, userId);
+      const conversation = await conversationQueries.findById(
+        id as string,
+        userId,
+      );
       if (!conversation) {
         res.status(404).json({
           success: false,
@@ -78,7 +81,7 @@ export class ChatController {
         return;
       }
 
-      const messages = await conversationQueries.getMessages(id);
+      const messages = await conversationQueries.getMessages(id as string);
 
       res.json({
         success: true,
@@ -102,7 +105,7 @@ export class ChatController {
       const userId = (req.user as User).id;
       const { id } = req.params;
 
-      const deleted = await conversationQueries.delete(id, userId);
+      const deleted = await conversationQueries.delete(id as string, userId);
       if (!deleted) {
         res.status(404).json({
           success: false,
