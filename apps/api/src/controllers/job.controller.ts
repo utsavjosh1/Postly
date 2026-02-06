@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { jobQueries } from "@postly/database";
 import { matchingService } from "../services/matching.service.js";
-import type { JobType } from "@postly/shared-types";
+import type { JobType, User } from "@postly/shared-types";
 
 export class JobController {
   // GET /api/v1/jobs
@@ -85,7 +85,7 @@ export class JobController {
     try {
       const { resumeId } = req.params;
       const { limit = "20", with_explanations = "false" } = req.query;
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
 
       let matches;
       if (with_explanations === "true") {
@@ -120,7 +120,7 @@ export class JobController {
     try {
       const { jobId } = req.params;
       const { resume_id, match_score = 0, explanation } = req.body;
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
 
       if (!resume_id) {
         res.status(400).json({
@@ -155,7 +155,7 @@ export class JobController {
   ): Promise<void> => {
     try {
       const { jobId } = req.params;
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
 
       await matchingService.unsaveMatch(userId, jobId);
 
@@ -175,7 +175,7 @@ export class JobController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
       const saved = await matchingService.getSavedMatches(userId);
 
       res.json({
@@ -195,7 +195,7 @@ export class JobController {
   ): Promise<void> => {
     try {
       const { jobId } = req.params;
-      const userId = (req.user as any).id;
+      const userId = (req.user as User).id;
 
       await matchingService.markAsApplied(userId, jobId);
 

@@ -74,9 +74,10 @@ Be professional, encouraging, and specific in your responses.${resumeContext}`;
         }
         if (chunk.usage) {
           metadata.usage = {
-            prompt_tokens: chunk.usage.promptTokenCount || 0,
-            completion_tokens: chunk.usage.candidatesTokenCount || 0,
-            total_tokens: chunk.usage.totalTokenCount || 0,
+            prompt_tokens: (chunk.usage.promptTokenCount as number) || 0,
+            completion_tokens:
+              (chunk.usage.candidatesTokenCount as number) || 0,
+            total_tokens: (chunk.usage.totalTokenCount as number) || 0,
           };
         }
       }
@@ -86,7 +87,7 @@ Be professional, encouraging, and specific in your responses.${resumeContext}`;
         conversationId,
         "assistant",
         fullResponse,
-        metadata,
+        metadata as Record<string, unknown>,
       );
 
       // 8. Auto-generate conversation title if this is the first message

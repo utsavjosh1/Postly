@@ -85,7 +85,7 @@ CREATE INDEX idx_jobs_company ON jobs(company_name);
 CREATE INDEX idx_jobs_location ON jobs(location);
 CREATE INDEX idx_jobs_remote ON jobs(remote);
 CREATE INDEX idx_jobs_type ON jobs(job_type);
-CREATE INDEX idx_jobs_embedding ON jobs USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_jobs_embedding ON jobs USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX idx_jobs_skills ON jobs USING GIN (skills_required);
 
 -- Job matches table

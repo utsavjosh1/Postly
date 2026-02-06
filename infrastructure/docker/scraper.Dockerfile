@@ -1,68 +1,54 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+FROM python:3.12-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Chromium for Puppeteer
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+# Copy requirements and install Python dependencies GLOBALLY (not --user)
+COPY apps/scraper/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt
 
-# Copy package files
-COPY package*.json ./
-COPY turbo.json ./
-COPY packages/package*.json ./packages/
-COPY apps/scraper/package*.json ./apps/scraper/
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build packages and scraper
-RUN npm run build --filter=@postly/*
-RUN npm run build --filter=scraper
-
-# Stage 2: Production
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Install Chromium and dependencies for scraper
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-# Install production dependencies
-COPY package*.json ./
-COPY turbo.json ./
-COPY packages/package*.json ./packages/
-COPY apps/scraper/package*.json ./apps/scraper/
-
-RUN npm ci --omit=dev
-
-# Copy built files from builder
-COPY --from=builder /app/apps/scraper/dist ./apps/scraper/dist
-COPY --from=builder /app/packages/*/dist ./packages/
+# Install Playwright browsers in globally accessible location
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN playwright install chromium && \
+    chmod -R 755 /opt/ms-playwright
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN useradd -m -u 1000 scraper && chown -R scraper:scraper /app
 
-USER nodejs
+# Copy source code
+COPY --chown=scraper:scraper apps/scraper/src/ ./src/
 
-# Set Puppeteer to use system Chromium
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# Switch to non-root user
+USER scraper
 
-# Start scraper service
-CMD ["node", "apps/scraper/dist/index.js"]
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=60s --retries=2 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Expose health check port
+EXPOSE 8080
+
+# Entry point
+CMD ["python", "src/main.py"]
