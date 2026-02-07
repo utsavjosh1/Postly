@@ -1,13 +1,13 @@
-import { JobCard, MatchedJob } from "../jobs/JobCard";
+import { JobCard } from "../jobs/JobCard";
 import { ChevronRight } from "lucide-react";
+import type { OptimizedJobMatch } from "@postly/shared-types";
 
 interface JobCarouselProps {
   message: string;
-  data: MatchedJob[];
+  data: OptimizedJobMatch[];
   suggested_actions?: string[];
-  onApply?: (id: string | number) => void;
+  onApply?: (id: string) => void;
 }
-
 export function JobCarousel({
   message,
   data,

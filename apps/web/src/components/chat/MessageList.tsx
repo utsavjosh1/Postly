@@ -5,6 +5,7 @@ import { User, Bot, Copy, RefreshCw, Trash2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "@postly/shared-types";
 import { JobCarousel } from "./JobCarousel";
+import { toOptimizedJobMatch } from "../../lib/job-utils";
 
 // Memoized Message Item Component
 const MessageItem = memo(
@@ -239,17 +240,9 @@ const MessageItem = memo(
                   message.metadata.job_matches.length > 0 && (
                     <JobCarousel
                       message=""
-                      data={(
-                        message.metadata.job_matches as Array<{
-                          job: any; // Using any to avoid complex type import for now, but in real app should be Job
-                          match_score?: number;
-                          ai_explanation?: string;
-                        }>
-                      ).map((match) => ({
-                        ...match.job,
-                        match_score: match.match_score,
-                        ai_explanation: match.ai_explanation,
-                      }))}
+                      data={message.metadata.job_matches.map((job: any) =>
+                        toOptimizedJobMatch(job),
+                      )}
                       onApply={(id) => console.log("Apply to job:", id)}
                     />
                   )}

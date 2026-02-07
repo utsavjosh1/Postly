@@ -10,11 +10,45 @@ import type {
   MessageMetadata,
   Message,
   Job,
+  OptimizedJobMatch,
 } from "@postly/shared-types";
 
 interface MatchedJob extends Job {
   match_score: number;
   ai_explanation?: string;
+}
+
+// Helper to transform raw job data to UI-ready format
+function toOptimizedJobMatch(job: MatchedJob): OptimizedJobMatch {
+  const formatSalary = (min?: number, max?: number): string | undefined => {
+    if (!min && !max) return undefined;
+    if (min && max)
+      return `$${(min / 1000).toFixed(0)}k - $${(max / 1000).toFixed(0)}k`;
+    if (min) return `$${(min / 1000).toFixed(0)}k+`;
+    return `Up to $${(max! / 1000).toFixed(0)}k`;
+  };
+
+  return {
+    id: job.id,
+    display_info: {
+      title: job.title,
+      company: job.company_name,
+      location: job.location || "Remote",
+      logo_url: undefined, // Could be fetched from a logo service
+      source: job.source,
+    },
+    matching_data: {
+      match_score: job.match_score,
+      ai_explanation: job.ai_explanation,
+      key_skills: job.skills_required || [],
+    },
+    meta: {
+      posted_at: job.posted_at?.toISOString(),
+      apply_url: job.source_url,
+      remote: job.remote,
+      salary_range: formatSalary(job.salary_min, job.salary_max),
+    },
+  };
 }
 
 export class ChatService {
@@ -145,20 +179,9 @@ Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
         }
       }
 
-      // Add job matches to metadata before saving
+      // Add job matches to metadata before saving (optimized format)
       if (jobMatches.length > 0) {
-        (metadata as any).job_matches = jobMatches.map((j) => ({
-          id: j.id,
-          job_id: j.id,
-          user_id: userId,
-          resume_id: effectiveResumeId || null,
-          match_score: j.match_score,
-          ai_explanation: j.ai_explanation || "",
-          is_saved: false,
-          applied: false,
-          created_at: new Date(),
-          job: j,
-        }));
+        metadata.job_matches = jobMatches.map(toOptimizedJobMatch);
       }
 
       // 8. Save assistant message to database
@@ -184,18 +207,7 @@ Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
         yield {
           type: "metadata",
           metadata: {
-            job_matches: jobMatches.map((j) => ({
-              id: j.id,
-              job_id: j.id,
-              user_id: userId,
-              resume_id: effectiveResumeId || null,
-              match_score: j.match_score,
-              ai_explanation: j.ai_explanation || "",
-              is_saved: false,
-              applied: false,
-              created_at: new Date(),
-              job: j,
-            })) as any,
+            job_matches: jobMatches.map(toOptimizedJobMatch),
           },
         };
       }

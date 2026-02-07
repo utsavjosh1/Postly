@@ -24,3 +24,39 @@ export const ScrapedJobSchema = z.object({
 });
 
 export type ScrapedJob = z.infer<typeof ScrapedJobSchema>;
+
+// Optimized job match schema for UI-ready responses
+export const JobSourceSchema = z.enum([
+  "indeed",
+  "linkedin",
+  "company_direct",
+  "remote_co",
+  "remote_ok",
+  "weworkremotely",
+  "google_jobs",
+  "generic",
+]);
+
+export const OptimizedJobMatchSchema = z.object({
+  id: z.string(),
+  display_info: z.object({
+    title: z.string(),
+    company: z.string(),
+    location: z.string(),
+    logo_url: z.string().optional(),
+    source: JobSourceSchema,
+  }),
+  matching_data: z.object({
+    match_score: z.number().min(0).max(100),
+    ai_explanation: z.string().optional(),
+    key_skills: z.array(z.string()),
+  }),
+  meta: z.object({
+    posted_at: z.string().optional(),
+    apply_url: z.string().optional(),
+    remote: z.boolean(),
+    salary_range: z.string().optional(),
+  }),
+});
+
+export type OptimizedJobMatchType = z.infer<typeof OptimizedJobMatchSchema>;

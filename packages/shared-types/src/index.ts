@@ -118,6 +118,29 @@ export interface JobMatch {
   job?: Job;
 }
 
+// Optimized Job Match for UI (no embeddings, grouped for scannability)
+export interface OptimizedJobMatch {
+  id: string;
+  display_info: {
+    title: string;
+    company: string;
+    location: string;
+    logo_url?: string;
+    source: JobSource;
+  };
+  matching_data: {
+    match_score: number;
+    ai_explanation?: string;
+    key_skills: string[];
+  };
+  meta: {
+    posted_at?: string; // ISO 8601
+    apply_url?: string;
+    remote: boolean;
+    salary_range?: string;
+  };
+}
+
 export interface MatchJobsInput {
   resume_id: string;
   filters?: JobSearchFilters;
@@ -222,7 +245,7 @@ export interface Message {
 export type MessageStatus = "sending" | "sent" | "delivered" | "error";
 
 export interface MessageMetadata {
-  job_matches?: JobMatch[];
+  job_matches?: OptimizedJobMatch[];
   resume_feedback?: ResumeFeedback;
   error?: string;
   usage?: {

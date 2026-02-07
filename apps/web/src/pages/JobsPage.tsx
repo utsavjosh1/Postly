@@ -11,6 +11,7 @@ import { useJobStore } from "../stores/job.store";
 import { useResumeStore } from "../stores/resume.store";
 import { jobService } from "../services/job.service";
 import { authService } from "../services/auth.service";
+import { toOptimizedJobMatch } from "../lib/job-utils";
 
 export function JobsPage() {
   const navigate = useNavigate();
@@ -305,23 +306,26 @@ export function JobsPage() {
           </div>
         ) : displayJobs.length > 0 ? (
           <div className="space-y-4">
-            {displayJobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                isSaved={savedJobIds.has(job.id)}
-                onSave={() =>
-                  handleSaveJob(
-                    job.id,
-                    "match_score" in job ? (job.match_score as number) : 0,
-                    "ai_explanation" in job
-                      ? (job.ai_explanation as string | undefined)
-                      : undefined,
-                  )
-                }
-                onUnsave={() => handleUnsaveJob(job.id)}
-              />
-            ))}
+            {displayJobs.map((job) => {
+              const optimizedJob = toOptimizedJobMatch(job as any);
+              return (
+                <JobCard
+                  key={job.id}
+                  job={optimizedJob}
+                  isSaved={savedJobIds.has(job.id)}
+                  onSave={() =>
+                    handleSaveJob(
+                      job.id,
+                      "match_score" in job ? (job.match_score as number) : 0,
+                      "ai_explanation" in job
+                        ? (job.ai_explanation as string | undefined)
+                        : undefined,
+                    )
+                  }
+                  onUnsave={() => handleUnsaveJob(job.id)}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">
