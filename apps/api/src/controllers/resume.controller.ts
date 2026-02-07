@@ -68,7 +68,10 @@ export class ResumeController {
   ): Promise<void> => {
     try {
       const userId = (req.user as User).id;
-      const resume = await resumeService.getResumeById(req.params.id, userId);
+      const resume = await resumeService.getResumeById(
+        req.params.id as string,
+        userId,
+      );
 
       if (!resume) {
         res.status(404).json({
@@ -95,7 +98,10 @@ export class ResumeController {
   ): Promise<void> => {
     try {
       const userId = (req.user as User).id;
-      const deleted = await resumeService.deleteResume(req.params.id, userId);
+      const deleted = await resumeService.deleteResume(
+        req.params.id as string,
+        userId,
+      );
 
       if (!deleted) {
         res.status(404).json({
@@ -122,7 +128,10 @@ export class ResumeController {
   ): Promise<void> => {
     try {
       const userId = (req.user as User).id;
-      const resume = await resumeService.reanalyzeResume(req.params.id, userId);
+      const resume = await resumeService.reanalyzeResume(
+        req.params.id as string,
+        userId,
+      );
 
       if (!resume) {
         res.status(404).json({

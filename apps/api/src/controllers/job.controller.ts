@@ -57,7 +57,7 @@ export class JobController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const job = await jobQueries.findById(req.params.id);
+      const job = await jobQueries.findById(req.params.id as string);
 
       if (!job) {
         res.status(404).json({
@@ -90,13 +90,13 @@ export class JobController {
       let matches;
       if (with_explanations === "true") {
         matches = await matchingService.getMatchesWithExplanations(
-          resumeId,
+          resumeId as string,
           userId,
           parseInt(limit as string),
         );
       } else {
         matches = await matchingService.findMatchingJobs(
-          resumeId,
+          resumeId as string,
           userId,
           parseInt(limit as string),
         );
@@ -133,7 +133,7 @@ export class JobController {
       const match = await matchingService.saveMatch(
         userId,
         resume_id,
-        jobId,
+        jobId as string,
         match_score,
         explanation,
       );
@@ -157,7 +157,7 @@ export class JobController {
       const { jobId } = req.params;
       const userId = (req.user as User).id;
 
-      await matchingService.unsaveMatch(userId, jobId);
+      await matchingService.unsaveMatch(userId, jobId as string);
 
       res.json({
         success: true,
@@ -197,7 +197,7 @@ export class JobController {
       const { jobId } = req.params;
       const userId = (req.user as User).id;
 
-      await matchingService.markAsApplied(userId, jobId);
+      await matchingService.markAsApplied(userId, jobId as string);
 
       res.json({
         success: true,
