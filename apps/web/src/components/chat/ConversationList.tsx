@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from "react";
 import type { Conversation } from "@postly/shared-types";
 import { AlertDialog } from "../ui/AlertDialog";
+import { useNavigate } from "react-router-dom";
 
 // Helper to categorize dates
 const getRelativeDateGroup = (dateStr: string | Date | undefined) => {
@@ -31,24 +32,20 @@ const getRelativeDateGroup = (dateStr: string | Date | undefined) => {
 };
 
 export function ConversationList() {
+  const navigate = useNavigate();
   const conversations = useChatStore((state) => state.conversations);
   const activeConversationId = useChatStore(
     (state) => state.activeConversationId,
   );
-  const setActiveConversation = useChatStore(
-    (state) => state.setActiveConversation,
-  );
-  const setMessages = useChatStore((state) => state.setMessages);
+  // We don't need setActiveConversation here anymore as navigation handles it via ChatPage
   const deleteConversation = useChatStore((state) => state.deleteConversation);
   const { addToast } = useToastStore();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleSelectConversation = async (id: string) => {
-    setActiveConversation(id);
-    const { messages } = await chatService.getConversation(id);
-    setMessages(messages);
+  const handleSelectConversation = (id: string) => {
+    navigate(`/chat/${id}`);
   };
 
   const confirmDelete = async () => {

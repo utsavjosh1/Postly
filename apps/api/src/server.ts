@@ -10,7 +10,6 @@ import userRoutes from "./routes/user.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
-import passport from "./config/passport.js";
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +27,6 @@ app.use(
 );
 
 // Initialize Passport
-app.use(passport.initialize());
 
 // Global rate limiting - 100 requests per 15 minutes
 const globalLimiter = rateLimit({

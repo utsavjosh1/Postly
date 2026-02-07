@@ -10,7 +10,6 @@ interface AuthState {
   error: string | null;
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
-  loginWithGoogle: () => void;
   logout: () => void;
   checkAuth: () => Promise<void>;
   setAuth: (user: User, token: string) => void;
@@ -59,10 +58,6 @@ export const useAuthStore = create<AuthState>()(
           });
           throw error;
         }
-      },
-
-      loginWithGoogle: () => {
-        window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
       },
 
       logout: () => {

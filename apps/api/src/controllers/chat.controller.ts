@@ -131,7 +131,7 @@ export class ChatController {
   ): Promise<void> => {
     try {
       const userId = (req.user as User).id;
-      const { message, conversation_id } = req.body;
+      const { message, conversation_id, resume_id } = req.body;
 
       if (!message || !conversation_id) {
         res.status(400).json({
@@ -163,6 +163,7 @@ export class ChatController {
         conversation_id,
         userId,
         message,
+        resume_id,
       );
 
       for await (const event of stream) {

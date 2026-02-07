@@ -24,12 +24,12 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur-md">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <Link
               to="/"
-              className="text-xl font-semibold text-foreground"
+              className="text-xl font-semibold text-white tracking-tight"
               aria-label="Postly Home"
             >
               Postly
@@ -40,7 +40,7 @@ export function Navbar() {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-300 hover:text-white hover:bg-white/10"
                 >
                   Login
                 </Link>
