@@ -1,13 +1,18 @@
 import { InputHTMLAttributes, forwardRef } from "react";
+import { cn } from "../../lib/utils";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  labelClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = "", label, error, helperText, id, ...props }, ref) => {
+  (
+    { className = "", label, error, helperText, id, labelClassName, ...props },
+    ref,
+  ) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -15,11 +20,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-foreground mb-1.5"
+            className={cn(
+              "block text-sm font-medium text-foreground mb-1.5",
+              labelClassName,
+            )}
           >
             {label}
             {props.required && (
-              <span className="text-error ml-1" aria-label="required">
+              <span className="text-red-500 ml-1" aria-label="required">
                 *
               </span>
             )}
