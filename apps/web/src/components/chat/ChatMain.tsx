@@ -72,7 +72,7 @@ export function ChatMain() {
             {/* Logo/Greeting */}
             <div className="mb-10 text-center space-y-4">
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60 tracking-tight">
-                What can I help you with?
+                What are you looking for today?
               </h1>
             </div>
 

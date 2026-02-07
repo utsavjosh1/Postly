@@ -4,7 +4,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import { z } from "zod";
 import { userQueries } from "@postly/database";
 import type { AuthResponse, User } from "@postly/shared-types";
-import { JWT_SECRET, JWT_REFRESH_SECRET, WEB_URL } from "../config/secrets.js";
+import { JWT_SECRET, JWT_REFRESH_SECRET } from "../config/secrets.js";
 
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ||
   "7d") as SignOptions["expiresIn"];
@@ -255,23 +255,6 @@ export class AuthController {
       });
     } catch (error) {
       next(error);
-    }
-  };
-
-  googleCallback = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const user = req.user as User;
-      const tokens = this.generateTokens(user);
-
-      // Redirect to frontend with tokens
-      // In a real app, this should probably use a secure cookie or a temporary code exchange
-      // For simplicity, we'll pass it in the URL hash or query params
-      res.redirect(
-        `${WEB_URL}/auth/callback?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
-      );
-    } catch (error) {
-      console.error("Google callback error:", error);
-      res.redirect(`${WEB_URL}/login?error=auth_failed`);
     }
   };
 }

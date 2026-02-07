@@ -15,12 +15,11 @@ import {
   DialogTitle,
 } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { useNavigate } from "react-router-dom";
 
 export function ChatSidebar() {
+  const navigate = useNavigate();
   const addConversation = useChatStore((state) => state.addConversation);
-  const setActiveConversation = useChatStore(
-    (state) => state.setActiveConversation,
-  );
   const isSidebarOpen = useChatStore((state) => state.isSidebarOpen);
   const toggleSidebar = useChatStore((state) => state.toggleSidebar);
   const { user, logout } = useAuthStore();
@@ -36,7 +35,8 @@ export function ChatSidebar() {
     try {
       const conv = await chatService.createConversation(selectedResumeId);
       addConversation(conv);
-      setActiveConversation(conv.id);
+      // Navigate to the new conversation
+      navigate(`/chat/${conv.id}`);
       setIsNewChatDialogOpen(false);
       setSelectedResumeId(undefined);
     } catch (error) {
@@ -51,7 +51,8 @@ export function ChatSidebar() {
     try {
       const conv = await chatService.createConversation();
       addConversation(conv);
-      setActiveConversation(conv.id);
+      // Navigate to the new conversation
+      navigate(`/chat/${conv.id}`);
     } catch (error) {
       console.error("Failed to create conversation:", error);
     } finally {
@@ -80,7 +81,7 @@ export function ChatSidebar() {
         )}
       >
         {/* Header (New Chat) */}
-        <div className="p-3 space-y-2 flex-shrink-0">
+        <div className="p-3 space-y-2 shrink-0">
           <button
             onClick={handleQuickNewChat}
             disabled={isCreating}
@@ -105,9 +106,6 @@ export function ChatSidebar() {
           )}
         >
           <div className="px-3 pb-2">
-            <h3 className="px-2 py-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-              Recent
-            </h3>
             <div className="text-zinc-300 space-y-1">
               <ConversationList />
             </div>
@@ -117,7 +115,7 @@ export function ChatSidebar() {
         {/* User Profile & Settings */}
         <div
           className={cn(
-            "p-3 border-t border-white/10 bg-zinc-900 flex-shrink-0",
+            "p-3 border-t border-white/10 bg-zinc-900 shrink-0",
             !isSidebarOpen && "hidden",
           )}
         >
@@ -155,7 +153,7 @@ export function ChatSidebar() {
 
           <div className="py-6 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-200 block flex items-center gap-2">
+              <label className="text-sm font-medium text-zinc-200 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-purple-400" />
                 Select Resume (Optional)
               </label>

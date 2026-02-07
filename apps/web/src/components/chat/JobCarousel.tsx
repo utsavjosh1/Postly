@@ -1,9 +1,9 @@
-import { JobCard, JobData } from "./JobCard";
+import { JobCard, MatchedJob } from "../jobs/JobCard";
 import { ChevronRight } from "lucide-react";
 
 interface JobCarouselProps {
   message: string;
-  data: JobData[];
+  data: MatchedJob[];
   suggested_actions?: string[];
   onApply?: (id: string | number) => void;
 }
@@ -22,7 +22,7 @@ export function JobCarousel({
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent snap-x">
         {data.map((job) => (
           <div key={job.id} className="snap-center">
-            <JobCard job={job} onApply={onApply} />
+            <JobCard job={job} onApply={onApply} variant="chat" />
           </div>
         ))}
       </div>

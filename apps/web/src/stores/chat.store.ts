@@ -9,6 +9,7 @@ interface ChatState {
   // Sidebar state
   conversations: Conversation[];
   activeConversationId: string | null;
+  activeResumeId: string | null;
   conversationState: ConversationState;
   isSidebarOpen: boolean;
 
@@ -21,7 +22,7 @@ interface ChatState {
   // Actions
   setConversations: (conversations: Conversation[]) => void;
   addConversation: (conversation: Conversation) => void;
-  setActiveConversation: (id: string) => void;
+  setActiveConversation: (id: string | null) => void;
   deleteConversation: (id: string) => void;
 
   setMessages: (messages: Message[]) => void;
@@ -33,6 +34,7 @@ interface ChatState {
   setStreaming: (streaming: boolean) => void;
   toggleSidebar: () => void;
   setConversationState: (state: ConversationState) => void;
+  setActiveResumeId: (id: string | null) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   deleteMessage: (id: string) => void;
 }
@@ -40,6 +42,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
   activeConversationId: null,
+  activeResumeId: null,
   conversationState: "idle",
   isSidebarOpen: true,
   messages: [],
@@ -88,6 +91,8 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
   setConversationState: (state) => set({ conversationState: state }),
+
+  setActiveResumeId: (id) => set({ activeResumeId: id }),
 
   updateMessage: (id, updates) =>
     set((state) => ({

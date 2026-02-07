@@ -72,6 +72,18 @@ export const conversationQueries = {
   },
 
   /**
+   * Update conversation resume_id
+   */
+  async updateResumeId(id: string, resumeId: string): Promise<void> {
+    await pool.query(
+      `UPDATE conversations
+       SET resume_id = $2, updated_at = NOW()
+       WHERE id = $1`,
+      [id, resumeId],
+    );
+  },
+
+  /**
    * Delete a conversation (must belong to user)
    */
   async delete(id: string, userId: string): Promise<boolean> {

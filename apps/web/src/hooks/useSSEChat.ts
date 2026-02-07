@@ -10,6 +10,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 export function useSSEChat() {
   const {
     activeConversationId,
+    activeResumeId,
     addMessage,
     updateStreamingContent,
     clearStreamingContent,
@@ -101,6 +102,7 @@ export function useSSEChat() {
           body: JSON.stringify({
             message,
             conversation_id: currentConversationId,
+            resume_id: activeResumeId,
           }),
           signal: abortController.signal,
         });
@@ -124,6 +126,8 @@ export function useSSEChat() {
           throw new Error("No response body");
         }
 
+        let pendingMetadata: Record<string, unknown> = {};
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -146,6 +150,9 @@ export function useSSEChat() {
                   updateStreamingContent(event.content);
                   // Ensure state is streaming once we get first chunk
                   useChatStore.getState().setConversationState("streaming");
+                } else if (event.type === "metadata" && event.metadata) {
+                  // Store metadata (including job_matches) for later use
+                  pendingMetadata = { ...pendingMetadata, ...event.metadata };
                 } else if (event.type === "complete") {
                   // Save complete assistant message
                   const assistantMsg: Message = {
@@ -153,7 +160,7 @@ export function useSSEChat() {
                     conversation_id: currentConversationId,
                     role: "assistant",
                     content: useChatStore.getState().streamingContent,
-                    metadata: event.metadata,
+                    metadata: { ...event.metadata, ...pendingMetadata },
                     created_at: new Date(),
                     status: "delivered",
                   };
