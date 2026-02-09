@@ -17,7 +17,7 @@
   "devDependencies": {
     "@postly/eslint-config": "*",
     "@postly/typescript-config": "*",
-    "@types/node": "^25.2.0",
+    "@types/node": "^25.2.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
