@@ -27,7 +27,7 @@
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
     "pdf-parse": "^2.4.5",
-    "zod": "^3.24.1"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@postly/eslint-config": "*",
