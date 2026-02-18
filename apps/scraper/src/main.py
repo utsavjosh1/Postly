@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """
 main.py
-Main orchestrator for the job scraping system.
+Apify Actor entrypoint for in-house job scraping.
+
+This module wraps the Scrapy engine using the Apify Python SDK,
+configuring it to use Apify's proxy fleet and browser pool.
 """
 
 import asyncio
 import logging
 import os
-import signal
 import sys
+import signal
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, Dict, Any, List
+
 from dotenv import load_dotenv
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# Structured JSON logging
+from pythonjsonlogger import jsonlogger
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from database import Database
-from scraper import JobScraper
-from embedder import GeminiBatcher, EmbeddingWorker
+from pipeline import JobProcessingPipeline
+from embedding_service import VoyageEmbeddingService, EmbeddingWorker
+from spiders.hiring_cafe import HiringCafeSpider
 from janitor import JanitorService
 from health import HealthCheckServer
 
@@ -31,14 +39,41 @@ if env_path.exists():
 else:
     load_dotenv()
 
-# Configuration
+
+# ============= Structured JSON Logging Setup =============
+
+def setup_logging():
+    """Configure structured JSON logging."""
+    log_handler = logging.StreamHandler(sys.stdout)
+    
+    formatter = jsonlogger.JsonFormatter(
+        fmt='%(timestamp)s %(level)s %(name)s %(message)s',
+        rename_fields={'levelname': 'level', 'asctime': 'timestamp'},
+        timestamp=True,
+    )
+    log_handler.setFormatter(formatter)
+    
+    # Set root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.handlers = [log_handler]
+    
+    return logging.getLogger(__name__)
+
+
+logger = setup_logging()
+
+
+# ============= Configuration =============
+
 DATABASE_URL = os.getenv("DATABASE_URL")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
+APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN")
 HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
 
 # Scraping configuration
-SCRAPE_INTERVAL_MINUTES = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "5"))
-EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
+SCRAPE_INTERVAL_MINUTES = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "60"))
+EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "50"))
 CLEANUP_HOUR = int(os.getenv("CLEANUP_HOUR", "3"))
 
 # Fallback: construct DATABASE_URL from components
@@ -50,227 +85,306 @@ if not DATABASE_URL:
     db_name = os.getenv("DB_NAME", "postly")
     DATABASE_URL = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
-# Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [%(name)s] - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger(__name__)
+
+# ============= Apify Actor Logic =============
+
+try:
+    from apify import Actor
+    APIFY_AVAILABLE = True
+except ImportError:
+    APIFY_AVAILABLE = False
+    logger.warning("Apify SDK not available, running in standalone mode")
 
 
 class ScraperSystem:
-    """Main orchestrator for the scraping system."""
+    """
+    Main orchestrator for the scraping system.
+    
+    Supports two modes:
+    1. Apify Actor mode: Uses Apify's proxy fleet and browser pool
+    2. Standalone mode: Runs independently with local resources
+    """
     
     def __init__(self):
         self.running = True
-        self.db = Database(DATABASE_URL)
-        self.scraper = JobScraper()
-        self.embedder = GeminiBatcher(
-            GEMINI_API_KEY,
-            batch_size=EMBEDDING_BATCH_SIZE
-        ) if GEMINI_API_KEY else None
-        self.embedding_worker = None
-        self.janitor = None
-        self.scheduler = AsyncIOScheduler()
-        self.health = HealthCheckServer(port=HEALTH_PORT)
+        self.db: Optional[Database] = None
+        self.pipeline: Optional[JobProcessingPipeline] = None
+        self.embedder: Optional[VoyageEmbeddingService] = None
+        self.embedding_worker: Optional[EmbeddingWorker] = None
+        self.janitor: Optional[JanitorService] = None
+        self.health: Optional[HealthCheckServer] = None
         
-        # Job sources - organized by priority
-        self.job_sources = {
-            'high': [
-                # High priority - check every hour
-                "https://weworkremotely.com/remote-jobs/search?term=software",
-                "https://remoteok.com/remote-dev-jobs",
-            ],
-            'medium': [
-                # Medium priority - check every 6 hours
-                # Add your medium priority sources here
-            ],
-            'low': [
-                # Low priority - check every 24 hours
-                # Add your low priority sources here
-            ]
+        # Metrics tracking
+        self.metrics = {
+            'total_jobs_found': 0,
+            'total_jobs_stored': 0,
+            'total_duplicates_skipped': 0,
+            'total_tokens_consumed': 0,
+            'sources_scraped': {},
         }
     
     async def setup(self):
         """Initialize all components."""
-        logger.info("=== Initializing Scraper System ===")
+        logger.info({
+            "event": "system_init_start",
+            "apify_mode": APIFY_AVAILABLE and bool(APIFY_API_TOKEN),
+        })
         
-        # Start health check server first
-        await self.health.start()
-        
-        # Connect to database
+        # Initialize database
+        self.db = Database(DATABASE_URL)
         await self.db.connect()
-        self.health.update_status(database_connected=True)
         
-        # Start browser
-        await self.scraper.start()
-        self.health.update_status(browser_ready=True)
+        # Initialize embedding service if API key available
+        if VOYAGE_API_KEY:
+            self.embedder = VoyageEmbeddingService(
+                api_key=VOYAGE_API_KEY,
+                max_batch_size=EMBEDDING_BATCH_SIZE,
+            )
+            logger.info({"event": "voyage_embedder_initialized"})
+        else:
+            logger.warning({"event": "voyage_api_key_missing"})
         
-        # Initialize janitor
+        # Initialize processing pipeline
+        self.pipeline = JobProcessingPipeline(
+            database=self.db,
+            embedding_service=self.embedder,
+            batch_size=EMBEDDING_BATCH_SIZE,
+        )
+        
+        # Initialize janitor for cleanup
         self.janitor = JanitorService(self.db)
         
-        # Start embedding worker if API key available
+        # Start health server
+        self.health = HealthCheckServer(port=HEALTH_PORT)
+        await self.health.start()
+        self.health.update_status(database_connected=True)
+        
+        # Start embedding worker if embedder available
         if self.embedder:
             self.embedding_worker = EmbeddingWorker(
-                self.db,
-                self.embedder,
+                database=self.db,
+                embedding_service=self.embedder,
                 batch_size=EMBEDDING_BATCH_SIZE,
-                interval_seconds=60
+                interval_seconds=60,
             )
             asyncio.create_task(self.embedding_worker.start())
-            logger.info("Embedding worker started")
         
-        # Schedule jobs
-        
-        # High priority sources - every hour
-        self.scheduler.add_job(
-            self._scrape_high_priority,
-            'interval',
-            hours=1,
-            id='scrape_high'
-        )
-        
-        # Medium priority sources - every 6 hours
-        self.scheduler.add_job(
-            self._scrape_medium_priority,
-            'interval',
-            hours=6,
-            id='scrape_medium'
-        )
-        
-        # Low priority sources - every 24 hours
-        self.scheduler.add_job(
-            self._scrape_low_priority,
-            'interval',
-            hours=24,
-            id='scrape_low'
-        )
-        
-        # Full maintenance - daily at CLEANUP_HOUR
-        self.scheduler.add_job(
-            self.janitor.run_maintenance,
-            'cron',
-            hour=CLEANUP_HOUR,
-            minute=0,
-            id='janitor'
-        )
-        
-        # Quick cleanup - every 6 hours
-        self.scheduler.add_job(
-            self.janitor.run_quick_cleanup,
-            'interval',
-            hours=6,
-            id='quick_cleanup'
-        )
-        
-        self.scheduler.start()
-        logger.info(f"Scheduler started - maintenance at {CLEANUP_HOUR}:00")
-        
-        logger.info("=== System Ready ===")
+        logger.info({"event": "system_init_complete"})
     
-    async def _scrape_high_priority(self):
-        """Scrape high priority sources."""
-        if self.job_sources['high']:
-            await self.scrape_and_store(self.job_sources['high'], 'high')
-    
-    async def _scrape_medium_priority(self):
-        """Scrape medium priority sources."""
-        if self.job_sources['medium']:
-            await self.scrape_and_store(self.job_sources['medium'], 'medium')
-    
-    async def _scrape_low_priority(self):
-        """Scrape low priority sources."""
-        if self.job_sources['low']:
-            await self.scrape_and_store(self.job_sources['low'], 'low')
-    
-    async def scrape_and_store(self, urls: list, priority: str = 'default'):
-        """Main scraping loop for a set of URLs."""
-        logger.info(f"Starting {priority} priority scrape cycle ({len(urls)} sources)")
+    async def run_hiring_cafe_spider(
+        self,
+        search_params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Run the Hiring Cafe API spider.
+        
+        Returns:
+            Metrics from the scraping run
+        """
+        logger.info({
+            "event": "spider_start",
+            "source": "hiring_cafe",
+            "params": search_params,
+        })
+        
+        spider = HiringCafeSpider()
+        jobs_list = []
         
         try:
-            # Scrape jobs
-            jobs = await self.scraper.scrape_multiple(urls)
+            async for job in spider.scrape(search_params):
+                jobs_list.append(job)
             
-            if not jobs:
-                logger.warning(f"No valid jobs found in {priority} cycle")
-                return
+            # Process through pipeline
+            if jobs_list:
+                stored = await self.pipeline.process_batch(jobs_list)
+                
+                # Update metrics
+                spider_metrics = spider.get_metrics()
+                self.metrics['total_jobs_found'] += spider_metrics['jobs_found']
+                self.metrics['total_jobs_stored'] += stored
+                self.metrics['sources_scraped']['hiring_cafe'] = {
+                    'last_run': datetime.utcnow().isoformat(),
+                    'jobs_found': spider_metrics['jobs_found'],
+                    'jobs_stored': stored,
+                }
+                
+                return spider_metrics
+                
+        except Exception as e:
+            logger.error({
+                "event": "spider_error",
+                "source": "hiring_cafe",
+                "error": str(e),
+            })
+            return {'error': str(e)}
+        finally:
+            await spider.close()
+    
+    async def run_scrapy_spiders(self):
+        """
+        Run Scrapy-based spiders (Indeed, etc.).
+        
+        Uses CrawlerProcess with scrapy-playwright.
+        """
+        try:
+            from scrapy.crawler import CrawlerProcess
+            from scrapy.utils.project import get_project_settings
+            from spiders.indeed import IndeedSpider
             
-            logger.info(f"Scraped {len(jobs)} valid jobs from {priority} sources")
+            settings = get_project_settings()
+            settings.update({
+                'DATABASE': self.db,
+                'EMBEDDING_SERVICE': self.embedder,
+            })
             
-            # Generate embeddings if API key available
-            if self.embedder:
-                jobs = await self.embedder.embed_batch(jobs)
-            else:
-                logger.warning("No GEMINI_API_KEY - embeddings will be generated by worker")
+            # Configure Apify proxy if available
+            if APIFY_AVAILABLE and APIFY_API_TOKEN:
+                proxy_config = await Actor.create_proxy_configuration()
+                settings.update({
+                    'PLAYWRIGHT_LAUNCH_OPTIONS': {
+                        'proxy': {'server': proxy_config.new_url()},
+                    },
+                })
             
-            # Store in database using batch insert
-            stored_count = await self.db.insert_jobs_batch(jobs)
+            process = CrawlerProcess(settings)
+            process.crawl(IndeedSpider)
+            process.start()
             
-            logger.info(f"Stored {stored_count}/{len(jobs)} jobs in database")
+        except Exception as e:
+            logger.error({
+                "event": "scrapy_error",
+                "error": str(e),
+            })
+    
+    async def run_scrape_cycle(self):
+        """Run a complete scraping cycle across all sources."""
+        logger.info({"event": "scrape_cycle_start"})
+        start_time = datetime.utcnow()
+        
+        try:
+            # Run Hiring Cafe (aiohttp-based)
+            await self.run_hiring_cafe_spider()
             
             # Update health status
             self.health.update_status(
-                last_scrape=datetime.now().isoformat(),
-                last_scrape_priority=priority,
-                last_scrape_count=stored_count
+                last_scrape=datetime.utcnow().isoformat(),
+                jobs_stored=self.metrics['total_jobs_stored'],
             )
             
         except Exception as e:
-            logger.error(f"Scrape cycle error: {e}", exc_info=True)
+            logger.error({
+                "event": "scrape_cycle_error",
+                "error": str(e),
+            })
             self.health.update_status(last_error=str(e))
+        
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        
+        # Get pipeline metrics
+        pipeline_metrics = self.pipeline.get_metrics()
+        
+        logger.info({
+            "event": "scrape_cycle_complete",
+            "duration_seconds": round(duration, 2),
+            "jobs_found": pipeline_metrics.jobs_found,
+            "jobs_embedded": pipeline_metrics.jobs_embedded,
+            "duplicates_skipped": pipeline_metrics.duplicates_skipped,
+            "tokens_consumed": pipeline_metrics.tokens_consumed,
+        })
     
     async def run(self):
         """Main run loop."""
         await self.setup()
         
-        # Run initial high-priority scrape
-        logger.info("Running initial scrape...")
-        await self._scrape_high_priority()
+        # Run initial scrape
+        logger.info({"event": "initial_scrape_start"})
+        await self.run_scrape_cycle()
         
-        logger.info(f"Entering main loop (scrapes scheduled)")
-        
+        # Enter main loop with scheduled scrapes
         while self.running:
             try:
-                # Just keep running - scheduler handles the work
-                await asyncio.sleep(60)
+                # Wait for next scrape interval
+                await asyncio.sleep(SCRAPE_INTERVAL_MINUTES * 60)
                 
+                if self.running:
+                    await self.run_scrape_cycle()
+                    
             except Exception as e:
-                logger.error(f"Loop error: {e}", exc_info=True)
+                logger.error({
+                    "event": "main_loop_error",
+                    "error": str(e),
+                })
                 await asyncio.sleep(60)
     
     async def shutdown(self):
         """Graceful shutdown."""
-        logger.info("Shutting down...")
+        logger.info({"event": "shutdown_start"})
         self.running = False
         
         if self.embedding_worker:
             self.embedding_worker.stop()
         
-        if self.scheduler.running:
-            self.scheduler.shutdown()
+        if self.db:
+            await self.db.close()
         
-        await self.scraper.close()
-        await self.db.close()
-        await self.health.stop()
+        if self.health:
+            await self.health.stop()
         
-        logger.info("Shutdown complete")
+        logger.info({"event": "shutdown_complete"})
 
 
-async def main():
-    """Entry point."""
-    if not DATABASE_URL:
-        logger.error("DATABASE_URL not configured")
-        sys.exit(1)
+# ============= Apify Actor Entrypoint =============
+
+async def apify_main():
+    """
+    Apify Actor entrypoint.
     
-    if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY not set - embeddings will be skipped")
+    Runs within Apify's infrastructure with proxy fleet access.
+    """
+    async with Actor:
+        logger.info({
+            "event": "apify_actor_start",
+            "token_available": bool(APIFY_API_TOKEN),
+        })
+        
+        # Get input from Apify
+        actor_input = await Actor.get_input() or {}
+        
+        search_params = {
+            'keywords': actor_input.get('keywords', 'software engineer'),
+            'location': actor_input.get('location', 'remote'),
+            'max_pages': actor_input.get('max_pages', 10),
+        }
+        
+        system = ScraperSystem()
+        
+        try:
+            await system.setup()
+            
+            # Run single scrape cycle for Apify
+            await system.run_scrape_cycle()
+            
+            # Push results to Apify dataset
+            await Actor.push_data({
+                'metrics': system.metrics,
+                'pipeline_metrics': system.pipeline.get_metrics().to_log_dict(),
+            })
+            
+        finally:
+            await system.shutdown()
+
+
+async def standalone_main():
+    """Standalone mode entrypoint (non-Apify)."""
+    if not DATABASE_URL:
+        logger.error({"event": "config_error", "message": "DATABASE_URL not configured"})
+        sys.exit(1)
     
     system = ScraperSystem()
     
-    # Handle signals
+    # Signal handlers
     def signal_handler(sig, frame):
-        logger.warning(f"Received signal {sig}")
+        logger.warning({"event": "signal_received", "signal": sig})
         system.running = False
     
     signal.signal(signal.SIGINT, signal_handler)
@@ -282,6 +396,14 @@ async def main():
         pass
     finally:
         await system.shutdown()
+
+
+async def main():
+    """Main entrypoint - detects environment and routes accordingly."""
+    if APIFY_AVAILABLE and os.getenv('APIFY_IS_AT_APIFY'):
+        await apify_main()
+    else:
+        await standalone_main()
 
 
 if __name__ == "__main__":

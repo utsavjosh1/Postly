@@ -6,18 +6,24 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY turbo.json ./
-COPY packages/package*.json ./packages/
+
+# Explicitly copy workspace packages
+COPY packages/database/package.json ./packages/database/
+COPY packages/ai-utils/package.json ./packages/ai-utils/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --ignore-scripts --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build packages and API
-RUN npm run build --filter=@postly/*
-RUN npm run build --filter=api
+# Build API and its dependencies
+RUN npx turbo run build --filter=api
 
 # Stage 2: Production
 FROM node:20-alpine AS runner
@@ -27,18 +33,29 @@ WORKDIR /app
 # Install production dependencies only
 COPY package*.json ./
 COPY turbo.json ./
-COPY packages/package*.json ./packages/
+
+# Explicitly copy workspace packages for prod install
+COPY packages/database/package.json ./packages/database/
+COPY packages/ai-utils/package.json ./packages/ai-utils/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
+COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts --legacy-peer-deps
 
 # Copy built files from builder
+# Explicitly copy dist folders to ensure correct structure
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/*/dist ./packages/
+COPY --from=builder /app/packages/database/dist ./packages/database/dist
+COPY --from=builder /app/packages/ai-utils/dist ./packages/ai-utils/dist
+COPY --from=builder /app/packages/logger/dist ./packages/logger/dist
+COPY --from=builder /app/packages/shared-types/dist ./packages/shared-types/dist
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
 USER nodejs
 

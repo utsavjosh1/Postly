@@ -1,4 +1,4 @@
-import { generateText, generateEmbedding } from "@postly/ai-utils";
+import { generateText, generateVoyageEmbedding } from "@postly/ai-utils";
 import { resumeQueries, jobQueries } from "@postly/database";
 import type {
   Job,
@@ -39,7 +39,7 @@ export class MatchingService {
     } else if (resume.parsed_text) {
       // Generate embedding from parsed text
       const embeddingText = `Skills: ${resume.skills?.join(", ") || "Not specified"}. Experience: ${resume.experience_years || 0} years. ${resume.parsed_text.substring(0, 1000)}`;
-      embedding = await generateEmbedding(embeddingText);
+      embedding = await generateVoyageEmbedding(embeddingText);
     } else {
       throw new Error("Resume has no content to match against");
     }

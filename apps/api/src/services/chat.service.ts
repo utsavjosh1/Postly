@@ -171,10 +171,15 @@ Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
         }
         if (chunk.usage) {
           metadata.usage = {
-            prompt_tokens: (chunk.usage.promptTokenCount as number) || 0,
+            prompt_tokens:
+              (chunk.usage.input_tokens as number) ||
+              (chunk.usage.prompt_tokens as number) ||
+              0,
             completion_tokens:
-              (chunk.usage.candidatesTokenCount as number) || 0,
-            total_tokens: (chunk.usage.totalTokenCount as number) || 0,
+              (chunk.usage.output_tokens as number) ||
+              (chunk.usage.completion_tokens as number) ||
+              0,
+            total_tokens: (chunk.usage.total_tokens as number) || 0,
           };
         }
       }

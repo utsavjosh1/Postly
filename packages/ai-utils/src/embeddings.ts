@@ -1,4 +1,4 @@
-import { generateEmbedding } from "./gemini";
+import { generateVoyageEmbedding } from "./voyage";
 
 export async function generateBatchEmbeddings(
   texts: string[],
@@ -11,7 +11,7 @@ export async function generateBatchEmbeddings(
     while (queue.length > 0) {
       const { text, index } = queue.shift()!;
       try {
-        const embedding = await generateEmbedding(text);
+        const embedding = await generateVoyageEmbedding(text);
         embeddings[index] = embedding;
       } catch (error) {
         console.error(`Failed to embed text at index ${index}`, error);

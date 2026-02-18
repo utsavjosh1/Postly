@@ -1,98 +1,76 @@
-import { pool } from "../pool";
-
-export interface Conversation {
-  id: string;
-  user_id: string;
-  title: string;
-  resume_id: string | null;
-  last_message_at: Date;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface Message {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant" | "system" | "tool";
-  content: string;
-  metadata?: Record<string, unknown>;
-  created_at: Date;
-}
+import { eq, desc, asc, and } from "drizzle-orm";
+import { db } from "../index";
+import { conversations, messages } from "../schema";
+import type { Conversation, Message } from "@postly/shared-types";
 
 export const conversationQueries = {
   /**
    * Create a new conversation
    */
   async create(userId: string, resumeId?: string): Promise<Conversation> {
-    const result = await pool.query<Conversation>(
-      `INSERT INTO conversations (user_id, resume_id)
-       VALUES ($1, $2)
-       RETURNING *`,
-      [userId, resumeId || null],
-    );
-    return result.rows[0];
+    const [result] = await db
+      .insert(conversations)
+      .values({
+        user_id: userId,
+        resume_id: resumeId,
+      })
+      .returning();
+    return result as any as Conversation;
   },
 
   /**
    * Get all conversations for a user (ordered by most recent)
    */
   async findByUser(userId: string, limit = 50): Promise<Conversation[]> {
-    const result = await pool.query<Conversation>(
-      `SELECT * FROM conversations
-       WHERE user_id = $1
-       ORDER BY last_message_at DESC
-       LIMIT $2`,
-      [userId, limit],
-    );
-    return result.rows;
+    const result = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.user_id, userId))
+      .orderBy(desc(conversations.updated_at))
+      .limit(limit);
+    return result as any as Conversation[];
   },
 
   /**
    * Get a single conversation by ID (must belong to user)
    */
   async findById(id: string, userId: string): Promise<Conversation | null> {
-    const result = await pool.query<Conversation>(
-      `SELECT * FROM conversations
-       WHERE id = $1 AND user_id = $2`,
-      [id, userId],
-    );
-    return result.rows[0] || null;
+    const [result] = await db
+      .select()
+      .from(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.user_id, userId)));
+    return (result as any as Conversation) || null;
   },
 
   /**
    * Update conversation title
    */
   async updateTitle(id: string, title: string): Promise<void> {
-    await pool.query(
-      `UPDATE conversations
-       SET title = $2, updated_at = NOW()
-       WHERE id = $1`,
-      [id, title],
-    );
+    await db
+      .update(conversations)
+      .set({ title, updated_at: new Date() })
+      .where(eq(conversations.id, id));
   },
 
   /**
    * Update conversation resume_id
    */
   async updateResumeId(id: string, resumeId: string): Promise<void> {
-    await pool.query(
-      `UPDATE conversations
-       SET resume_id = $2, updated_at = NOW()
-       WHERE id = $1`,
-      [id, resumeId],
-    );
+    await db
+      .update(conversations)
+      .set({ resume_id: resumeId, updated_at: new Date() })
+      .where(eq(conversations.id, id));
   },
 
   /**
    * Delete a conversation (must belong to user)
    */
   async delete(id: string, userId: string): Promise<boolean> {
-    const result = await pool.query(
-      `DELETE FROM conversations
-       WHERE id = $1 AND user_id = $2`,
-      [id, userId],
-    );
-    return result.rowCount !== null && result.rowCount > 0;
+    const [result] = await db
+      .delete(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.user_id, userId)))
+      .returning();
+    return !!result;
   },
 
   /**
@@ -104,31 +82,35 @@ export const conversationQueries = {
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<Message> {
-    const result = await pool.query<Message>(
-      `INSERT INTO messages (conversation_id, role, content, metadata)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [
-        conversationId,
+    const [result] = await db
+      .insert(messages)
+      .values({
+        conversation_id: conversationId,
         role,
         content,
-        metadata ? JSON.stringify(metadata) : null,
-      ],
-    );
-    return result.rows[0];
+        metadata,
+      })
+      .returning();
+
+    // Update conversation timestamp
+    await db
+      .update(conversations)
+      .set({ updated_at: new Date() })
+      .where(eq(conversations.id, conversationId));
+
+    return result as any as Message;
   },
 
   /**
    * Get all messages in a conversation
    */
   async getMessages(conversationId: string, limit = 100): Promise<Message[]> {
-    const result = await pool.query<Message>(
-      `SELECT * FROM messages
-       WHERE conversation_id = $1
-       ORDER BY created_at ASC
-       LIMIT $2`,
-      [conversationId, limit],
-    );
-    return result.rows;
+    const result = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversation_id, conversationId))
+      .orderBy(asc(messages.created_at))
+      .limit(limit);
+    return result as any as Message[];
   },
 };

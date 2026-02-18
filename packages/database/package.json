@@ -16,13 +16,15 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src",
-    "migrate:up": "node -r dotenv/config dist/migrations/migrate.js up",
-    "migrate:down": "node -r dotenv/config dist/migrations/migrate.js down",
-    "migrate:create": "node scripts/create-migration.js"
+    "migrate:generate": "drizzle-kit generate",
+    "migrate:push": "drizzle-kit push",
+    "migrate:up": "drizzle-kit migrate",
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@postly/shared-types": "*",
-    "pg": "^8.13.1",
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.18.0",
     "pgvector": "^0.2.0"
   },
   "devDependencies": {
@@ -30,6 +32,7 @@
     "@postly/typescript-config": "*",
     "@types/pg": "^8.11.10",
     "dotenv": "^16.4.7",
+    "drizzle-kit": "^0.31.9",
     "typescript": "^5.7.2"
   }
 }

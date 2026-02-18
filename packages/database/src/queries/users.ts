@@ -1,4 +1,6 @@
-import { pool } from "../pool";
+import { eq } from "drizzle-orm";
+import { db } from "../index";
+import { users } from "../schema";
 import type { User, UserRole } from "@postly/shared-types";
 
 interface CreateUserDbInput {
@@ -15,14 +17,24 @@ export const userQueries = {
   async create(input: CreateUserDbInput): Promise<User> {
     const { email, password_hash, full_name, role = "job_seeker" } = input;
 
-    const result = await pool.query<User>(
-      `INSERT INTO users (email, password_hash, full_name, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, full_name, role, created_at, updated_at`,
-      [email, password_hash, full_name, role],
-    );
+    const [result] = await db
+      .insert(users)
+      .values({
+        email,
+        password_hash,
+        full_name,
+        role,
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        full_name: users.full_name,
+        role: users.role,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      });
 
-    return result.rows[0];
+    return result as any as User;
   },
 
   /**
@@ -31,25 +43,31 @@ export const userQueries = {
   async findByEmail(
     email: string,
   ): Promise<(User & { password_hash: string }) | null> {
-    const result = await pool.query(`SELECT * FROM users WHERE email = $1`, [
-      email,
-    ]);
+    const [result] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
 
-    return result.rows[0] || null;
+    return (result as any as User & { password_hash: string }) || null;
   },
 
   /**
    * Find user by ID
    */
   async findById(id: string): Promise<User | null> {
-    const result = await pool.query<User>(
-      `SELECT id, email, full_name, role, created_at, updated_at
-       FROM users
-       WHERE id = $1`,
-      [id],
-    );
+    const [result] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        full_name: users.full_name,
+        role: users.role,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      })
+      .from(users)
+      .where(eq(users.id, id));
 
-    return result.rows[0] || null;
+    return (result as any as User) || null;
   },
 
   /**
@@ -57,36 +75,46 @@ export const userQueries = {
    */
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const allowedFields = ["full_name", "role"];
-    const fields = Object.keys(updates).filter((key) =>
-      allowedFields.includes(key),
-    );
+    const updateData: Record<string, any> = {};
 
-    if (fields.length === 0) {
+    Object.keys(updates).forEach((key) => {
+      if (allowedFields.includes(key)) {
+        updateData[key] = updates[key as keyof User];
+      }
+    });
+
+    if (Object.keys(updateData).length === 0) {
       return this.findById(id);
     }
 
-    const setClause = fields
-      .map((field, index) => `${field} = $${index + 2}`)
-      .join(", ");
-    const values = [id, ...fields.map((field) => updates[field as keyof User])];
+    const [result] = await db
+      .update(users)
+      .set({
+        ...updateData,
+        updated_at: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        email: users.email,
+        full_name: users.full_name,
+        role: users.role,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      });
 
-    const result = await pool.query<User>(
-      `UPDATE users
-       SET ${setClause}, updated_at = NOW()
-       WHERE id = $1
-       RETURNING id, email, full_name, role, created_at, updated_at`,
-      values,
-    );
-
-    return result.rows[0] || null;
+    return (result as any as User) || null;
   },
 
   /**
    * Delete user
    */
   async delete(id: string): Promise<boolean> {
-    const result = await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+    const [result] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id });
 
-    return result.rowCount !== null && result.rowCount > 0;
+    return !!result;
   },
 };

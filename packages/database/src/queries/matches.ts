@@ -1,5 +1,7 @@
-import { pool } from "../pool";
-import type { JobMatch } from "@postly/shared-types";
+import { eq, desc } from "drizzle-orm";
+import { db } from "../index";
+import { job_matches, jobs } from "../schema";
+import type { JobMatch, Job } from "@postly/shared-types";
 
 export const matchQueries = {
   async create(
@@ -9,40 +11,63 @@ export const matchQueries = {
     matchScore: number,
     aiExplanation: string,
   ): Promise<JobMatch> {
-    const result = await pool.query<JobMatch>(
-      `INSERT INTO job_matches (user_id, resume_id, job_id, match_score, ai_explanation)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (user_id, job_id) DO UPDATE
-       SET match_score = $4, ai_explanation = $5, created_at = NOW()
-       RETURNING *`,
-      [userId, resumeId, jobId, matchScore, aiExplanation],
-    );
-    return result.rows[0];
+    const [result] = await db
+      .insert(job_matches)
+      .values({
+        user_id: userId,
+        resume_id: resumeId,
+        job_id: jobId,
+        match_score: matchScore.toString(),
+        ai_explanation: aiExplanation,
+        is_saved: false,
+      })
+      .onConflictDoUpdate({
+        target: [job_matches.user_id, job_matches.job_id],
+        set: {
+          match_score: matchScore.toString(),
+          ai_explanation: aiExplanation,
+          created_at: new Date(),
+        },
+      })
+      .returning();
+
+    return result as any as JobMatch;
   },
 
   async findByUser(userId: string, limit = 20): Promise<JobMatch[]> {
-    const result = await pool.query<JobMatch>(
-      `SELECT m.*, j.title, j.company_name, j.location, j.remote
-       FROM job_matches m
-       JOIN jobs j ON m.job_id = j.id
-       WHERE m.user_id = $1
-       ORDER BY m.match_score DESC, m.created_at DESC
-       LIMIT $2`,
-      [userId, limit],
-    );
-    return result.rows;
+    const results = await db
+      .select({
+        match: job_matches,
+        job: {
+          title: jobs.title,
+          company_name: jobs.company_name,
+          location: jobs.location,
+          remote: jobs.remote,
+        },
+      })
+      .from(job_matches)
+      .innerJoin(jobs, eq(job_matches.job_id, jobs.id))
+      .where(eq(job_matches.user_id, userId))
+      .orderBy(desc(job_matches.match_score), desc(job_matches.created_at))
+      .limit(limit);
+
+    return results.map(({ match, job }) => ({
+      ...match,
+      job: job as any as Job,
+    })) as any as JobMatch[];
   },
 
   async markSaved(matchId: string, isSaved: boolean): Promise<void> {
-    await pool.query(`UPDATE job_matches SET is_saved = $2 WHERE id = $1`, [
-      matchId,
-      isSaved,
-    ]);
+    await db
+      .update(job_matches)
+      .set({ is_saved: isSaved })
+      .where(eq(job_matches.id, matchId));
   },
 
   async markApplied(matchId: string): Promise<void> {
-    await pool.query(`UPDATE job_matches SET applied = true WHERE id = $1`, [
-      matchId,
-    ]);
+    await db
+      .update(job_matches)
+      .set({ applied: true })
+      .where(eq(job_matches.id, matchId));
   },
 };

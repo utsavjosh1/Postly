@@ -49,6 +49,7 @@ class Database:
                     
                     -- Core job fields (required)
                     job_id TEXT UNIQUE NOT NULL,
+                    fingerprint TEXT UNIQUE,
                     job_title TEXT NOT NULL,
                     company_name TEXT,
                     location TEXT,
@@ -65,12 +66,16 @@ class Database:
                     employment_mode TEXT,
                     remote_status TEXT DEFAULT 'unknown',
                     
+                    -- Glassdoor enrichment fields
+                    employee_rating NUMERIC(2,1),
+                    salary_estimate TEXT,
+                    
                     -- Metadata
                     meta JSONB DEFAULT '{}',
                     scraped_timestamp TIMESTAMPTZ DEFAULT NOW(),
                     
-                    -- Vector embedding (1536 for OpenAI, 768 for Gemini)
-                    embedding vector(768),
+                    -- Vector embedding (1024 for Voyage AI voyage-3.5-lite)
+                    embedding vector(1024),
                     
                     -- Timestamps
                     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -131,6 +136,12 @@ class Database:
                         COALESCE(company_name, '')
                     )
                 )
+            """)
+
+            # Fingerprint index for deduplication
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_jobs_fingerprint 
+                ON jobs(fingerprint) WHERE fingerprint IS NOT NULL
             """)
 
             logger.info("Database schema initialized with complete job fields")
@@ -265,6 +276,40 @@ class Database:
                 WHERE id = $1
             """, updates)
         logger.info(f"Batch updated {len(updates)} embeddings")
+
+    async def fingerprint_exists(self, fingerprint: str) -> bool:
+        """
+        Check if a fingerprint already exists in the database.
+        
+        Used for cross-source deduplication before embedding.
+        """
+        async with self.pool.acquire() as conn:
+            result = await conn.fetchval("""
+                SELECT EXISTS(SELECT 1 FROM jobs WHERE fingerprint = $1)
+            """, fingerprint)
+            return result
+
+    async def update_glassdoor_data(
+        self,
+        company_name: str,
+        employee_rating: Optional[float] = None,
+        salary_estimate: Optional[str] = None
+    ):
+        """
+        Update Glassdoor enrichment data for jobs matching company.
+        
+        Used to append employee_rating and salary_estimate from Glassdoor.
+        """
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE jobs
+                SET 
+                    employee_rating = COALESCE($2, employee_rating),
+                    salary_estimate = COALESCE($3, salary_estimate),
+                    updated_at = NOW()
+                WHERE LOWER(company_name) = LOWER($1)
+            """, company_name, employee_rating, salary_estimate)
+            logger.info(f"Updated Glassdoor data for company: {company_name}")
 
     async def vector_search(
         self,
