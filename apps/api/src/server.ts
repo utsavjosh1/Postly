@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import dotenv from "dotenv";
+import { API_PORT, WEB_URL, NODE_ENV } from "./config/secrets.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -11,24 +11,18 @@ import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 
-// Load environment variables
-dotenv.config();
-
 const app = express();
-const PORT = process.env.API_PORT || 3000;
 
 // Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.WEB_URL || "http://localhost:3001",
+    origin: WEB_URL,
     credentials: true,
   }),
 );
 
-// Initialize Passport
-
-// Global rate limiting - 100 requests per 15 minutes
+// Global rate limiting — 100 requests per 15 minutes
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -40,7 +34,7 @@ const globalLimiter = rateLimit({
   },
 });
 
-// Strict rate limiting for auth endpoints - 5 attempts per 15 minutes
+// Strict rate limiting for auth endpoints — 5 attempts per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -77,10 +71,9 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 API server running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🗄️  Database: ${process.env.DB_NAME || "postly"}`);
+app.listen(API_PORT, () => {
+  console.log(`🚀 API server running on http://localhost:${API_PORT}`);
+  console.log(`📝 Environment: ${NODE_ENV}`);
 });
 
 // Graceful shutdown

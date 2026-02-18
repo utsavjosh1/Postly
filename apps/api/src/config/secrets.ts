@@ -6,14 +6,29 @@
  * continue to work unchanged.
  */
 export {
+  // Auth / JWT
   JWT_SECRET,
   JWT_REFRESH_SECRET,
   JWT_EXPIRES_IN,
   JWT_REFRESH_EXPIRES_IN,
-  GEMINI_API_KEY,
-  WEB_URL,
-  REDIS_URL,
-  API_PORT,
+
+  // Server
   NODE_ENV,
+  API_PORT,
+  WEB_URL,
+
+  // Database
   DATABASE_URL,
+
+  // Redis
+  REDIS_URL,
+
+  // AI
+  OPENAI_API_KEY,
+  OPENAI_MODEL,
+  VOYAGE_API_KEY,
+  VOYAGE_MODEL,
+
+  // Legacy
+  GEMINI_API_KEY,
 } from "@postly/config";

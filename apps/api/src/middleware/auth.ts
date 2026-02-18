@@ -2,20 +2,36 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/secrets.js";
+import type { UserRole } from "@postly/shared-types";
 
-import { User } from "@postly/shared-types";
+// ─── JWT Payload ─────────────────────────────────────────────────────────────
 
-// Extend Express Request type to include User from shared-types
+/**
+ * Shape of the decoded JWT access token.
+ * This is NOT a full User — it only contains the claims we sign.
+ */
+export interface JwtPayload {
+  id: string;
+  email: string;
+  role: UserRole;
+  iat?: number;
+  exp?: number;
+}
+
+// Extend Express Request type to include JwtPayload
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: JwtPayload;
     }
   }
 }
 
+// ─── Middleware ───────────────────────────────────────────────────────────────
+
 /**
- * Middleware to authenticate JWT token
+ * Middleware to authenticate JWT access token.
+ * Populates `req.user` with `JwtPayload` on success.
  */
 export function authenticateToken(
   req: Request,
@@ -23,10 +39,9 @@ export function authenticateToken(
   next: NextFunction,
 ): void {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const token = authHeader?.split(" ")[1]; // Bearer TOKEN
 
   if (!token) {
-    console.log("[AuthMiddleware] No token provided in header.");
     res.status(401).json({
       success: false,
       error: { message: "Access token required" },
@@ -35,12 +50,10 @@ export function authenticateToken(
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as User;
-    console.log("[AuthMiddleware] Token verified for user:", decoded.id);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     req.user = decoded;
     next();
-  } catch (error) {
-    console.error("[AuthMiddleware] Token verification failed:", error);
+  } catch {
     res.status(401).json({
       success: false,
       error: { message: "Invalid or expired token" },

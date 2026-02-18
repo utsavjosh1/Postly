@@ -1,4 +1,4 @@
-import { streamTextWithMeta, generateText } from "@postly/ai-utils";
+import { streamText, generateText } from "@postly/ai-utils";
 import {
   conversationQueries,
   resumeQueries,
@@ -162,27 +162,20 @@ Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
       // 7. Stream AI response
       let fullResponse = "";
       const metadata: MessageMetadata = {};
-      const stream = await streamTextWithMeta(fullPrompt);
+      const streamResult = await streamText(fullPrompt);
 
-      for await (const chunk of stream) {
-        if (chunk.text) {
-          fullResponse += chunk.text;
-          yield { type: "chunk", content: chunk.text };
-        }
-        if (chunk.usage) {
-          metadata.usage = {
-            prompt_tokens:
-              (chunk.usage.input_tokens as number) ||
-              (chunk.usage.prompt_tokens as number) ||
-              0,
-            completion_tokens:
-              (chunk.usage.output_tokens as number) ||
-              (chunk.usage.completion_tokens as number) ||
-              0,
-            total_tokens: (chunk.usage.total_tokens as number) || 0,
-          };
-        }
+      for await (const chunk of streamResult.stream) {
+        fullResponse += chunk;
+        yield { type: "chunk", content: chunk };
       }
+
+      // Get metadata after stream is consumed
+      const streamMeta = streamResult.getMetadata();
+      metadata.usage = {
+        prompt_tokens: streamMeta.promptTokens,
+        completion_tokens: streamMeta.completionTokens,
+        total_tokens: streamMeta.totalTokens,
+      };
 
       // Add job matches to metadata before saving (optimized format)
       if (jobMatches.length > 0) {
@@ -200,7 +193,7 @@ Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
       // 9. Auto-generate conversation title if this is the first message
       if (messages.length === 0) {
         const titlePrompt = `Generate a short 3-5 word title for this conversation. User's first message: "${userMessage}". Return ONLY the title, no quotes or explanation.`;
-        const title = await generateText(titlePrompt);
+        const { text: title } = await generateText(titlePrompt);
         await conversationQueries.updateTitle(
           conversationId,
           title.trim().substring(0, 50),

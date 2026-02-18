@@ -1,8 +1,29 @@
 import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
 import { ChatService } from "../services/chat.service.js";
 import { conversationQueries } from "@postly/database";
+import type { JwtPayload } from "../middleware/auth.js";
 
-import type { User } from "@postly/shared-types";
+// ─── Validation ──────────────────────────────────────────────────────────────
+
+const createConversationSchema = z.object({
+  resume_id: z.string().uuid().optional(),
+  model: z.string().optional(),
+  initial_message: z.string().optional(),
+});
+
+const streamSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+  conversation_id: z.string().uuid("Invalid conversation ID"),
+  resume_id: z.string().uuid().optional(),
+});
+
+const editMessageSchema = z.object({
+  content: z.string().min(1, "Content is required"),
+  conversation_id: z.string().uuid("Invalid conversation ID"),
+});
+
+// ─── Controller ──────────────────────────────────────────────────────────────
 
 export class ChatController {
   private chatService: ChatService;
@@ -11,36 +32,53 @@ export class ChatController {
     this.chatService = new ChatService();
   }
 
-  // GET /api/v1/chat/conversations
+  // GET /conversations
   getConversations = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
-      const conversations = await conversationQueries.findByUser(userId);
+      const { id: userId } = req.user as JwtPayload;
+      const includeArchived = req.query.include_archived === "true";
+      const limit = parseInt((req.query.limit as string) || "50", 10);
 
-      res.json({
-        success: true,
-        data: conversations,
-      });
+      const conversations = await conversationQueries.findByUser(
+        userId,
+        limit,
+        includeArchived,
+      );
+
+      res.json({ success: true, data: conversations });
     } catch (error) {
       next(error);
     }
   };
 
-  // POST /api/v1/chat/conversations
+  // POST /conversations
   createConversation = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
-      const { resume_id, initial_message } = req.body;
+      const validation = createConversationSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
+        return;
+      }
 
-      const conversation = await conversationQueries.create(userId, resume_id);
+      const { id: userId } = req.user as JwtPayload;
+      const { resume_id, model, initial_message } = validation.data;
+
+      const conversation = await conversationQueries.create(
+        userId,
+        resume_id,
+        model,
+      );
 
       if (initial_message) {
         await conversationQueries.createMessage(
@@ -50,29 +88,23 @@ export class ChatController {
         );
       }
 
-      res.status(201).json({
-        success: true,
-        data: conversation,
-      });
+      res.status(201).json({ success: true, data: conversation });
     } catch (error) {
       next(error);
     }
   };
 
-  // GET /api/v1/chat/conversations/:id
+  // GET /conversations/:id
   getConversationById = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const { id: userId } = req.user as JwtPayload;
       const { id } = req.params;
 
-      const conversation = await conversationQueries.findById(
-        id as string,
-        userId,
-      );
+      const conversation = await conversationQueries.findById(id, userId);
       if (!conversation) {
         res.status(404).json({
           success: false,
@@ -81,31 +113,85 @@ export class ChatController {
         return;
       }
 
-      const messages = await conversationQueries.getMessages(id as string);
+      const messages = await conversationQueries.getMessages(id);
+
+      res.json({ success: true, data: { conversation, messages } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // GET /conversations/:id/thread — active branch only
+  getActiveThread = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { id: userId } = req.user as JwtPayload;
+      const { id } = req.params;
+
+      const conversation = await conversationQueries.findById(id, userId);
+      if (!conversation) {
+        res.status(404).json({
+          success: false,
+          error: { message: "Conversation not found" },
+        });
+        return;
+      }
+
+      const limit = parseInt((req.query.limit as string) || "100", 10);
+      const messages = await conversationQueries.getActiveThread(id, limit);
+
+      res.json({ success: true, data: { conversation, messages } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // PATCH /conversations/:id/archive
+  archiveConversation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { id: userId } = req.user as JwtPayload;
+      const { id } = req.params;
+      const isArchived = req.body.is_archived !== false; // default true
+
+      // Verify ownership
+      const conversation = await conversationQueries.findById(id, userId);
+      if (!conversation) {
+        res.status(404).json({
+          success: false,
+          error: { message: "Conversation not found" },
+        });
+        return;
+      }
+
+      await conversationQueries.setArchived(id, isArchived);
 
       res.json({
         success: true,
-        data: {
-          conversation,
-          messages,
-        },
+        data: { id, is_archived: isArchived },
       });
     } catch (error) {
       next(error);
     }
   };
 
-  // DELETE /api/v1/chat/conversations/:id
+  // DELETE /conversations/:id
   deleteConversation = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const { id: userId } = req.user as JwtPayload;
       const { id } = req.params;
 
-      const deleted = await conversationQueries.delete(id as string, userId);
+      const deleted = await conversationQueries.delete(id, userId);
       if (!deleted) {
         res.status(404).json({
           success: false,
@@ -114,32 +200,106 @@ export class ChatController {
         return;
       }
 
+      res.json({ success: true, data: { id } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ─── Message Operations ────────────────────────────────────────────────
+
+  // POST /messages/:id/edit
+  editMessage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validation = editMessageSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
+        return;
+      }
+
+      const { id: messageId } = req.params;
+      const { content, conversation_id } = validation.data;
+
+      const newMessage = await conversationQueries.editMessage(
+        messageId,
+        content,
+        conversation_id,
+      );
+
+      res.json({ success: true, data: newMessage });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /messages/:id/cancel
+  cancelMessage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { id: messageId } = req.params;
+
+      await conversationQueries.cancelMessage(messageId);
+
       res.json({
         success: true,
-        data: { id },
+        data: { id: messageId, status: "cancelled" },
       });
     } catch (error) {
       next(error);
     }
   };
 
-  // POST /api/v1/chat/stream
+  // GET /messages/:id/versions
+  getMessageVersions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { id: parentMessageId } = req.params;
+      const role = (req.query.role as string) || "user";
+
+      const versions = await conversationQueries.getMessageVersions(
+        parentMessageId,
+        role,
+      );
+
+      res.json({ success: true, data: versions });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ─── Streaming ─────────────────────────────────────────────────────────
+
+  // POST /stream
   streamResponse = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
-      const { message, conversation_id, resume_id } = req.body;
-
-      if (!message || !conversation_id) {
+      const validation = streamSchema.safeParse(req.body);
+      if (!validation.success) {
         res.status(400).json({
           success: false,
-          error: { message: "message and conversation_id are required" },
+          error: { message: validation.error.errors[0].message },
         });
         return;
       }
+
+      const { id: userId } = req.user as JwtPayload;
+      const { message, conversation_id, resume_id } = validation.data;
 
       const conversation = await conversationQueries.findById(
         conversation_id,
@@ -153,7 +313,7 @@ export class ChatController {
         return;
       }
 
-      // Set SSE headers
+      // SSE headers
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
