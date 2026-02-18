@@ -2,20 +2,45 @@
  * openai.ts
  * ChatGPT text generation via LangChain with LangSmith tracing.
  *
- * Provides:
- * - generateText() - ChatGPT completion
- * - streamText() - Streaming response
- * - generateWithRAG() - RAG with embedded context
+ * Model: gpt-4o-mini (default)
+ *
+ * All public functions return a result object with `text` + `metadata`
+ * (model, tokens, latency) so callers can log and monitor usage.
  */
 
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { OPENAI_API_KEY, OPENAI_MODEL } from "@postly/config";
 
-// Lazy initialization
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface ChatMetadata {
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  latencyMs: number;
+}
+
+export interface ChatResult {
+  text: string;
+  metadata: ChatMetadata;
+}
+
+export interface ChatStreamResult {
+  stream: AsyncIterable<string>;
+  /** Populated after stream is fully consumed. */
+  getMetadata: () => ChatMetadata;
+}
+
+// ─── Internals ───────────────────────────────────────────────────────────────
+
 let chatModel: ChatOpenAI | null = null;
 
 const RETRY_DELAYS = [1000, 2000, 4000, 8000];
+const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_MAX_TOKENS = 4096;
 
 interface APIError {
   message?: string;
@@ -23,9 +48,6 @@ interface APIError {
   code?: string;
 }
 
-/**
- * Retry wrapper with exponential backoff
- */
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
   let lastError: APIError | undefined;
 
@@ -39,163 +61,162 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       const isRetryable =
         !error.status || [429, 500, 502, 503, 504].includes(error.status);
 
-      if (!isRetryable || i === RETRY_DELAYS.length) {
-        throw error;
-      }
+      if (!isRetryable || i === RETRY_DELAYS.length) throw error;
 
       console.warn(
-        `OpenAI operation failed, retrying in ${RETRY_DELAYS[i]}ms...`,
-        lastError?.message || String(lastError),
+        `[openai] retry ${i + 1}/${RETRY_DELAYS.length} in ${RETRY_DELAYS[i]}ms — ${error.message || String(error)}`,
       );
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[i]));
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS[i]));
     }
   }
 
   throw lastError;
 }
 
-import { AI_CONFIG } from "./config";
-
-/**
- * Get or create ChatOpenAI client with LangSmith tracing
- */
 function getClient(): ChatOpenAI {
   if (!chatModel) {
     chatModel = new ChatOpenAI({
-      modelName: AI_CONFIG.openai.model,
-      temperature: AI_CONFIG.openai.temperature,
-      openAIApiKey: AI_CONFIG.openai.apiKey,
-      // LangSmith tracing is auto-enabled via env vars:
-      // LANGCHAIN_TRACING_V2=true
-      // LANGCHAIN_API_KEY=<key>
+      modelName: OPENAI_MODEL,
+      temperature: DEFAULT_TEMPERATURE,
+      openAIApiKey: OPENAI_API_KEY,
+      maxTokens: DEFAULT_MAX_TOKENS,
+      // LangSmith tracing auto-enabled via env:
+      //   LANGCHAIN_TRACING_V2=true
+      //   LANGCHAIN_API_KEY=<key>
     });
   }
   return chatModel;
 }
 
+function buildMessages(
+  prompt: string,
+  systemPrompt?: string,
+): (SystemMessage | HumanMessage)[] {
+  const msgs: (SystemMessage | HumanMessage)[] = [];
+  if (systemPrompt) msgs.push(new SystemMessage(systemPrompt));
+  msgs.push(new HumanMessage(prompt));
+  return msgs;
+}
+
+function emptyMeta(): ChatMetadata {
+  return {
+    model: OPENAI_MODEL,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    latencyMs: 0,
+  };
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
 /**
- * Generate text completion using ChatGPT
+ * Generate a text completion using ChatGPT.
  *
  * @param prompt - User prompt
  * @param systemPrompt - Optional system message
- * @returns Generated text response
+ * @returns `{ text, metadata }` — generated text + token/latency info
  */
 export async function generateText(
   prompt: string,
   systemPrompt?: string,
-): Promise<string> {
+): Promise<ChatResult> {
   const client = getClient();
-
-  const messages: (SystemMessage | HumanMessage)[] = [];
-  if (systemPrompt) {
-    messages.push(new SystemMessage(systemPrompt));
-  }
-  messages.push(new HumanMessage(prompt));
+  const messages = buildMessages(prompt, systemPrompt);
+  const start = Date.now();
 
   const response = (await withRetry(() => client.invoke(messages))) as {
     content: string | unknown[];
+    usage_metadata?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+    };
   };
 
-  return typeof response.content === "string"
-    ? response.content
-    : JSON.stringify(response.content);
+  const text =
+    typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
+
+  const usage = response.usage_metadata;
+
+  return {
+    text,
+    metadata: {
+      model: OPENAI_MODEL,
+      promptTokens: usage?.input_tokens ?? 0,
+      completionTokens: usage?.output_tokens ?? 0,
+      totalTokens: usage?.total_tokens ?? 0,
+      latencyMs: Date.now() - start,
+    },
+  };
 }
 
 /**
- * Stream text completion using ChatGPT
+ * Stream a text completion. Metadata is available after the stream
+ * is fully consumed via `result.getMetadata()`.
  *
  * @param prompt - User prompt
  * @param systemPrompt - Optional system message
- * @returns Async iterable of text chunks
  */
 export async function streamText(
   prompt: string,
   systemPrompt?: string,
-): Promise<AsyncIterable<string>> {
+): Promise<ChatStreamResult> {
   const client = getClient();
   const parser = new StringOutputParser();
-
-  const messages: (SystemMessage | HumanMessage)[] = [];
-  if (systemPrompt) {
-    messages.push(new SystemMessage(systemPrompt));
-  }
-  messages.push(new HumanMessage(prompt));
+  const messages = buildMessages(prompt, systemPrompt);
 
   const stream = await client.pipe(parser).stream(messages);
+  const start = Date.now();
+  let charCount = 0;
 
-  return stream;
-}
+  const meta = emptyMeta();
 
-/**
- * Stream text with metadata (usage info)
- */
-export async function streamTextWithMeta(
-  prompt: string,
-  systemPrompt?: string,
-): Promise<AsyncIterable<{ text?: string; usage?: Record<string, unknown> }>> {
-  const client = getClient();
-
-  const messages: (SystemMessage | HumanMessage)[] = [];
-  if (systemPrompt) {
-    messages.push(new SystemMessage(systemPrompt));
-  }
-  messages.push(new HumanMessage(prompt));
-
-  const stream = await client.stream(messages);
-
-  async function* generator() {
+  async function* tracked(): AsyncGenerator<string> {
     for await (const chunk of stream) {
-      if (chunk.content) {
-        yield {
-          text:
-            typeof chunk.content === "string"
-              ? chunk.content
-              : JSON.stringify(chunk.content),
-        };
-      }
-      if (chunk.usage_metadata) {
-        yield { usage: chunk.usage_metadata as Record<string, unknown> };
-      }
+      charCount += chunk.length;
+      yield chunk;
     }
+    // Rough estimate when no real token counts available
+    meta.completionTokens = Math.ceil(charCount / 4);
+    meta.totalTokens = meta.promptTokens + meta.completionTokens;
+    meta.latencyMs = Date.now() - start;
   }
 
-  return generator();
+  return {
+    stream: tracked(),
+    getMetadata: () => meta,
+  };
 }
 
 /**
- * Generate response using RAG with embedded context
+ * Generate a response grounded in RAG context.
  *
- * @param query - User query
+ * @param query - User question
  * @param context - Retrieved context from vector search
  * @param systemPrompt - Optional custom system prompt
- * @returns Generated response grounded in context
  */
 export async function generateWithRAG(
   query: string,
   context: string,
   systemPrompt?: string,
-): Promise<string> {
+): Promise<ChatResult> {
   const defaultSystem = `You are a helpful assistant that answers questions based on the provided context.
 Only use information from the context to answer. If the context doesn't contain relevant information, say so.
 Cite specific details from the context when possible.`;
 
-  const ragPrompt = `Context:
-${context}
-
----
-
-User Question: ${query}
-
-Answer based on the context above:`;
+  const ragPrompt = `Context:\n${context}\n\n---\n\nUser Question: ${query}\n\nAnswer based on the context above:`;
 
   return generateText(ragPrompt, systemPrompt || defaultSystem);
 }
 
-/**
- * OpenAI configuration
- */
+// ─── Exported Config ─────────────────────────────────────────────────────────
+
 export const OPENAI_CONFIG = {
-  model: AI_CONFIG.openai.model,
+  model: OPENAI_MODEL,
   streamingSupported: true,
-  maxTokens: 4096,
+  maxTokens: DEFAULT_MAX_TOKENS,
+  temperature: DEFAULT_TEMPERATURE,
 } as const;
