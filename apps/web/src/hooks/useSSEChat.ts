@@ -45,6 +45,8 @@ export function useSSEChat() {
         content: message,
         created_at: new Date(),
         status: "sending",
+        version: 1,
+        is_active: true,
       };
 
       // If we have a conversation, add message now.
@@ -73,7 +75,7 @@ export function useSSEChat() {
             addMessage({
               ...userMsg,
               conversation_id: newConv.id,
-              status: "sent",
+              status: "completed",
             });
 
             // Also update the optimistic message status if it was added?
@@ -162,7 +164,9 @@ export function useSSEChat() {
                     content: useChatStore.getState().streamingContent,
                     metadata: { ...event.metadata, ...pendingMetadata },
                     created_at: new Date(),
-                    status: "delivered",
+                    status: "completed",
+                    version: 1,
+                    is_active: true,
                   };
                   addMessage(assistantMsg);
                   clearStreamingContent();
@@ -212,6 +216,8 @@ export function useSSEChat() {
               content: errorMessage,
               created_at: new Date(),
               status: "error",
+              version: 1,
+              is_active: true,
             };
             addMessage(errorMsg);
           }

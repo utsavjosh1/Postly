@@ -22,11 +22,9 @@ export function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await register({ name, email, password, userType });
+      await register({ full_name: name, email, password, role: userType });
       navigate("/chat");
-    } catch {
-      // Error handled by store
-    }
+    } catch {}
   };
 
   return (
@@ -34,7 +32,6 @@ export function RegisterPage() {
       <ParticleBackground />
 
       <div className="relative z-10 w-full max-w-6xl px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* Left Side - Animated Text */}
         <div className="hidden lg:flex flex-row items-center gap-8 pr-8">
           <div className="flex flex-col justify-center space-y-8 flex-1 min-w-0">
             <SlotText
@@ -51,7 +48,7 @@ export function RegisterPage() {
               initialDelay={1500}
             />
           </div>
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <SlotLever
               onPull={() => setTrigger((t) => t + 1)}
               className="scale-110"
@@ -59,9 +56,7 @@ export function RegisterPage() {
           </div>
         </div>
 
-        {/* Right Side - Form */}
         <div className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto">
-          {/* Mobile Header */}
           <div className="lg:hidden text-center mb-8">
             <h2 className="text-3xl font-bold text-white mb-2">
               Create an account

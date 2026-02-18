@@ -121,11 +121,11 @@ export function ChatSidebar() {
         >
           <div className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-zinc-800 cursor-pointer transition-colors group relative">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold uppercase ring-1 ring-inset ring-indigo-500/30">
-              {user?.name?.[0] || "U"}
+              {user?.full_name?.[0] || "U"}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-zinc-100 truncate">
-                {user?.name || "User"}
+                {user?.full_name || "User"}
               </p>
               <p className="text-xs text-zinc-500 truncate">Free Plan</p>
             </div>

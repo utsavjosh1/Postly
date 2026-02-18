@@ -1,29 +1,31 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+import type {
+  LoginInput,
+  CreateUserInput,
+  AuthResponse,
+  User,
+  ApiResponse,
+} from "@postly/shared-types";
 
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  userType: "job_seeker" | "employer";
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  userType: "job_seeker" | "employer";
-}
-
-export interface AuthResponse {
-  user: User;
-  access_token: string;
-  refresh_token?: string;
-}
+// Re-export for convenience
+export type { LoginInput, CreateUserInput, AuthResponse, User, ApiResponse };
+export type LoginRequest = LoginInput;
 
 export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
+}
+
+// Frontend specific forms often need slightly different inputs (e.g. confirmPassword)
+export interface RegisterRequest extends CreateUserInput {
+  confirmPassword?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword?: string;
 }
