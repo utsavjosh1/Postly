@@ -12,19 +12,27 @@ import {
   index,
   unique,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
-// Users table
+// ─── Users ───────────────────────────────────────────────────────────────────
+
 export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     email: varchar("email", { length: 255 }).notNull().unique(),
     password_hash: varchar("password_hash", { length: 255 }),
-    google_id: varchar("google_id", { length: 255 }).unique(),
     full_name: varchar("full_name", { length: 255 }),
     avatar_url: text("avatar_url"),
     role: varchar("role", { length: 50 }).notNull().default("job_seeker"),
     is_verified: boolean("is_verified").default(false),
+
+    // Forgot-password flow
+    password_reset_token: varchar("password_reset_token", { length: 255 }),
+    password_reset_expires_at: timestamp("password_reset_expires_at", {
+      withTimezone: true,
+    }),
+
     last_login_at: timestamp("last_login_at", { withTimezone: true }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -32,11 +40,20 @@ export const users = pgTable(
   (table) => ({
     emailIdx: index("idx_users_email").on(table.email),
     roleIdx: index("idx_users_role").on(table.role),
-    googleIdIdx: index("idx_users_google_id").on(table.google_id),
+    resetTokenIdx: index("idx_users_reset_token").on(
+      table.password_reset_token,
+    ),
   }),
 );
 
-// Resumes table
+export const usersRelations = relations(users, ({ many }) => ({
+  resumes: many(resumes),
+  conversations: many(conversations),
+  job_matches: many(job_matches),
+}));
+
+// ─── Resumes ─────────────────────────────────────────────────────────────────
+
 export const resumes = pgTable(
   "resumes",
   {
@@ -54,11 +71,18 @@ export const resumes = pgTable(
   },
   (table) => ({
     userIdIdx: index("idx_resumes_user").on(table.user_id),
-    // Vector index cannot be fully defined in Drizzle generic schema yet without raw SQL
   }),
 );
 
-// Jobs table
+export const resumesRelations = relations(resumes, ({ one }) => ({
+  user: one(users, {
+    fields: [resumes.user_id],
+    references: [users.id],
+  }),
+}));
+
+// ─── Jobs ────────────────────────────────────────────────────────────────────
+
 export const jobs = pgTable(
   "jobs",
   {
@@ -91,7 +115,16 @@ export const jobs = pgTable(
   }),
 );
 
-// Job Matches table
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  employer: one(users, {
+    fields: [jobs.employer_id],
+    references: [users.id],
+  }),
+  matches: many(job_matches),
+}));
+
+// ─── Job Matches ─────────────────────────────────────────────────────────────
+
 export const job_matches = pgTable(
   "job_matches",
   {
@@ -121,6 +154,23 @@ export const job_matches = pgTable(
   }),
 );
 
+export const jobMatchesRelations = relations(job_matches, ({ one }) => ({
+  user: one(users, {
+    fields: [job_matches.user_id],
+    references: [users.id],
+  }),
+  resume: one(resumes, {
+    fields: [job_matches.resume_id],
+    references: [resumes.id],
+  }),
+  job: one(jobs, {
+    fields: [job_matches.job_id],
+    references: [jobs.id],
+  }),
+}));
+
+// ─── Conversations ───────────────────────────────────────────────────────────
+
 export const conversations = pgTable(
   "conversations",
   {
@@ -129,19 +179,52 @@ export const conversations = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     title: varchar("title", { length: 255 }),
+    resume_id: uuid("resume_id").references(() => resumes.id),
+
+    /** AI model used for this conversation (e.g. "gpt-4o", "gpt-4o-mini") */
+    model: varchar("model", { length: 100 }),
+
+    /** Soft-archive — hides from list without deleting */
+    is_archived: boolean("is_archived").default(false),
+
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-    // Resume ID was missing in schema.sql but present in queries
-    // I'll add it here as it was likely added later
-    resume_id: uuid("resume_id").references(() => resumes.id),
   },
   (table) => ({
     userIdIdx: index("idx_conversations_user").on(
       table.user_id,
       table.updated_at,
     ),
+    archivedIdx: index("idx_conversations_archived").on(
+      table.user_id,
+      table.is_archived,
+    ),
   }),
 );
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [conversations.user_id],
+      references: [users.id],
+    }),
+    resume: one(resumes, {
+      fields: [conversations.resume_id],
+      references: [resumes.id],
+    }),
+    messages: many(messages),
+  }),
+);
+
+// ─── Messages (with branching / editing support) ─────────────────────────────
+//
+// Tree structure for ChatGPT-style editing:
+//   • parent_message_id → which message this is a reply to (forms a tree)
+//   • version           → edit version (v1, v2, … for the same parent)
+//   • is_active         → only the active branch is shown to the user
+//   • status            → tracks streaming lifecycle & cancellation
+//
 
 export const messages = pgTable(
   "messages",
@@ -150,9 +233,28 @@ export const messages = pgTable(
     conversation_id: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
-    role: varchar("role", { length: 50 }).notNull(),
+    role: varchar("role", { length: 50 }).notNull(), // user | assistant | system | tool
+
     content: text("content").notNull(),
     metadata: jsonb("metadata"),
+
+    /** Self-referencing FK — forms a message tree for branching */
+    parent_message_id: uuid("parent_message_id"),
+
+    /** Edit version number. Editing creates a sibling with version + 1. */
+    version: integer("version").notNull().default(1),
+
+    /** Only the active branch is rendered in the UI */
+    is_active: boolean("is_active").notNull().default(true),
+
+    /**
+     * Streaming lifecycle status:
+     *   sending → streaming → completed
+     *                       → cancelled  (user stopped generation)
+     *                       → error      (AI error)
+     */
+    status: varchar("status", { length: 20 }).notNull().default("completed"),
+
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => ({
@@ -160,5 +262,54 @@ export const messages = pgTable(
       table.conversation_id,
       table.created_at,
     ),
+    parentIdx: index("idx_messages_parent").on(table.parent_message_id),
+    activeIdx: index("idx_messages_active").on(
+      table.conversation_id,
+      table.is_active,
+    ),
+  }),
+);
+
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversation_id],
+    references: [conversations.id],
+  }),
+  parent: one(messages, {
+    fields: [messages.parent_message_id],
+    references: [messages.id],
+    relationName: "message_parent",
+  }),
+  children: many(messages, { relationName: "message_parent" }),
+  attachments: many(message_attachments),
+}));
+
+// ─── Message Attachments ─────────────────────────────────────────────────────
+
+export const message_attachments = pgTable(
+  "message_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    message_id: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    file_url: text("file_url").notNull(),
+    file_name: varchar("file_name", { length: 255 }).notNull(),
+    file_type: varchar("file_type", { length: 100 }),
+    file_size: integer("file_size"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    messageIdIdx: index("idx_attachments_message").on(table.message_id),
+  }),
+);
+
+export const messageAttachmentsRelations = relations(
+  message_attachments,
+  ({ one }) => ({
+    message: one(messages, {
+      fields: [message_attachments.message_id],
+      references: [messages.id],
+    }),
   }),
 );

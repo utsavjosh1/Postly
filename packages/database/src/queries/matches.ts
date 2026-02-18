@@ -4,6 +4,9 @@ import { job_matches, jobs } from "../schema";
 import type { JobMatch, Job } from "@postly/shared-types";
 
 export const matchQueries = {
+  /**
+   * Create or update a job match (upserts on user_id + job_id)
+   */
   async create(
     userId: string,
     resumeId: string,
@@ -31,9 +34,12 @@ export const matchQueries = {
       })
       .returning();
 
-    return result as any as JobMatch;
+    return result as unknown as JobMatch;
   },
 
+  /**
+   * Get matches for a user with joined job data
+   */
   async findByUser(userId: string, limit = 20): Promise<JobMatch[]> {
     const results = await db
       .select({
@@ -53,10 +59,13 @@ export const matchQueries = {
 
     return results.map(({ match, job }) => ({
       ...match,
-      job: job as any as Job,
-    })) as any as JobMatch[];
+      job: job as unknown as Job,
+    })) as unknown as JobMatch[];
   },
 
+  /**
+   * Toggle the saved status of a match
+   */
   async markSaved(matchId: string, isSaved: boolean): Promise<void> {
     await db
       .update(job_matches)
@@ -64,6 +73,9 @@ export const matchQueries = {
       .where(eq(job_matches.id, matchId));
   },
 
+  /**
+   * Mark a match as applied
+   */
   async markApplied(matchId: string): Promise<void> {
     await db
       .update(job_matches)
