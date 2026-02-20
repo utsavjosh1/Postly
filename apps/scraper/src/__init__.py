@@ -2,11 +2,11 @@
 """
 Postly Job Scraper Package
 
-Production-grade job aggregator with:
-- Voyage AI embeddings (1024-dim)
-- Cross-source SHA-256 deduplication
-- Scrapy-Playwright spiders
+Production-grade job aggregator for hiring.cafe:
+- Voyage AI embeddings (768-dim, matches Drizzle schema)
+- Source-URL-based deduplication
+- aiohttp async spiders
 - Structured JSON logging
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

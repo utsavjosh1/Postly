@@ -1,5 +1,5 @@
 # Production Scraper Dependencies
-# Python 3.12+
+# Python 3.9+
 
 # Core
 python-dotenv==1.0.1
@@ -16,3 +16,7 @@ tenacity==8.2.3
 
 # Logging & Monitoring
 python-json-logger==2.0.7
+
+# Testing
+pytest==8.0.2
+pytest-asyncio==0.23.5

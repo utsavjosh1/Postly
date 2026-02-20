@@ -7,21 +7,25 @@ import type { JwtPayload } from "../middleware/auth.js";
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 const createConversationSchema = z.object({
-  resume_id: z.string().uuid().optional(),
-  model: z.string().optional(),
+  resume_id: z.string().uuid().nullable().optional(),
+  model: z.string().nullable().optional(),
   initial_message: z.string().optional(),
 });
 
 const streamSchema = z.object({
   message: z.string().min(1, "Message is required"),
   conversation_id: z.string().uuid("Invalid conversation ID"),
-  resume_id: z.string().uuid().optional(),
+  resume_id: z.string().uuid().nullable().optional(),
 });
 
 const editMessageSchema = z.object({
   content: z.string().min(1, "Content is required"),
   conversation_id: z.string().uuid("Invalid conversation ID"),
 });
+
+// ─── Typed Request Params ────────────────────────────────────────────────────
+
+type IdParams = { id: string };
 
 // ─── Controller ──────────────────────────────────────────────────────────────
 
@@ -76,8 +80,8 @@ export class ChatController {
 
       const conversation = await conversationQueries.create(
         userId,
-        resume_id,
-        model,
+        resume_id ?? undefined,
+        model ?? undefined,
       );
 
       if (initial_message) {
@@ -96,7 +100,7 @@ export class ChatController {
 
   // GET /conversations/:id
   getConversationById = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -123,7 +127,7 @@ export class ChatController {
 
   // GET /conversations/:id/thread — active branch only
   getActiveThread = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -151,7 +155,7 @@ export class ChatController {
 
   // PATCH /conversations/:id/archive
   archiveConversation = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -183,7 +187,7 @@ export class ChatController {
 
   // DELETE /conversations/:id
   deleteConversation = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -210,7 +214,7 @@ export class ChatController {
 
   // POST /messages/:id/edit
   editMessage = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -241,7 +245,7 @@ export class ChatController {
 
   // POST /messages/:id/cancel
   cancelMessage = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -261,7 +265,7 @@ export class ChatController {
 
   // GET /messages/:id/versions
   getMessageVersions = async (
-    req: Request,
+    req: Request<IdParams>,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -323,7 +327,7 @@ export class ChatController {
         conversation_id,
         userId,
         message,
-        resume_id,
+        resume_id ?? undefined,
       );
 
       for await (const event of stream) {

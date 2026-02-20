@@ -7,9 +7,7 @@ Schema is managed by Drizzle migrations — this module does NOT create tables.
 It only performs INSERT/UPDATE/SELECT/DELETE operations on the existing schema.
 """
 
-import asyncio
 import logging
-import json
 from typing import Optional, List, Dict, Any
 import asyncpg
 from datetime import datetime, timezone
@@ -285,8 +283,8 @@ class Database:
         async with self.pool.acquire() as conn:
             result = await conn.execute("""
                 DELETE FROM jobs
-                WHERE created_at < NOW() - INTERVAL '%s days'
-            """ % days)
+                WHERE created_at < NOW() - MAKE_INTERVAL(days => $1)
+            """, days)
             count = int(result.split()[-1])
             logger.info(f"Cleaned up {count} old jobs (> {days} days)")
             return count
@@ -307,10 +305,10 @@ class Database:
             result = await conn.execute("""
                 UPDATE jobs
                 SET is_active = FALSE, updated_at = NOW()
-                WHERE updated_at < NOW() - INTERVAL '%s days'
+                WHERE updated_at < NOW() - MAKE_INTERVAL(days => $1)
                     AND is_active = TRUE
                     AND source = 'hiring_cafe'
-            """ % days)
+            """, days)
             count = int(result.split()[-1])
             logger.info(f"Deactivated {count} stale jobs (> {days} days)")
             return count

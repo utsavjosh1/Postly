@@ -251,7 +251,6 @@ export interface Conversation {
   model?: string;
   is_archived: boolean;
   state?: ConversationState;
-  last_message_at: Date;
   created_at: Date;
   updated_at: Date;
 }

@@ -16,7 +16,7 @@ import logging
 import os
 import signal
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -150,7 +150,7 @@ class ScraperSystem:
             "interval",
             minutes=self.scrape_interval_minutes,
             id="scrape_cycle",
-            next_run_time=datetime.now(),  # Run immediately
+            next_run_time=datetime.now(timezone.utc),  # Run immediately
         )
         self.scheduler.add_job(
             self._maintenance_cycle,
@@ -197,7 +197,7 @@ class ScraperSystem:
             # Update health
             stats = await self.db.get_stats()
             self.health.update_status(
-                last_scrape=datetime.utcnow().isoformat(),
+                last_scrape=datetime.now(timezone.utc).isoformat(),
                 jobs_in_db=stats.get("total_jobs", 0),
             )
 

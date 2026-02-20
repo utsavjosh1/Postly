@@ -31,21 +31,21 @@ except ImportError:
 class VoyageEmbeddingService:
     """
     Dedicated Voyage AI embedding client with production features.
-    
+
     Features:
-    - voyage-3.5-lite model (1024 dimensions)
+    - voyage-3-lite model (768 dimensions, matches Drizzle schema)
     - Built-in rate limiting (300 RPM max)
     - Batch processing (128 texts per request max)
     - Tenacity retry with exponential backoff
     - Token consumption tracking
     """
-    
+
     # Voyage AI limits
-    MODEL = os.getenv("VOYAGE_MODEL", "voyage-3.5-lite")
-    EMBEDDING_DIM = 1024
+    MODEL = os.getenv("VOYAGE_MODEL", "voyage-3-lite")
+    EMBEDDING_DIM = 768
     MAX_BATCH_SIZE = 128
     MAX_RPM = 300
-    MAX_TOKENS_PER_REQUEST = 120000  # Approximate limit
+    MAX_TOKENS_PER_REQUEST = 120000
     
     def __init__(
         self,
@@ -161,7 +161,7 @@ class VoyageEmbeddingService:
         input_type: str = "document"
     ) -> List[List[float]]:
         """
-        Make a single batch embedding request to Voyage AI.
+        Make a single batch embedding request to Voyage AI (768-dim).
         
         Args:
             texts: List of texts to embed
@@ -212,7 +212,7 @@ class VoyageEmbeddingService:
             input_type: "document" or "query"
             
         Returns:
-            1024-dimensional embedding vector
+            768-dimensional embedding vector
         """
         embeddings = await self._embed_batch_request([text], input_type)
         return embeddings[0] if embeddings else []
