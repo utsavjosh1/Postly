@@ -7,6 +7,56 @@ import type { Message } from "@postly/shared-types";
 import { JobCarousel } from "./JobCarousel";
 import { toOptimizedJobMatch } from "../../lib/job-utils";
 
+// Extracted as a proper component so useState is valid (rules-of-hooks)
+function CodeBlock({
+  inline,
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<"code"> & { inline?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const code = String(children).replace(/\n$/, "");
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return !inline ? (
+    <div className="relative group my-4 rounded-md overflow-hidden border border-white/10 bg-zinc-950 text-white cursor-text">
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-800/50 border-b border-white/10">
+        <span className="text-xs text-zinc-400 font-mono">Code</span>
+        <button
+          onClick={handleCopy}
+          className="p-1.5 hover:bg-white/10 rounded transition-colors"
+        >
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <Copy className="w-3.5 h-3.5 text-zinc-400" />
+          )}
+        </button>
+      </div>
+      <pre className="m-0! p-4! overflow-x-auto bg-transparent!">
+        <code
+          className={`bg-transparent! font-mono text-sm ${className}`}
+          {...props}
+        >
+          {children}
+        </code>
+      </pre>
+    </div>
+  ) : (
+    <code
+      className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-white"
+      {...props}
+    >
+      {children}
+    </code>
+  );
+}
+
 // Memoized Message Item Component
 const MessageItem = memo(
   ({
@@ -175,58 +225,7 @@ const MessageItem = memo(
                 <div className="prose prose-sm max-w-none prose-invert prose-p:leading-7 prose-pre:p-0 prose-pre:bg-transparent">
                   <ReactMarkdown
                     components={{
-                      code: ({
-                        inline,
-                        className,
-                        children,
-                        ...props
-                      }: React.ComponentPropsWithoutRef<"code"> & {
-                        inline?: boolean;
-                      }) => {
-                        const [copied, setCopied] = useState(false);
-                        const code = String(children).replace(/\n$/, "");
-
-                        const handleCopy = () => {
-                          navigator.clipboard.writeText(code);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        };
-
-                        return !inline ? (
-                          <div className="relative group my-4 rounded-md overflow-hidden border border-white/10 bg-zinc-950 text-white cursor-text">
-                            <div className="flex items-center justify-between px-4 py-2 bg-zinc-800/50 border-b border-white/10">
-                              <span className="text-xs text-zinc-400 font-mono">
-                                Code
-                              </span>
-                              <button
-                                onClick={handleCopy}
-                                className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                              >
-                                {copied ? (
-                                  <Check className="w-3.5 h-3.5 text-green-400" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                                )}
-                              </button>
-                            </div>
-                            <pre className="m-0! p-4! overflow-x-auto bg-transparent!">
-                              <code
-                                className={`bg-transparent! font-mono text-sm ${className}`}
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            </pre>
-                          </div>
-                        ) : (
-                          <code
-                            className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-white"
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        );
-                      },
+                      code: CodeBlock as any,
                     }}
                   >
                     {message.content}

@@ -24,7 +24,9 @@ export function RegisterPage() {
     try {
       await register({ full_name: name, email, password, role: userType });
       navigate("/chat");
-    } catch {}
+    } catch {
+      // Error is surfaced via useAuthStore's error state
+    }
   };
 
   return (

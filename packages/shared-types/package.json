@@ -16,11 +16,12 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src"
+    "lint": "eslint src"
   },
   "devDependencies": {
     "@postly/eslint-config": "*",
     "@postly/typescript-config": "*",
+    "eslint": "^8.57.1",
     "typescript": "^5.7.2"
   },
   "dependencies": {

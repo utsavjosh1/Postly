@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src",
+    "lint": "eslint src",
     "dev": "tsc --watch",
     "clean": "rm -rf dist && rm -rf .turbo"
   },
