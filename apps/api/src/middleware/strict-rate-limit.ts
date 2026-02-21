@@ -5,6 +5,9 @@ import type { JwtPayload } from "./auth.js";
 
 // Initialize Redis client
 const redis = new Redis(REDIS_URL || "redis://localhost:6379");
+redis.on("error", (err) => {
+  console.error("Redis (strict-rate-limit) connection error:", err);
+});
 
 interface RateLimitConfig {
   windowMs: number;
