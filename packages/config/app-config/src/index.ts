@@ -52,9 +52,6 @@ export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 export const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY || "";
 export const VOYAGE_MODEL = process.env.VOYAGE_MODEL || "voyage-4-large";
 
-/** @deprecated Migrated to OpenAI — kept for backwards compat */
-export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-
 // ─── Server ──────────────────────────────────────────────────────────────────
 
 export const NODE_ENV = process.env.NODE_ENV || "development";

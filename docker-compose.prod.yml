@@ -77,8 +77,9 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT refresh secret required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?Gemini API key required}
       WEB_URL: ${WEB_URL:-http://localhost}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
       API_PORT: 3000
     depends_on:
       postgres:
@@ -109,8 +110,8 @@ services:
       DB_NAME: ${DB_NAME:-postly}
       DB_USER: ${DB_USER:-postly}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
       HEALTH_PORT: 8080
     depends_on:
       postgres:

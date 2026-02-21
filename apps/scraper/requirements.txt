@@ -16,6 +16,7 @@ tenacity==8.2.3
 
 # Logging & Monitoring
 python-json-logger==2.0.7
+colorlog==6.8.2
 
 # Testing
 pytest==8.0.2

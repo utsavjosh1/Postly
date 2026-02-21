@@ -35,25 +35,30 @@ from health import HealthCheckServer
 # ─── Logging ──────────────────────────────────────────────────────
 
 def setup_logging():
-    """Configure structured JSON logging."""
+    """Configure structured readable logging."""
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    handler = logging.StreamHandler()
+    
     try:
-        from pythonjsonlogger import jsonlogger
-        handler = logging.StreamHandler()
-        formatter = jsonlogger.JsonFormatter(
-            "%(asctime)s %(name)s %(levelname)s %(message)s"
+        import colorlog
+        formatter = colorlog.ColoredFormatter(
+            "%(log_color)s%(asctime)s [%(levelname)s] %(cyan)s%(name)s:%(reset)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
         )
-        handler.setFormatter(formatter)
     except ImportError:
-        handler = logging.StreamHandler()
         formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
         )
-        handler.setFormatter(formatter)
+
+    handler.setFormatter(formatter)
 
     root = logging.getLogger()
     root.setLevel(log_level)
+    # Remove existing handlers to avoid duplicates
+    if root.hasHandlers():
+        root.handlers.clear()
     root.addHandler(handler)
 
     # Quiet noisy loggers
@@ -132,7 +137,7 @@ class ScraperSystem:
         self.pipeline = JobProcessingPipeline(
             database=self.db,
             embedding_service=self.embedder,
-            batch_size=25,
+            batch_size=100,
         )
 
         # 5. Janitor
@@ -178,23 +183,37 @@ class ScraperSystem:
         cycle = self._cycle_count
 
         logger.info({"event": "cycle_start", "cycle": cycle})
-        start = datetime.utcnow()
+        
+        batch = []
+        total_scraped = 0
+        total_stored = 0
 
         try:
-            # Scrape
-            jobs = await self.spider.scrape_all()
-            logger.info(f"Cycle {cycle}: scraped {len(jobs)} jobs")
+            # Scrape and process in real-time batches
+            async for job in self.spider.scrape():
+                batch.append(job)
+                total_scraped += 1
+                
+                if len(batch) >= self.pipeline.batch_size:
+                    logger.info(f"Batch full ({len(batch)} jobs). Sending to pipeline...")
+                    metrics = await self.pipeline.process(batch)
+                    total_stored += metrics.jobs_stored
+                    batch = []
+                    
+                    # Update health periodically
+                    self.health.update_status(
+                        last_scrape=datetime.now(timezone.utc).isoformat(),
+                        jobs_in_db=(await self.db.get_stats()).get("total_jobs", 0),
+                    )
 
-            if jobs:
-                # Process through pipeline
-                metrics = await self.pipeline.process(jobs)
-                logger.info({
-                    "event": "cycle_complete",
-                    "cycle": cycle,
-                    **metrics.to_log_dict(),
-                })
+            # Process remaining jobs in the last batch
+            if batch:
+                metrics = await self.pipeline.process(batch)
+                total_stored += metrics.jobs_stored
 
-            # Update health
+            logger.info(f"Cycle {cycle} complete: scraped {total_scraped}, stored {total_stored}")
+
+            # Final health update
             stats = await self.db.get_stats()
             self.health.update_status(
                 last_scrape=datetime.now(timezone.utc).isoformat(),

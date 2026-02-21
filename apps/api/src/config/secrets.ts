@@ -28,7 +28,4 @@ export {
   OPENAI_MODEL,
   VOYAGE_API_KEY,
   VOYAGE_MODEL,
-
-  // Legacy
-  GEMINI_API_KEY,
 } from "@postly/config";
