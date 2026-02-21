@@ -17,7 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^17.3.1"
   },
   "devDependencies": {
     "@postly/typescript-config": "*",
