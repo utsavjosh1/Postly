@@ -174,6 +174,21 @@ class HiringCafeSpider:
             await self._playwright.stop()
             logger.info("Spider Playwright session closed")
 
+    async def _reset_browser(self) -> None:
+        """Reset browser state after a crash."""
+        if self._page:
+            try:
+                await self._page.close()
+            except:
+                pass
+        if self._context:
+            try:
+                await self._context.close()
+            except:
+                pass
+        self._page = None
+        self._context = None
+
     # ─── Rate Limiting ────────────────────────────────────────────
 
     async def _throttle(self) -> None:
@@ -195,7 +210,13 @@ class HiringCafeSpider:
         await self._throttle()
         page = await self._get_page()
 
-        response = await page.goto(self.BASE, wait_until="domcontentloaded")
+        try:
+            response = await page.goto(self.BASE, wait_until="domcontentloaded")
+        except Exception as e:
+            if "crashed" in str(e).lower() or "closed" in str(e).lower() or "timeout" in str(e).lower():
+                await self._reset_browser()
+            raise e
+
         if not response or not response.ok:
             raise PlaywrightError(f"Homepage returned {response.status if response else 'None'}")
         
@@ -238,7 +259,13 @@ class HiringCafeSpider:
 
         url = f"{self.SEARCH_URL}?offset={offset}&limit={self._page_size}"
         
-        response = await page.goto(url, wait_until="domcontentloaded")
+        try:
+            response = await page.goto(url, wait_until="domcontentloaded")
+        except Exception as e:
+            if "crashed" in str(e).lower() or "closed" in str(e).lower() or "timeout" in str(e).lower():
+                await self._reset_browser()
+            raise e
+
         if response.status == 429:
             retry_after = 60
             logger.warning({"event": "rate_limited", "retry_after": retry_after})
@@ -276,6 +303,8 @@ class HiringCafeSpider:
                 return total
         except Exception as exc:
             logger.warning(f"Could not get total count: {exc}")
+            if "crashed" in str(exc).lower() or "closed" in str(exc).lower() or "timeout" in str(exc).lower():
+                await self._reset_browser()
         return 0
 
     # ─── Job Detail ───────────────────────────────────────────────
@@ -299,6 +328,8 @@ class HiringCafeSpider:
             response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
         except Exception as e:
             logger.warning(f"Timeout or error fetching detail for {requisition_id}. Will retry... Error: {e}")
+            if "crashed" in str(e).lower() or "closed" in str(e).lower() or "timeout" in str(e).lower():
+                await self._reset_browser()
             raise e
 
         if response and response.ok:
