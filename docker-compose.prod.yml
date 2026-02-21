@@ -8,6 +8,9 @@ services:
       POSTGRES_USER: ${DB_USER:-postly}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
       POSTGRES_DB: ${DB_NAME:-postly}
+      DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./packages/database/migrations:/docker-entrypoint-initdb.d:ro
@@ -71,6 +74,7 @@ services:
       DB_NAME: ${DB_NAME:-postly}
       DB_USER: ${DB_USER:-postly}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:?JWT secret required}
@@ -110,6 +114,7 @@ services:
       DB_NAME: ${DB_NAME:-postly}
       DB_USER: ${DB_USER:-postly}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
       HEALTH_PORT: 8080

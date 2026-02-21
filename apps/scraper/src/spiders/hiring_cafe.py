@@ -132,22 +132,37 @@ class HiringCafeSpider:
     # ─── Session ──────────────────────────────────────────────────
 
     async def _get_page(self) -> Page:
-        if not self._playwright:
-            self._playwright = await async_playwright().start()
-            self._browser = await self._playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                ],
-            )
-            self._context = await self._browser.new_context(
-                user_agent=self._BROWSER_HEADERS["User-Agent"],
-                viewport={"width": 1280, "height": 800}
-            )
-            self._page = await self._context.new_page()
+        if not self._page:
+            try:
+                if not self._playwright:
+                    self._playwright = await async_playwright().start()
+                if not self._browser:
+                    self._browser = await self._playwright.chromium.launch(
+                        headless=True,
+                        args=[
+                            "--disable-blink-features=AutomationControlled",
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox",
+                            "--disable-dev-shm-usage",
+                        ],
+                    )
+                if not self._context:
+                    self._context = await self._browser.new_context(
+                        user_agent=self._BROWSER_HEADERS["User-Agent"],
+                        viewport={"width": 1280, "height": 800}
+                    )
+                if not self._page:
+                    self._page = await self._context.new_page()
+            except Exception as e:
+                # Need to clean up state so we truly retry from scratch
+                logger.error(f"Playwright initialization failed: {e}")
+                if self._playwright:
+                    await self._playwright.stop()
+                    self._playwright = None
+                self._browser = None
+                self._context = None
+                self._page = None
+                raise e
         return self._page
 
     async def close(self) -> None:
