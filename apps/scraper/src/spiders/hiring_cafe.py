@@ -19,12 +19,14 @@ from datetime import datetime, timezone
 from html import unescape
 
 import aiohttp
+import json
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
 )
+from playwright.async_api import async_playwright, Playwright, Browser, BrowserContext, Page, Error as PlaywrightError
 
 import sys
 from pathlib import Path
@@ -115,7 +117,10 @@ class HiringCafeSpider:
         self._max_pages = max_pages
         self._last_request_at = 0.0
 
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._playwright: Optional[Playwright] = None
+        self._browser: Optional[Browser] = None
+        self._context: Optional[BrowserContext] = None
+        self._page: Optional[Page] = None
         self._build_id: Optional[str] = None
 
         # Metrics — reset between cycles by the orchestrator
@@ -126,18 +131,28 @@ class HiringCafeSpider:
 
     # ─── Session ──────────────────────────────────────────────────
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(
-                headers=self._BROWSER_HEADERS,
-                timeout=aiohttp.ClientTimeout(total=30),
+    async def _get_page(self) -> Page:
+        if not self._playwright:
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"]
             )
-        return self._session
+            self._context = await self._browser.new_context(
+                user_agent=self._BROWSER_HEADERS["User-Agent"],
+                viewport={"width": 1280, "height": 800}
+            )
+            self._page = await self._context.new_page()
+        return self._page
 
     async def close(self) -> None:
-        if self._session and not self._session.closed:
-            await self._session.close()
-            logger.info("Spider session closed")
+        if self._context:
+            await self._context.close()
+        if self._browser:
+            await self._browser.close()
+        if self._playwright:
+            await self._playwright.stop()
+            logger.info("Spider Playwright session closed")
 
     # ─── Rate Limiting ────────────────────────────────────────────
 
@@ -153,17 +168,18 @@ class HiringCafeSpider:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=2, min=5, max=60),
-        retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+        retry=retry_if_exception_type((PlaywrightError, asyncio.TimeoutError)),
     )
     async def _discover_build_id(self) -> str:
         """Fetch the homepage and extract the Next.js buildId."""
         await self._throttle()
-        session = await self._get_session()
+        page = await self._get_page()
 
-        async with session.get(self.BASE, headers={"Accept": "text/html"}) as resp:
-            if resp.status != 200:
-                raise aiohttp.ClientError(f"Homepage returned {resp.status}")
-            html = await resp.text()
+        response = await page.goto(self.BASE, wait_until="domcontentloaded")
+        if not response or not response.ok:
+            raise PlaywrightError(f"Homepage returned {response.status if response else 'None'}")
+        
+        html = await page.content()
 
         match = self._BUILD_ID_RE.search(html)
         if not match:
@@ -193,46 +209,51 @@ class HiringCafeSpider:
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=2, min=3, max=120),
-        retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+        retry=retry_if_exception_type((PlaywrightError, asyncio.TimeoutError)),
     )
     async def _search_page(self, offset: int) -> Dict[str, Any]:
         """GET /api/search-jobs with query params for a page of results."""
         await self._throttle()
-        session = await self._get_session()
+        page = await self._get_page()
 
-        params = {"offset": str(offset), "limit": str(self._page_size)}
+        url = f"{self.SEARCH_URL}?offset={offset}&limit={self._page_size}"
+        
+        response = await page.goto(url, wait_until="domcontentloaded")
+        if response.status == 429:
+            retry_after = 60
+            logger.warning({"event": "rate_limited", "retry_after": retry_after})
+            await asyncio.sleep(retry_after)
+            raise PlaywrightError("Rate limited on search")
 
-        async with session.get(self.SEARCH_URL, params=params) as resp:
-            if resp.status == 429:
-                retry_after = int(resp.headers.get("Retry-After", "60"))
-                logger.warning({"event": "rate_limited", "retry_after": retry_after})
-                await asyncio.sleep(retry_after)
-                raise aiohttp.ClientError("Rate limited on search")
+        if not response.ok:
+            logger.error({"event": "search_error", "status": response.status})
+            raise PlaywrightError(f"Search returned {response.status}")
 
-            if resp.status != 200:
-                logger.error({"event": "search_error", "status": resp.status})
-                raise aiohttp.ClientError(f"Search returned {resp.status}")
-
-            return await resp.json()
+        text = await page.evaluate("document.body.innerText")
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            raise PlaywrightError("Failed to parse search JSON")
 
     async def _get_total_count(self) -> int:
         """GET /api/search-jobs/get-total-count → total available jobs."""
         await self._throttle()
-        session = await self._get_session()
+        page = await self._get_page()
 
         try:
-            async with session.get(self.COUNT_URL) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    # Response shape: { "total": 114789, "collapsedTotal": 4047 }
-                    if isinstance(data, int):
-                        total = data
-                    elif isinstance(data, dict):
-                        total = data.get("total", data.get("count", 0))
-                    else:
-                        total = 0
-                    logger.info({"event": "total_count", "total": total})
-                    return total
+            response = await page.goto(self.COUNT_URL, wait_until="domcontentloaded")
+            if response and response.ok:
+                text = await page.evaluate("document.body.innerText")
+                data = json.loads(text)
+                # Response shape: { "total": 114789, "collapsedTotal": 4047 }
+                if isinstance(data, int):
+                    total = data
+                elif isinstance(data, dict):
+                    total = data.get("total", data.get("count", 0))
+                else:
+                    total = 0
+                logger.info({"event": "total_count", "total": total})
+                return total
         except Exception as exc:
             logger.warning(f"Could not get total count: {exc}")
         return 0
@@ -242,59 +263,43 @@ class HiringCafeSpider:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
-        retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+        retry=retry_if_exception_type((PlaywrightError, asyncio.TimeoutError)),
     )
     async def _fetch_job_detail(self, requisition_id: str) -> Optional[Dict[str, Any]]:
         """
-        GET /_next/data/{buildId}/viewjob/{id}.json for full job data.
-
-        If a 404 is returned (stale build ID), refreshes the build ID
-        and retries once within this call. The outer @retry handles
-        transient network errors separately.
+        GET /viewjob/{id} and extract __NEXT_DATA__
         """
         await self._ensure_build_id()
         await self._throttle()
-        session = await self._get_session()
+        page = await self._get_page()
 
-        detail_headers = {"x-nextjs-data": "1"}
+        url = f"{self.BASE}/viewjob/{requisition_id}"
 
-        url = (
-            f"{self.BASE}/_next/data/{self._build_id}"
-            f"/viewjob/{requisition_id}.json"
-            f"?requisitionId={requisition_id}"
-        )
-
-        async with session.get(url, headers=detail_headers) as resp:
-            if resp.status == 200:
-                self.detail_fetches += 1
-                return await resp.json()
-
-            if resp.status == 404:
-                logger.warning("Detail 404 — build ID may be stale, refreshing")
-                await self._refresh_build_id()
-
-                url = (
-                    f"{self.BASE}/_next/data/{self._build_id}"
-                    f"/viewjob/{requisition_id}.json"
-                    f"?requisitionId={requisition_id}"
-                )
-                async with session.get(url, headers=detail_headers) as retry_resp:
-                    if retry_resp.status == 200:
-                        self.detail_fetches += 1
-                        return await retry_resp.json()
-                    logger.debug(
-                        f"Detail still {retry_resp.status} after build ID refresh "
-                        f"for {requisition_id}"
-                    )
-                    return None
-
-            if resp.status == 429:
-                retry_after = int(resp.headers.get("Retry-After", "30"))
-                await asyncio.sleep(retry_after)
-                raise aiohttp.ClientError("Rate limited on detail")
-
-            logger.debug(f"Detail {resp.status} for {requisition_id}")
+        try:
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        except Exception as e:
+            logger.warning(f"Timeout or error fetching detail for {requisition_id}: {e}")
+            self.errors += 1
             return None
+
+        if response and response.ok:
+            self.detail_fetches += 1
+            html = await page.content()
+            match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html, re.DOTALL)
+            if match:
+                try:
+                    data = json.loads(match.group(1))
+                    return data.get("props", {})
+                except json.JSONDecodeError:
+                    return None
+            return None
+
+        if response and response.status == 429:
+            await asyncio.sleep(30)
+            raise PlaywrightError("Rate limited on detail")
+
+        logger.debug(f"Detail {response.status if response else 'None'} for {requisition_id}")
+        return None
 
     # ─── Parsing ──────────────────────────────────────────────────
 
@@ -304,80 +309,89 @@ class HiringCafeSpider:
         return card.get("requisition_id") or card.get("objectID")
 
     def _parse_job(self, raw: Dict[str, Any]) -> Optional[ScrapedJob]:
-        """
-        Parse the /_next/data JSON envelope into a ScrapedJob.
-
-        Expected shape:
-        {
-          "pageProps": {
-            "job_information": {
-              "title": "...",
-              "requisition_id": "...",
-              "apply_url": "...",
-              "description": "<html>...",
-              "v5_processed_job_data": {
-                "yearly_min_compensation": ...,
-                "yearly_max_compensation": ...,
-                "workplace_type": "Remote" | "Onsite" | "Hybrid",
-                "formatted_workplace_location": "...",
-                "technical_tools": [...],
-                "min_industry_and_role_yoe": ...,
-              },
-              "enriched_company_data": {
-                "name": "...",
-                "industries": [...],
-              }
-            }
-          }
-        }
-        """
+        """Parse raw job detail JSON into ScrapedJob."""
         try:
-            page_props = raw.get("pageProps", {})
-            job_info = page_props.get("job_information", page_props)
+            if not raw:
+                return None
+            
+            # Start with the main props
+            data = raw.get("pageProps", raw)
+            
+            # Merge nested job info if present, but keep parent fields
+            for key in ["job", "job_information"]:
+                nested = data.get(key)
+                if isinstance(nested, dict):
+                    # Shallow merge: nested fields overwrite parent but we keep what's unique
+                    # This ensures we get 'requisition_id' from parent and 'title' from child
+                    merged = data.copy()
+                    merged.update(nested)
+                    data = merged
 
-            title = job_info.get("title") or job_info.get("job_title_raw", "")
-            requisition_id = job_info.get("requisition_id", "")
+            title = (
+                data.get("title")
+                or data.get("job_title")
+                or data.get("job_title_raw")
+                or ""
+            )
+            requisition_id = (
+                data.get("requisition_id")
+                or data.get("requisitionId")
+                or data.get("id")
+                or data.get("objectID")
+                or ""
+            )
 
             if not title or not requisition_id:
+                logger.debug(f"Parsing failed: missing title or id. keys: {list(data.keys())}")
                 return None
 
             # Company
-            company_data = job_info.get("enriched_company_data") or {}
+            company_data = (
+                data.get("enriched_company_data")
+                or data.get("company_data")
+                or {}
+            )
             company_name = (
                 company_data.get("name")
-                or job_info.get("company_name")
+                or data.get("company_name")
+                or data.get("company")
                 or "Unknown"
             )
 
             # Description: HTML → plain text
-            description_html = job_info.get("description", "")
+            description_html = (
+                data.get("description")
+                or data.get("job_description_html")
+                or data.get("job_description", "")
+            )
             description = _html_to_text(description_html)
 
             # Fall back to alternate field
-            if len(description) < 50:
-                description = job_info.get("description_clean", description)
-            if len(description) < 50:
-                logger.debug(f"Description too short for {requisition_id}")
+            if len(description) < 10:
+                description = data.get("description_clean") or data.get("job_description_text") or description
+            
+            if len(description) < 10:
+                logger.debug(f"Description too short for {requisition_id}. Content: {description[:50]}")
                 return None
 
             # Processed data
-            v5 = job_info.get("v5_processed_job_data") or {}
+            v5 = data.get("v5_processed_job_data") or data.get("processed_data") or {}
 
             # Salary
-            salary_min = _safe_decimal(v5.get("yearly_min_compensation"))
-            salary_max = _safe_decimal(v5.get("yearly_max_compensation"))
+            salary_min = _safe_decimal(v5.get("yearly_min_compensation") or data.get("yearly_min_compensation"))
+            salary_max = _safe_decimal(v5.get("yearly_max_compensation") or data.get("yearly_max_compensation"))
 
             # Location & remote
             workplace_type = (v5.get("workplace_type") or "").lower()
             is_remote = workplace_type == "remote"
             location = (
                 v5.get("formatted_workplace_location")
-                or job_info.get("location")
+                or data.get("location")
                 or ("Remote" if is_remote else None)
             )
 
             # Skills
-            raw_tools = v5.get("technical_tools") or []
+            raw_tools = v5.get("technical_tools") or data.get("skills_required") or []
             skills = [str(t) for t in raw_tools if t] if isinstance(raw_tools, list) else []
 
             # Experience
@@ -385,15 +399,15 @@ class HiringCafeSpider:
             experience = f"{min_yoe}+ years" if min_yoe else None
 
             # Job type
-            job_type = job_info.get("employment_type") or v5.get("employment_type")
+            job_type = data.get("employment_type") or v5.get("employment_type")
 
             # Apply URL
             apply_url = (
-                job_info.get("apply_url")
+                data.get("apply_url")
                 or f"{self.BASE}/viewjob/{requisition_id}"
             )
 
-            return ScrapedJob(
+            job = ScrapedJob(
                 title=title,
                 company_name=company_name,
                 description=description,
@@ -407,7 +421,7 @@ class HiringCafeSpider:
                 skills_required=skills,
                 experience_required=experience,
                 is_active=True,
-                requisition_id=requisition_id,
+                requisition_id=str(requisition_id),
                 meta={
                     "workplace_type": workplace_type,
                     "industries": company_data.get("industries", []),
@@ -415,6 +429,8 @@ class HiringCafeSpider:
                     "nb_employees": company_data.get("nb_employees"),
                 },
             )
+            logger.debug(f"Parsed job successfully: {job.title} | {job.company_name}")
+            return job
 
         except Exception as exc:
             logger.error(f"Parse error: {exc}", exc_info=True)
@@ -461,51 +477,44 @@ class HiringCafeSpider:
                 self.errors += 1
                 break
 
-            # The API returns { "results": [...] }
             hits = page_data.get("results") or page_data.get("hits") or []
 
             if not hits:
                 logger.info({"event": "pagination_complete", "pages": page_num})
                 break
 
+            page_req_ids = []
             for card in hits:
                 req_id = self._extract_requisition_id(card)
                 if req_id and req_id not in known:
-                    all_req_ids.append(req_id)
+                    page_req_ids.append(req_id)
+                    all_req_ids.append(req_id) # keep for final metrics
+
+            # Immediately fetch details for this page's new IDs
+            if page_req_ids:
+                logger.info(f"Discovered {len(page_req_ids)} new jobs on page {page_num + 1}. Fetching details...")
+                for rid in page_req_ids:
+                    try:
+                        result = await self._fetch_job_detail(rid)
+                        if result:
+                            job = self._parse_job(result)
+                            if job:
+                                self.jobs_found += 1
+                                yield job
+                    except Exception as exc:
+                        logger.error(f"Detail fetch failed for {rid}: {exc}")
+                        self.errors += 1
 
             self.pages_scraped += 1
             page_num += 1
             offset += self._page_size
-
+            
+            if page_num % 5 == 0:
+                logger.info(f"Progress: {page_num}/{self._max_pages} search pages processed. Total found: {self.jobs_found}")
+                
             if total and offset >= total:
                 logger.info(f"Reached total {total} jobs")
                 break
-
-        logger.info({
-            "event": "discovery_complete",
-            "unique_ids": len(all_req_ids),
-            "pages_scraped": self.pages_scraped,
-        })
-
-        # Step 4: Fetch full details in concurrent batches
-        batch_size = 5
-        for i in range(0, len(all_req_ids), batch_size):
-            batch = all_req_ids[i : i + batch_size]
-            tasks = [self._fetch_job_detail(rid) for rid in batch]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            for rid, result in zip(batch, results):
-                if isinstance(result, BaseException):
-                    logger.error(f"Detail fetch failed for {rid}: {result}")
-                    self.errors += 1
-                    continue
-                if result is None:
-                    continue
-
-                job = self._parse_job(result)
-                if job:
-                    self.jobs_found += 1
-                    yield job
 
         duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info({

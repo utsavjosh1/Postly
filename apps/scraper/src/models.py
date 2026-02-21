@@ -30,7 +30,7 @@ class ScrapedJob(BaseModel):
     # Core required fields
     title: str = Field(..., min_length=3, description="Job title")
     company_name: str = Field(..., min_length=1, description="Company name")
-    description: str = Field(..., min_length=50, description="Job description (plain text)")
+    description: str = Field(..., min_length=10, description="Job description (plain text)")
 
     # Optional fields
     location: Optional[str] = None
