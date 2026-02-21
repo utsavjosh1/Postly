@@ -296,11 +296,10 @@ class HiringCafeSpider:
         url = f"{self.BASE}/viewjob/{requisition_id}"
 
         try:
-            response = await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
         except Exception as e:
-            logger.warning(f"Timeout or error fetching detail for {requisition_id}: {e}")
-            self.errors += 1
-            return None
+            logger.warning(f"Timeout or error fetching detail for {requisition_id}. Will retry... Error: {e}")
+            raise e
 
         if response and response.ok:
             self.detail_fetches += 1
