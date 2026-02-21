@@ -107,7 +107,7 @@ class Database:
                     job_data.get("posted_at"),
                     job_data.get("expires_at"),
                     job_data.get("is_active", True),
-                    job_data.get("embedding"),
+                    str(job_data.get("embedding")) if job_data.get("embedding") else None,
                 )
                 return True
         except asyncpg.exceptions.UniqueViolationError:
@@ -158,7 +158,7 @@ class Database:
                             job.get("posted_at"),
                             job.get("expires_at"),
                             job.get("is_active", True),
-                            job.get("embedding"),
+                            str(job.get("embedding")) if job.get("embedding") else None,
                         )
                         inserted += 1
                     except Exception as e:
@@ -192,12 +192,13 @@ class Database:
 
     async def update_embeddings_batch(self, updates: List[tuple]):
         """Batch update embeddings. Each tuple is (job_id, embedding)."""
+        formatted_updates = [(job_id, str(emb)) for job_id, emb in updates]
         async with self.pool.acquire() as conn:
             await conn.executemany("""
                 UPDATE jobs
                 SET embedding = $2::vector, updated_at = NOW()
                 WHERE id = $1
-            """, updates)
+            """, formatted_updates)
         logger.info(f"Batch updated {len(updates)} embeddings")
 
     # ─── SEARCH ───────────────────────────────────────────────────
