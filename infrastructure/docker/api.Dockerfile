@@ -12,6 +12,7 @@ COPY packages/database/package.json ./packages/database/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/config/app-config/package.json ./packages/config/app-config/
 COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
@@ -39,6 +40,7 @@ COPY packages/database/package.json ./packages/database/
 COPY packages/ai-utils/package.json ./packages/ai-utils/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/config/app-config/package.json ./packages/config/app-config/
 COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
