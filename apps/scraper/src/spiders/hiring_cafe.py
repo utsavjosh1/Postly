@@ -136,7 +136,12 @@ class HiringCafeSpider:
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
                 headless=True,
-                args=["--disable-blink-features=AutomationControlled"]
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
             )
             self._context = await self._browser.new_context(
                 user_agent=self._BROWSER_HEADERS["User-Agent"],
