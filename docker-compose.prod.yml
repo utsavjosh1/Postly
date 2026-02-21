@@ -77,6 +77,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT secret required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT refresh secret required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
