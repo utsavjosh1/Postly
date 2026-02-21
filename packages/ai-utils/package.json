@@ -13,14 +13,17 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src",
+    "lint": "eslint src",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist && rm -rf .turbo"
   },
   "dependencies": {
-    "@google/genai": "^1.38.0",
+    "@langchain/core": "^1.1.19",
+    "@langchain/openai": "^1.2.5",
+    "@postly/config": "*",
     "@postly/shared-types": "*",
-    "langchain": "^1.2.15"
+    "langchain": "^1.2.18",
+    "langsmith": "^0.4.12"
   },
   "devDependencies": {
     "@postly/typescript-config": "*",

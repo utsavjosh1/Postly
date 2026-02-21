@@ -1,4 +1,4 @@
-import { generateText, generateEmbedding } from "@postly/ai-utils";
+import { generateText, generateVoyageEmbedding } from "@postly/ai-utils";
 import { resumeQueries } from "@postly/database";
 import type {
   Resume,
@@ -68,7 +68,7 @@ ${text.substring(0, 8000)}
 
 Return ONLY the JSON object, no markdown formatting or explanation.`;
 
-    const response = await generateText(prompt);
+    const { text: response } = await generateText(prompt);
 
     try {
       // Clean up response - remove markdown code blocks if present
@@ -139,7 +139,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
 
       // 4. Generate embedding for vector search
       const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(", ")} Experience: ${analysis.experience_years} years`;
-      const embedding = await generateEmbedding(embeddingText);
+      const { embedding } = await generateVoyageEmbedding(embeddingText);
 
       // 5. Update resume with analysis
       const updatedResume = await resumeQueries.updateAnalysis(
@@ -197,7 +197,7 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
 
     const analysis = await this.analyzeResume(resume.parsed_text);
     const embeddingText = `${analysis.summary} Skills: ${analysis.skills.join(", ")} Experience: ${analysis.experience_years} years`;
-    const embedding = await generateEmbedding(embeddingText);
+    const { embedding } = await generateVoyageEmbedding(embeddingText);
 
     return resumeQueries.updateAnalysis(
       id,

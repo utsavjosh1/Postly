@@ -40,6 +40,9 @@ RUN useradd -m -u 1000 scraper && chown -R scraper:scraper /app
 # Copy source code
 COPY --chown=scraper:scraper apps/scraper/src/ ./src/
 
+# Set Python path for module imports
+ENV PYTHONPATH=/app/src
+
 # Switch to non-root user
 USER scraper
 
@@ -51,4 +54,4 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=60s --retries=2 \
 EXPOSE 8080
 
 # Entry point
-CMD ["python", "src/main.py"]
+CMD ["python", "-m", "src.main"]

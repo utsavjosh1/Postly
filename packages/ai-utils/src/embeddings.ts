@@ -1,54 +1,95 @@
-import { generateEmbedding } from "./gemini";
+/**
+ * embeddings.ts
+ * High-level embedding utilities: batch processing with concurrency
+ * control and cosine similarity.
+ */
 
-export async function generateBatchEmbeddings(
-  texts: string[],
-  concurrency: number = 5,
-): Promise<number[][]> {
-  const embeddings: number[][] = new Array(texts.length);
-  const queue = texts.map((text, index) => ({ text, index }));
+import {
+  generateVoyageEmbedding,
+  generateVoyageEmbeddings,
+  type EmbeddingMetadata,
+} from "./voyage";
 
-  const worker = async () => {
-    while (queue.length > 0) {
-      const { text, index } = queue.shift()!;
-      try {
-        const embedding = await generateEmbedding(text);
-        embeddings[index] = embedding;
-      } catch (error) {
-        console.error(`Failed to embed text at index ${index}`, error);
-      }
-    }
-  };
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-  const workers = Array(Math.min(concurrency, texts.length))
-    .fill(null)
-    .map(() => worker());
-
-  await Promise.all(workers);
-
-  return embeddings;
+export interface BatchEmbeddingResult {
+  embeddings: number[][];
+  metadata: EmbeddingMetadata;
 }
 
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (!a || !b || a.length !== b.length) {
-    return 0;
-  }
+// ─── Batch Embedding ─────────────────────────────────────────────────────────
 
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
+/**
+ * Embed many texts using Voyage AI's native batching.
+ * Preferred over the old per-item concurrency approach — sends
+ * texts in 128-item batches, one API call per batch.
+ *
+ * @param texts - Array of texts to embed
+ * @param inputType - "document" for indexing, "query" for search
+ * @returns Embeddings in same order as input + aggregated metadata
+ */
+export async function generateBatchEmbeddings(
+  texts: string[],
+  inputType: "document" | "query" = "document",
+): Promise<BatchEmbeddingResult> {
+  const result = await generateVoyageEmbeddings(texts, inputType);
+  return {
+    embeddings: result.embeddings,
+    metadata: result.metadata,
+  };
+}
+
+/**
+ * Embed a single text and return just the vector.
+ * Convenience wrapper when you don't need metadata.
+ */
+export async function embedText(
+  text: string,
+  inputType: "document" | "query" = "document",
+): Promise<number[]> {
+  const result = await generateVoyageEmbedding(text, inputType);
+  return result.embedding;
+}
+
+// ─── Similarity ──────────────────────────────────────────────────────────────
+
+/**
+ * Cosine similarity between two vectors.
+ * Returns 0 for invalid / mismatched inputs.
+ */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (!a || !b || a.length !== b.length) return 0;
+
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
 
   for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
   }
 
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
+  magA = Math.sqrt(magA);
+  magB = Math.sqrt(magB);
 
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
+  return magA === 0 || magB === 0 ? 0 : dot / (magA * magB);
+}
 
-  return dotProduct / (magnitudeA * magnitudeB);
+/**
+ * Find the top-K most similar embeddings to a query vector.
+ * Returns indices sorted by descending similarity.
+ */
+export function findTopK(
+  queryEmbedding: number[],
+  candidates: number[][],
+  k: number = 5,
+): { index: number; score: number }[] {
+  return candidates
+    .map((vec, index) => ({
+      index,
+      score: cosineSimilarity(queryEmbedding, vec),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, k);
 }

@@ -4,15 +4,12 @@ import { useAuthStore } from "../stores/auth.store";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { ParticleBackground } from "../components/ui/ParticleBackground";
-import { SlotText } from "../components/ui/SlotText";
-import { SlotLever } from "../components/ui/SlotLever";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [trigger, setTrigger] = useState(0);
 
   const { login, isLoading, error } = useAuthStore();
   const urlError = searchParams.get("error");
@@ -32,28 +29,15 @@ export function LoginPage() {
       <ParticleBackground />
 
       <div className="relative z-10 w-full max-w-6xl px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* Left Side - Slot Machine Text */}
         <div className="hidden lg:flex flex-row items-center gap-8 pr-8">
           <div className="flex flex-col justify-center space-y-6 flex-1 min-w-0">
-            <SlotText
-              text="Welcome back"
-              trigger={trigger}
-              className="text-6xl xl:text-7xl font-bold text-white tracking-tight leading-tight"
-              initialDelay={0}
-            />
+            <h1 className="text-6xl xl:text-7xl font-bold text-white tracking-tight leading-tight">
+              Welcome back
+            </h1>
 
-            <SlotText
-              text="Sign in to access your AI assistant"
-              trigger={trigger}
-              className="text-xl text-gray-300 font-light"
-              initialDelay={1500}
-            />
-          </div>
-          <div className="flex-shrink-0 pt-4">
-            <SlotLever
-              onPull={() => setTrigger((t) => t + 1)}
-              className="scale-110"
-            />
+            <p className="text-xl text-gray-300 font-light">
+              Sign in to access your AI assistant
+            </p>
           </div>
         </div>
 

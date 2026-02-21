@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { resumeService } from "../services/resume.service.js";
 
-import type { User } from "@postly/shared-types";
+import type { JwtPayload } from "../middleware/auth.js";
 
 export class ResumeController {
   // POST /api/v1/resumes/upload
@@ -19,7 +19,7 @@ export class ResumeController {
         return;
       }
 
-      const userId = (req.user as User).id;
+      const userId = (req.user as JwtPayload).id;
 
       // For now, we'll store the file URL as a placeholder
       // In production, you'd upload to S3/GCS and get a real URL
@@ -48,7 +48,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const userId = (req.user as JwtPayload).id;
       const resumes = await resumeService.getUserResumes(userId);
 
       res.json({
@@ -67,7 +67,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const userId = (req.user as JwtPayload).id;
       const resume = await resumeService.getResumeById(
         req.params.id as string,
         userId,
@@ -97,7 +97,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const userId = (req.user as JwtPayload).id;
       const deleted = await resumeService.deleteResume(
         req.params.id as string,
         userId,
@@ -127,7 +127,7 @@ export class ResumeController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const userId = (req.user as User).id;
+      const userId = (req.user as JwtPayload).id;
       const resume = await resumeService.reanalyzeResume(
         req.params.id as string,
         userId,

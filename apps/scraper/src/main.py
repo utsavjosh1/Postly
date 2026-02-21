@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
 main.py
-Main orchestrator for the job scraping system.
+Entry-point for the hiring.cafe job scraper.
+
+Runs as a standalone async service:
+  1. Connects to PostgreSQL (Drizzle-managed schema)
+  2. Starts health check server
+  3. Runs scraping cycles on a schedule (APScheduler)
+  4. Processes jobs through pipeline → DB
+  5. Background embedding worker catches stragglers
 """
 
 import asyncio
@@ -9,279 +16,256 @@ import logging
 import os
 import signal
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from datetime import datetime
+
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Add src to path
+# Local imports
 sys.path.insert(0, str(Path(__file__).parent))
 
 from database import Database
-from scraper import JobScraper
-from embedder import GeminiBatcher, EmbeddingWorker
+from pipeline import JobProcessingPipeline
+from embedding_service import VoyageEmbeddingService, EmbeddingWorker
+from spiders.hiring_cafe import HiringCafeSpider
 from janitor import JanitorService
 from health import HealthCheckServer
 
-# Load environment variables
-root_dir = Path(__file__).resolve().parents[2]
-env_path = root_dir / '../../../.env'
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
-else:
-    load_dotenv()
+# ─── Logging ──────────────────────────────────────────────────────
 
-# Configuration
-DATABASE_URL = os.getenv("DATABASE_URL")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+def setup_logging():
+    """Configure structured JSON logging."""
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
-# Scraping configuration
-SCRAPE_INTERVAL_MINUTES = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "5"))
-EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
-CLEANUP_HOUR = int(os.getenv("CLEANUP_HOUR", "3"))
+    try:
+        from pythonjsonlogger import jsonlogger
+        handler = logging.StreamHandler()
+        formatter = jsonlogger.JsonFormatter(
+            "%(asctime)s %(name)s %(levelname)s %(message)s"
+        )
+        handler.setFormatter(formatter)
+    except ImportError:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        )
+        handler.setFormatter(formatter)
 
-# Fallback: construct DATABASE_URL from components
-if not DATABASE_URL:
-    db_user = os.getenv("DB_USER", "postgres")
-    db_pass = os.getenv("DB_PASSWORD", "postgres")
-    db_host = os.getenv("DB_HOST", "localhost")
-    db_port = os.getenv("DB_PORT", "5432")
-    db_name = os.getenv("DB_NAME", "postly")
-    DATABASE_URL = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+    root = logging.getLogger()
+    root.setLevel(log_level)
+    root.addHandler(handler)
 
-# Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [%(name)s] - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+    # Quiet noisy loggers
+    for noisy in ("aiohttp", "asyncpg", "apscheduler"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
 logger = logging.getLogger(__name__)
 
 
+# ─── Scraper System ──────────────────────────────────────────────
+
 class ScraperSystem:
-    """Main orchestrator for the scraping system."""
-    
+    """
+    Orchestrator that coordinates scraping, processing, and maintenance.
+    """
+
     def __init__(self):
-        self.running = True
-        self.db = Database(DATABASE_URL)
-        self.scraper = JobScraper()
-        self.embedder = GeminiBatcher(
-            GEMINI_API_KEY,
-            batch_size=EMBEDDING_BATCH_SIZE
-        ) if GEMINI_API_KEY else None
-        self.embedding_worker = None
-        self.janitor = None
-        self.scheduler = AsyncIOScheduler()
-        self.health = HealthCheckServer(port=HEALTH_PORT)
-        
-        # Job sources - organized by priority
-        self.job_sources = {
-            'high': [
-                # High priority - check every hour
-                "https://weworkremotely.com/remote-jobs/search?term=software",
-                "https://remoteok.com/remote-dev-jobs",
-            ],
-            'medium': [
-                # Medium priority - check every 6 hours
-                # Add your medium priority sources here
-            ],
-            'low': [
-                # Low priority - check every 24 hours
-                # Add your low priority sources here
-            ]
-        }
-    
-    async def setup(self):
-        """Initialize all components."""
-        logger.info("=== Initializing Scraper System ===")
-        
-        # Start health check server first
-        await self.health.start()
-        
-        # Connect to database
+        load_dotenv()
+
+        # Config
+        self.database_url = os.getenv("DATABASE_URL", "")
+        self.voyage_api_key = os.getenv("VOYAGE_API_KEY", "")
+        self.health_port = int(os.getenv("HEALTH_PORT", "8080"))
+        self.scrape_interval_minutes = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "60"))
+        self.requests_per_minute = int(os.getenv("REQUESTS_PER_MINUTE", "20"))
+
+        if not self.database_url:
+            raise ValueError("DATABASE_URL is required")
+
+        # Components (initialized in start())
+        self.db: Database = None
+        self.spider: HiringCafeSpider = None
+        self.pipeline: JobProcessingPipeline = None
+        self.embedder: VoyageEmbeddingService = None
+        self.embedding_worker: EmbeddingWorker = None
+        self.janitor: JanitorService = None
+        self.health: HealthCheckServer = None
+        self.scheduler: AsyncIOScheduler = None
+
+        # State
+        self._running = False
+        self._cycle_count = 0
+
+    async def start(self):
+        """Initialize all components and start the service."""
+        logger.info("Starting scraper system...")
+
+        # 1. Database
+        self.db = Database(self.database_url)
         await self.db.connect()
-        self.health.update_status(database_connected=True)
-        
-        # Start browser
-        await self.scraper.start()
-        self.health.update_status(browser_ready=True)
-        
-        # Initialize janitor
-        self.janitor = JanitorService(self.db)
-        
-        # Start embedding worker if API key available
-        if self.embedder:
-            self.embedding_worker = EmbeddingWorker(
-                self.db,
-                self.embedder,
-                batch_size=EMBEDDING_BATCH_SIZE,
-                interval_seconds=60
-            )
-            asyncio.create_task(self.embedding_worker.start())
-            logger.info("Embedding worker started")
-        
-        # Schedule jobs
-        
-        # High priority sources - every hour
-        self.scheduler.add_job(
-            self._scrape_high_priority,
-            'interval',
-            hours=1,
-            id='scrape_high'
-        )
-        
-        # Medium priority sources - every 6 hours
-        self.scheduler.add_job(
-            self._scrape_medium_priority,
-            'interval',
-            hours=6,
-            id='scrape_medium'
-        )
-        
-        # Low priority sources - every 24 hours
-        self.scheduler.add_job(
-            self._scrape_low_priority,
-            'interval',
-            hours=24,
-            id='scrape_low'
-        )
-        
-        # Full maintenance - daily at CLEANUP_HOUR
-        self.scheduler.add_job(
-            self.janitor.run_maintenance,
-            'cron',
-            hour=CLEANUP_HOUR,
-            minute=0,
-            id='janitor'
-        )
-        
-        # Quick cleanup - every 6 hours
-        self.scheduler.add_job(
-            self.janitor.run_quick_cleanup,
-            'interval',
-            hours=6,
-            id='quick_cleanup'
-        )
-        
-        self.scheduler.start()
-        logger.info(f"Scheduler started - maintenance at {CLEANUP_HOUR}:00")
-        
-        logger.info("=== System Ready ===")
-    
-    async def _scrape_high_priority(self):
-        """Scrape high priority sources."""
-        if self.job_sources['high']:
-            await self.scrape_and_store(self.job_sources['high'], 'high')
-    
-    async def _scrape_medium_priority(self):
-        """Scrape medium priority sources."""
-        if self.job_sources['medium']:
-            await self.scrape_and_store(self.job_sources['medium'], 'medium')
-    
-    async def _scrape_low_priority(self):
-        """Scrape low priority sources."""
-        if self.job_sources['low']:
-            await self.scrape_and_store(self.job_sources['low'], 'low')
-    
-    async def scrape_and_store(self, urls: list, priority: str = 'default'):
-        """Main scraping loop for a set of URLs."""
-        logger.info(f"Starting {priority} priority scrape cycle ({len(urls)} sources)")
-        
-        try:
-            # Scrape jobs
-            jobs = await self.scraper.scrape_multiple(urls)
-            
-            if not jobs:
-                logger.warning(f"No valid jobs found in {priority} cycle")
-                return
-            
-            logger.info(f"Scraped {len(jobs)} valid jobs from {priority} sources")
-            
-            # Generate embeddings if API key available
-            if self.embedder:
-                jobs = await self.embedder.embed_batch(jobs)
-            else:
-                logger.warning("No GEMINI_API_KEY - embeddings will be generated by worker")
-            
-            # Store in database using batch insert
-            stored_count = await self.db.insert_jobs_batch(jobs)
-            
-            logger.info(f"Stored {stored_count}/{len(jobs)} jobs in database")
-            
-            # Update health status
-            self.health.update_status(
-                last_scrape=datetime.now().isoformat(),
-                last_scrape_priority=priority,
-                last_scrape_count=stored_count
-            )
-            
-        except Exception as e:
-            logger.error(f"Scrape cycle error: {e}", exc_info=True)
-            self.health.update_status(last_error=str(e))
-    
-    async def run(self):
-        """Main run loop."""
-        await self.setup()
-        
-        # Run initial high-priority scrape
-        logger.info("Running initial scrape...")
-        await self._scrape_high_priority()
-        
-        logger.info(f"Entering main loop (scrapes scheduled)")
-        
-        while self.running:
+
+        # 2. Embedding service (optional — runs without if no key)
+        if self.voyage_api_key:
             try:
-                # Just keep running - scheduler handles the work
-                await asyncio.sleep(60)
-                
+                self.embedder = VoyageEmbeddingService(api_key=self.voyage_api_key)
+                self.embedding_worker = EmbeddingWorker(
+                    database=self.db,
+                    embedding_service=self.embedder,
+                    batch_size=50,
+                    interval_seconds=120,
+                )
+                logger.info("Voyage AI embeddings enabled")
             except Exception as e:
-                logger.error(f"Loop error: {e}", exc_info=True)
-                await asyncio.sleep(60)
-    
-    async def shutdown(self):
-        """Graceful shutdown."""
-        logger.info("Shutting down...")
-        self.running = False
-        
+                logger.warning(f"Embeddings disabled: {e}")
+                self.embedder = None
+        else:
+            logger.warning("No VOYAGE_API_KEY — embeddings disabled")
+
+        # 3. Spider
+        self.spider = HiringCafeSpider(
+            requests_per_minute=self.requests_per_minute,
+        )
+
+        # 4. Pipeline
+        self.pipeline = JobProcessingPipeline(
+            database=self.db,
+            embedding_service=self.embedder,
+            batch_size=25,
+        )
+
+        # 5. Janitor
+        self.janitor = JanitorService(database=self.db)
+
+        # 6. Health check server
+        self.health = HealthCheckServer(port=self.health_port)
+        self.health.update_status(database_connected=True)
+        await self.health.start()
+
+        # 7. Scheduler
+        self.scheduler = AsyncIOScheduler()
+        self.scheduler.add_job(
+            self._scrape_cycle,
+            "interval",
+            minutes=self.scrape_interval_minutes,
+            id="scrape_cycle",
+            next_run_time=datetime.now(timezone.utc),  # Run immediately
+        )
+        self.scheduler.add_job(
+            self._maintenance_cycle,
+            "interval",
+            hours=24,
+            id="maintenance",
+        )
+        self.scheduler.start()
+
+        # 8. Embedding worker (background)
+        if self.embedding_worker:
+            asyncio.create_task(self.embedding_worker.start())
+
+        self._running = True
+        logger.info({
+            "event": "system_started",
+            "scrape_interval_min": self.scrape_interval_minutes,
+            "embeddings_enabled": self.embedder is not None,
+            "health_port": self.health_port,
+        })
+
+    async def _scrape_cycle(self):
+        """Execute one full scrape → process → store cycle."""
+        self._cycle_count += 1
+        cycle = self._cycle_count
+
+        logger.info({"event": "cycle_start", "cycle": cycle})
+        start = datetime.utcnow()
+
+        try:
+            # Scrape
+            jobs = await self.spider.scrape_all()
+            logger.info(f"Cycle {cycle}: scraped {len(jobs)} jobs")
+
+            if jobs:
+                # Process through pipeline
+                metrics = await self.pipeline.process(jobs)
+                logger.info({
+                    "event": "cycle_complete",
+                    "cycle": cycle,
+                    **metrics.to_log_dict(),
+                })
+
+            # Update health
+            stats = await self.db.get_stats()
+            self.health.update_status(
+                last_scrape=datetime.now(timezone.utc).isoformat(),
+                jobs_in_db=stats.get("total_jobs", 0),
+            )
+
+        except Exception as e:
+            logger.error(f"Cycle {cycle} failed: {e}")
+            self.health.update_status(
+                errors=self.health.status.get("errors", []) + [str(e)]
+            )
+
+        finally:
+            # Reset spider metrics for next cycle
+            self.spider.jobs_found = 0
+            self.spider.pages_scraped = 0
+            self.spider.detail_fetches = 0
+            self.spider.errors = 0
+
+    async def _maintenance_cycle(self):
+        """Run janitor maintenance tasks."""
+        try:
+            summary = await self.janitor.run_maintenance()
+            logger.info({"event": "maintenance_complete", **summary})
+        except Exception as e:
+            logger.error(f"Maintenance failed: {e}")
+
+    async def stop(self):
+        """Gracefully shut down all components."""
+        logger.info("Shutting down scraper system...")
+        self._running = False
+
+        if self.scheduler:
+            self.scheduler.shutdown(wait=False)
         if self.embedding_worker:
             self.embedding_worker.stop()
-        
-        if self.scheduler.running:
-            self.scheduler.shutdown()
-        
-        await self.scraper.close()
-        await self.db.close()
-        await self.health.stop()
-        
-        logger.info("Shutdown complete")
+        if self.spider:
+            await self.spider.close()
+        if self.health:
+            await self.health.stop()
+        if self.db:
+            await self.db.close()
 
+        logger.info("Scraper system stopped")
+
+
+# ─── Main Entry ───────────────────────────────────────────────────
 
 async def main():
-    """Entry point."""
-    if not DATABASE_URL:
-        logger.error("DATABASE_URL not configured")
-        sys.exit(1)
-    
-    if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY not set - embeddings will be skipped")
-    
+    setup_logging()
+
     system = ScraperSystem()
-    
-    # Handle signals
-    def signal_handler(sig, frame):
-        logger.warning(f"Received signal {sig}")
-        system.running = False
-    
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
+
+    # Handle signals for graceful shutdown
+    loop = asyncio.get_event_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(system.stop()))
+
     try:
-        await system.run()
+        await system.start()
+
+        # Keep running until stopped
+        while system._running:
+            await asyncio.sleep(1)
+
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
     finally:
-        await system.shutdown()
+        await system.stop()
 
 
 if __name__ == "__main__":

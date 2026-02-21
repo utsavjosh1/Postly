@@ -1,12 +1,7 @@
-import { pool } from "../pool";
-import type { User, UserRole } from "@postly/shared-types";
-
-interface CreateUserDbInput {
-  email: string;
-  password_hash: string;
-  full_name?: string;
-  role?: UserRole;
-}
+import { eq } from "drizzle-orm";
+import { db } from "../index";
+import { users } from "../schema";
+import type { User, CreateUserDbInput } from "@postly/shared-types";
 
 export const userQueries = {
   /**
@@ -15,78 +10,148 @@ export const userQueries = {
   async create(input: CreateUserDbInput): Promise<User> {
     const { email, password_hash, full_name, role = "job_seeker" } = input;
 
-    const result = await pool.query<User>(
-      `INSERT INTO users (email, password_hash, full_name, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, full_name, role, created_at, updated_at`,
-      [email, password_hash, full_name, role],
-    );
+    const [result] = await db
+      .insert(users)
+      .values({ email, password_hash, full_name, role })
+      .returning();
 
-    return result.rows[0];
+    return result as unknown as User;
   },
 
   /**
-   * Find user by email
+   * Find user by email (includes password_hash for auth)
    */
   async findByEmail(
     email: string,
   ): Promise<(User & { password_hash: string }) | null> {
-    const result = await pool.query(`SELECT * FROM users WHERE email = $1`, [
-      email,
-    ]);
+    const [result] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
 
-    return result.rows[0] || null;
+    return (result as unknown as User & { password_hash: string }) || null;
   },
 
   /**
    * Find user by ID
    */
   async findById(id: string): Promise<User | null> {
-    const result = await pool.query<User>(
-      `SELECT id, email, full_name, role, created_at, updated_at
-       FROM users
-       WHERE id = $1`,
-      [id],
-    );
+    const [result] = await db.select().from(users).where(eq(users.id, id));
 
-    return result.rows[0] || null;
+    return (result as unknown as User) || null;
   },
 
   /**
-   * Update user
+   * Update user profile fields
    */
-  async update(id: string, updates: Partial<User>): Promise<User | null> {
-    const allowedFields = ["full_name", "role"];
-    const fields = Object.keys(updates).filter((key) =>
-      allowedFields.includes(key),
-    );
-
-    if (fields.length === 0) {
+  async update(
+    id: string,
+    updates: Partial<Pick<User, "full_name" | "role">>,
+  ): Promise<User | null> {
+    if (Object.keys(updates).length === 0) {
       return this.findById(id);
     }
 
-    const setClause = fields
-      .map((field, index) => `${field} = $${index + 2}`)
-      .join(", ");
-    const values = [id, ...fields.map((field) => updates[field as keyof User])];
+    const [result] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updated_at: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
 
-    const result = await pool.query<User>(
-      `UPDATE users
-       SET ${setClause}, updated_at = NOW()
-       WHERE id = $1
-       RETURNING id, email, full_name, role, created_at, updated_at`,
-      values,
-    );
-
-    return result.rows[0] || null;
+    return (result as unknown as User) || null;
   },
 
   /**
    * Delete user
    */
   async delete(id: string): Promise<boolean> {
-    const result = await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+    const [result] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id });
 
-    return result.rowCount !== null && result.rowCount > 0;
+    return !!result;
+  },
+
+  // ─── Forgot-Password Flow ──────────────────────────────────────────────
+
+  /**
+   * Store a password-reset token and expiry for the user.
+   */
+  async setResetToken(
+    email: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<boolean> {
+    const [result] = await db
+      .update(users)
+      .set({
+        password_reset_token: token,
+        password_reset_expires_at: expiresAt,
+        updated_at: new Date(),
+      })
+      .where(eq(users.email, email))
+      .returning({ id: users.id });
+
+    return !!result;
+  },
+
+  /**
+   * Find a user by their password-reset token (returns null if expired).
+   */
+  async findByResetToken(token: string): Promise<User | null> {
+    const [result] = await db
+      .select()
+      .from(users)
+      .where(eq(users.password_reset_token, token));
+
+    if (!result) return null;
+
+    // Check expiry
+    if (
+      result.password_reset_expires_at &&
+      new Date(result.password_reset_expires_at) < new Date()
+    ) {
+      return null;
+    }
+
+    return result as unknown as User;
+  },
+
+  /**
+   * Reset password and clear the reset token.
+   */
+  async resetPassword(
+    token: string,
+    newPasswordHash: string,
+  ): Promise<boolean> {
+    const user = await this.findByResetToken(token);
+    if (!user) return false;
+
+    const [result] = await db
+      .update(users)
+      .set({
+        password_hash: newPasswordHash,
+        password_reset_token: null,
+        password_reset_expires_at: null,
+        updated_at: new Date(),
+      })
+      .where(eq(users.id, user.id))
+      .returning({ id: users.id });
+
+    return !!result;
+  },
+
+  /**
+   * Update last login timestamp
+   */
+  async updateLastLogin(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ last_login_at: new Date(), updated_at: new Date() })
+      .where(eq(users.id, id));
   },
 };

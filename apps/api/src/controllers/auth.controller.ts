@@ -1,17 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt, { type SignOptions } from "jsonwebtoken";
+import crypto from "crypto";
 import { z } from "zod";
 import { userQueries } from "@postly/database";
-import type { AuthResponse, User } from "@postly/shared-types";
-import { JWT_SECRET, JWT_REFRESH_SECRET } from "../config/secrets.js";
+import type { AuthResponse } from "@postly/shared-types";
+import type { JwtPayload } from "../middleware/auth.js";
+import {
+  JWT_SECRET,
+  JWT_REFRESH_SECRET,
+  JWT_EXPIRES_IN,
+  JWT_REFRESH_EXPIRES_IN,
+} from "../config/secrets.js";
 
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ||
-  "7d") as SignOptions["expiresIn"];
-const JWT_REFRESH_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN ||
-  "30d") as SignOptions["expiresIn"];
+// ─── Validation Schemas ──────────────────────────────────────────────────────
 
-// Validation schemas
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -27,22 +30,38 @@ const refreshSchema = z.object({
   refresh_token: z.string().min(1, "Refresh token is required"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+// ─── Controller ──────────────────────────────────────────────────────────────
+
 export class AuthController {
-  private generateTokens(user: User) {
+  /**
+   * Generate access + refresh token pair for a user.
+   */
+  private generateTokens(user: { id: string; email: string; role: string }) {
     const access_token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN },
+      { expiresIn: JWT_EXPIRES_IN as SignOptions["expiresIn"] },
     );
 
     const refresh_token = jwt.sign(
       { id: user.id, type: "refresh" },
       JWT_REFRESH_SECRET,
-      { expiresIn: JWT_REFRESH_EXPIRES_IN },
+      { expiresIn: JWT_REFRESH_EXPIRES_IN as SignOptions["expiresIn"] },
     );
 
     return { access_token, refresh_token };
   }
+
+  // ─── POST /register ──────────────────────────────────────────────────────
 
   register = async (
     req: Request,
@@ -70,7 +89,7 @@ export class AuthController {
         return;
       }
 
-      const salt = await bcrypt.genSalt(10);
+      const salt = await bcrypt.genSalt(12);
       const password_hash = await bcrypt.hash(password, salt);
 
       const user = await userQueries.create({
@@ -78,7 +97,6 @@ export class AuthController {
         password_hash,
         full_name,
       });
-
       const tokens = this.generateTokens(user);
 
       const response: AuthResponse = {
@@ -87,20 +105,20 @@ export class AuthController {
           email: user.email,
           full_name: user.full_name,
           role: user.role,
+          is_verified: user.is_verified,
           created_at: user.created_at,
           updated_at: user.updated_at,
         },
         ...tokens,
       };
 
-      res.status(201).json({
-        success: true,
-        data: response,
-      });
+      res.status(201).json({ success: true, data: response });
     } catch (error) {
       next(error);
     }
   };
+
+  // ─── POST /login ─────────────────────────────────────────────────────────
 
   login = async (
     req: Request,
@@ -120,8 +138,7 @@ export class AuthController {
       const { email, password } = validation.data;
 
       const user = await userQueries.findByEmail(email);
-      if (!user || user.password_hash === "") {
-        // No password for social login users
+      if (!user || !user.password_hash) {
         res.status(401).json({
           success: false,
           error: { message: "Invalid email or password" },
@@ -141,6 +158,9 @@ export class AuthController {
         return;
       }
 
+      // Track login timestamp
+      await userQueries.updateLastLogin(user.id);
+
       const tokens = this.generateTokens(user);
 
       const response: AuthResponse = {
@@ -149,20 +169,20 @@ export class AuthController {
           email: user.email,
           full_name: user.full_name,
           role: user.role,
+          is_verified: user.is_verified,
           created_at: user.created_at,
           updated_at: user.updated_at,
         },
         ...tokens,
       };
 
-      res.json({
-        success: true,
-        data: response,
-      });
+      res.json({ success: true, data: response });
     } catch (error) {
       next(error);
     }
   };
+
+  // ─── POST /refresh ───────────────────────────────────────────────────────
 
   refresh = async (
     req: Request,
@@ -215,17 +235,16 @@ export class AuthController {
       const access_token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN },
+        { expiresIn: JWT_EXPIRES_IN as SignOptions["expiresIn"] },
       );
 
-      res.json({
-        success: true,
-        data: { access_token },
-      });
+      res.json({ success: true, data: { access_token } });
     } catch (error) {
       next(error);
     }
   };
+
+  // ─── GET /me ─────────────────────────────────────────────────────────────
 
   me = async (
     req: Request,
@@ -233,7 +252,8 @@ export class AuthController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const user = await userQueries.findById((req.user as User).id);
+      const payload = req.user as JwtPayload;
+      const user = await userQueries.findById(payload.id);
       if (!user) {
         res.status(404).json({
           success: false,
@@ -249,9 +269,93 @@ export class AuthController {
           email: user.email,
           full_name: user.full_name,
           role: user.role,
+          is_verified: user.is_verified,
+          last_login_at: user.last_login_at,
           created_at: user.created_at,
           updated_at: user.updated_at,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ─── POST /forgot-password ───────────────────────────────────────────────
+
+  forgotPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validation = forgotPasswordSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
+        return;
+      }
+
+      const { email } = validation.data;
+
+      // Always return success to prevent email enumeration
+      const user = await userQueries.findByEmail(email);
+      if (user) {
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await userQueries.setResetToken(user.id, token, expiresAt);
+        // TODO: Send password reset email with token
+      }
+
+      res.json({
+        success: true,
+        data: {
+          message:
+            "If an account with that email exists, a password reset link has been sent.",
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ─── POST /reset-password ────────────────────────────────────────────────
+
+  resetPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validation = resetPasswordSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
+        return;
+      }
+
+      const { token, password } = validation.data;
+
+      const user = await userQueries.findByResetToken(token);
+      if (!user) {
+        res.status(400).json({
+          success: false,
+          error: { message: "Invalid or expired reset token" },
+        });
+        return;
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const password_hash = await bcrypt.hash(password, salt);
+
+      await userQueries.resetPassword(user.id, password_hash);
+
+      res.json({
+        success: true,
+        data: { message: "Password has been reset successfully" },
       });
     } catch (error) {
       next(error);

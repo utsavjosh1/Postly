@@ -1,25 +1,18 @@
-import { Pool, PoolConfig } from "pg";
+import { Pool } from "pg";
+import { DATABASE_URL, DB_POOL } from "@postly/config";
 
-const config: PoolConfig = {
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME || "postly",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "postgres",
-  max: 10, // Reduced for low-memory environments
-  idleTimeoutMillis: 10000, // Close idle clients faster to save memory
-  connectionTimeoutMillis: 2000, // Return an error if connection takes longer than 2 seconds
-};
+export const pool = new Pool({
+  connectionString: DATABASE_URL,
+  max: DB_POOL.max,
+  idleTimeoutMillis: DB_POOL.idleTimeoutMillis,
+  connectionTimeoutMillis: DB_POOL.connectionTimeoutMillis,
+});
 
-export const pool = new Pool(config);
-
-// Handle pool errors
-pool.on("error", (err) => {
+pool.on("error", (err: Error) => {
   console.error("Unexpected error on idle client", err);
   process.exit(-1);
 });
 
-// Graceful shutdown
 process.on("SIGINT", async () => {
   await pool.end();
   process.exit(0);

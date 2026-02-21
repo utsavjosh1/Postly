@@ -6,6 +6,10 @@ export interface User {
   email: string;
   full_name?: string;
   role: UserRole;
+  is_verified: boolean;
+  password_reset_token?: string;
+  password_reset_expires_at?: Date;
+  last_login_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -13,6 +17,14 @@ export interface User {
 export interface CreateUserInput {
   email: string;
   password: string;
+  full_name?: string;
+  role?: UserRole;
+}
+
+/** DB-level input for creating a user (password already hashed) */
+export interface CreateUserDbInput {
+  email: string;
+  password_hash: string;
   full_name?: string;
   role?: UserRole;
 }
@@ -102,6 +114,25 @@ export interface CreateJobInput {
   skills_required?: string[];
   experience_required?: string;
   expires_at?: Date;
+}
+
+/** Input from web scrapers — used by the scraper service to upsert jobs */
+export interface ScrapedJobInput {
+  title: string;
+  company_name: string;
+  description: string;
+  location?: string;
+  salary_min?: number;
+  salary_max?: number;
+  job_type?: string;
+  remote?: boolean;
+  source: JobSource;
+  source_url: string;
+  skills_required?: string[];
+  experience_required?: string;
+  posted_at?: Date;
+  expires_at?: Date;
+  embedding?: number[];
 }
 
 // Job Match types
@@ -217,8 +248,9 @@ export interface Conversation {
   user_id: string;
   title: string;
   resume_id: string | null;
+  model?: string;
+  is_archived: boolean;
   state?: ConversationState;
-  last_message_at: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -237,11 +269,29 @@ export interface Message {
   conversation_id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
-  status?: MessageStatus;
+
+  /** Self-referencing — forms a message tree for branching */
+  parent_message_id?: string | null;
+  /** Edit version number (1 = original, 2+ = edits) */
+  version: number;
+  /** Only the active branch is rendered in the UI */
+  is_active: boolean;
+  /** Streaming lifecycle: sending → streaming → completed / cancelled / error */
+  status: MessageStreamStatus;
+
   metadata?: MessageMetadata;
   created_at: Date;
 }
 
+/** Streaming lifecycle status stored in DB */
+export type MessageStreamStatus =
+  | "sending"
+  | "streaming"
+  | "completed"
+  | "cancelled"
+  | "error";
+
+/** @deprecated Use MessageStreamStatus instead */
 export type MessageStatus = "sending" | "sent" | "delivered" | "error";
 
 export interface MessageMetadata {

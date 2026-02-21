@@ -6,16 +6,23 @@ import { ChatController } from "../controllers/chat.controller.js";
 const router = Router();
 const chatController = new ChatController();
 
-// Rate limit for AI chat - 3 requests per week per user
-const chatStreamLimiter = chatRateLimiter;
-
 // All routes require authentication
 router.use(authenticateToken);
 
+// Conversations
 router.get("/conversations", chatController.getConversations);
 router.post("/conversations", chatController.createConversation);
 router.get("/conversations/:id", chatController.getConversationById);
+router.get("/conversations/:id/thread", chatController.getActiveThread);
+router.patch("/conversations/:id/archive", chatController.archiveConversation);
 router.delete("/conversations/:id", chatController.deleteConversation);
-router.post("/stream", chatStreamLimiter, chatController.streamResponse);
+
+// Messages
+router.post("/messages/:id/edit", chatController.editMessage);
+router.post("/messages/:id/cancel", chatController.cancelMessage);
+router.get("/messages/:id/versions", chatController.getMessageVersions);
+
+// AI streaming (rate limited)
+router.post("/stream", chatRateLimiter, chatController.streamResponse);
 
 export default router;

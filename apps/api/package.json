@@ -13,6 +13,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
+    "@postly/config": "*",
     "@postly/database": "*",
     "@postly/shared-types": "*",
     "bcryptjs": "^2.4.3",

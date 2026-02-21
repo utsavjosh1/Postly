@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { NODE_ENV } from "../config/secrets.js";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -14,8 +15,7 @@ export function errorHandler(
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
 
-  // Log error in development
-  if (process.env.NODE_ENV !== "production") {
+  if (NODE_ENV !== "production") {
     console.error("Error:", err);
   }
 
@@ -23,7 +23,7 @@ export function errorHandler(
     success: false,
     error: {
       message,
-      ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+      ...(NODE_ENV !== "production" && { stack: err.stack }),
     },
   });
 }

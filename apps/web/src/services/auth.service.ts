@@ -1,14 +1,15 @@
 import { apiClient } from "../lib/api-client";
 import type {
-  LoginRequest,
+  LoginInput,
   RegisterRequest,
   AuthResponse,
   User,
+  ResetPasswordRequest,
 } from "../types/auth";
 import { ApiResponse } from "@postly/shared-types";
 
 export const authService = {
-  async login(data: LoginRequest): Promise<AuthResponse> {
+  async login(data: LoginInput): Promise<AuthResponse> {
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/login",
       data,
@@ -26,9 +27,18 @@ export const authService = {
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
+    // Map frontend specific fields to backend expected format if needed
+    // The shared type CreateUserInput expects: email, password, full_name, role
+    const payload = {
+      email: data.email,
+      password: data.password,
+      full_name: data.full_name,
+      role: data.role,
+    };
+
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/register",
-      data,
+      payload,
     );
     const authData = response.data.data;
 
@@ -40,6 +50,17 @@ export const authService = {
     }
 
     return authData;
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post("/auth/forgot-password", { email });
+  },
+
+  async resetPassword(data: ResetPasswordRequest): Promise<void> {
+    await apiClient.post("/auth/reset-password", {
+      token: data.token,
+      password: data.password,
+    });
   },
 
   logout(): void {
@@ -55,7 +76,10 @@ export const authService = {
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await apiClient.get<{ data: User }>("/users/profile");
-    return response.data.data!;
+    const response = await apiClient.get<ApiResponse<User>>("/auth/me");
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || "Failed to fetch user");
+    }
+    return response.data.data;
   },
 };
