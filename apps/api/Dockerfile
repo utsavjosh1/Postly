@@ -3,6 +3,9 @@ FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build tools for native modules
+RUN apk add --no-cache python3 make g++
+
 # Copy package files for dependency installation
 COPY package*.json ./
 COPY turbo.json ./
@@ -17,8 +20,8 @@ COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --legacy-peer-deps
+# Install dependencies (removed --ignore-scripts so native modules can build)
+RUN --mount=type=cache,target=/root/.npm npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -47,8 +50,11 @@ COPY packages/config/eslint-config/package.json ./packages/config/eslint-config/
 COPY packages/config/typescript-config/package.json ./packages/config/typescript-config/
 COPY apps/api/package*.json ./apps/api/
 
-# Install production dependencies only
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts --legacy-peer-deps
+# Install python/make/g++ temporarily to build production native modules,
+# then install without --ignore-scripts, and finally remove the build tools
+RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
+    npm ci --omit=dev --legacy-peer-deps && \
+    apk del .build-deps
 
 # Copy built files from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
