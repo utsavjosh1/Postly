@@ -41,7 +41,7 @@
     "@eslint/js": "^10.0.1",
     "@postly/eslint-config": "*",
     "@postly/typescript-config": "*",
-    "@tailwindcss/postcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.2.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.5",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
