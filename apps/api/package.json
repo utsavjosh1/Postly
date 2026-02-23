@@ -16,7 +16,7 @@
     "@postly/config": "*",
     "@postly/database": "*",
     "@postly/shared-types": "*",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.31.3",
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
@@ -33,7 +33,7 @@
   "devDependencies": {
     "@postly/eslint-config": "*",
     "@postly/typescript-config": "*",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
