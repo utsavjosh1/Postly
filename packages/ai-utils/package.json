@@ -18,7 +18,7 @@
     "clean": "rm -rf dist && rm -rf .turbo"
   },
   "dependencies": {
-    "@langchain/core": "^1.1.19",
+    "@langchain/core": "^1.1.27",
     "@langchain/openai": "^1.2.5",
     "@postly/config": "*",
     "@postly/shared-types": "*",
