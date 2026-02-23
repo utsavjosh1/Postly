@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@langchain/core": "^1.1.19",
-    "@langchain/openai": "^1.2.5",
+    "@langchain/openai": "^1.2.9",
     "@postly/config": "*",
     "@postly/shared-types": "*",
     "langchain": "^1.2.18",
