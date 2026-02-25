@@ -71,8 +71,8 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(API_PORT, () => {
-  console.log(`🚀 API server running on http://localhost:${API_PORT}`);
+app.listen(API_PORT, "0.0.0.0", () => {
+  console.log(`🚀 API server running on http://0.0.0.0:${API_PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
 });
 

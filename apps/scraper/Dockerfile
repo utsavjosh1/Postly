@@ -18,6 +18,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install Chromium and minimal dependencies
 # We use playwright to install the browser but manually handle dependencies
 # to keep the image size low and avoid problematic packages.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 \
     libnspr4 \
@@ -37,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     && pip install playwright \
     && playwright install chromium \
+    && chmod -R 755 /opt/pw-browsers \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
