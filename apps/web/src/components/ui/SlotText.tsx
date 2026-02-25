@@ -3,7 +3,7 @@ import { cn } from "../../lib/utils";
 
 interface SlotTextProps {
   text: string;
-  trigger: any;
+  trigger: unknown;
   className?: string;
   scrambleSpeed?: number;
   resolveSpeed?: number;
@@ -22,9 +22,9 @@ export function SlotText({
   initialDelay = 1000,
 }: SlotTextProps) {
   const [displayText, setDisplayText] = useState(text);
-  const intervalRef = useRef<any>(null);
-  const resolveIntervalRef = useRef<any>(null);
-  const timeoutRef = useRef<any>(null);
+  const intervalRef = useRef<number | null>(null);
+  const resolveIntervalRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   // Track resolved index in a ref to satisfy closure/interval requirements without stale state
   const resolvedIndexRef = useRef(-1);
@@ -38,7 +38,7 @@ export function SlotText({
     resolvedIndexRef.current = -1;
 
     // Scramble Loop
-    intervalRef.current = setInterval(() => {
+    intervalRef.current = window.setInterval(() => {
       setDisplayText(() => {
         return text
           .split("")
@@ -52,8 +52,8 @@ export function SlotText({
     }, scrambleSpeed);
 
     // Resolve Sequence
-    timeoutRef.current = setTimeout(() => {
-      resolveIntervalRef.current = setInterval(() => {
+    timeoutRef.current = window.setTimeout(() => {
+      resolveIntervalRef.current = window.setInterval(() => {
         resolvedIndexRef.current += 1;
 
         if (resolvedIndexRef.current >= text.length) {
@@ -78,13 +78,13 @@ export function SlotText({
   }, [trigger, startAnimation]);
 
   return (
-    <div className={cn("font-medium break-words", className)}>
-      {displayText.split(" ").map((word, wordIndex) => (
+    <div className={cn("font-medium wrap-break-word", className)}>
+      {displayText.split(" ").map((word: string, wordIndex: number) => (
         <span
           key={wordIndex}
           className="inline-block whitespace-nowrap mr-[0.25em]"
         >
-          {word.split("").map((char, charIndex) => (
+          {word.split("").map((char: string, charIndex: number) => (
             <span
               key={charIndex}
               className="inline-block min-w-[0.5em] text-center"

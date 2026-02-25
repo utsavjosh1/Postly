@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Settings,
   LayoutDashboard,
-  User as UserIcon,
 } from "lucide-react";
 import { useChatStore } from "../../stores/chat.store";
 import { useAuthStore } from "../../stores/auth.store";

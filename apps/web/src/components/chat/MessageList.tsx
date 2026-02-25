@@ -3,7 +3,7 @@ import { useChatStore } from "../../stores/chat.store";
 import { useToastStore } from "../../stores/toast.store";
 import { User, Bot, Copy, RefreshCw, Trash2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import type { Message } from "@postly/shared-types";
+import type { Message, Job } from "@postly/shared-types";
 import { JobCarousel } from "./JobCarousel";
 import { toOptimizedJobMatch } from "../../lib/job-utils";
 
@@ -225,7 +225,7 @@ const MessageItem = memo(
                 <div className="prose prose-sm max-w-none prose-invert prose-p:leading-7 prose-pre:p-0 prose-pre:bg-transparent">
                   <ReactMarkdown
                     components={{
-                      code: CodeBlock as any,
+                      code: CodeBlock,
                     }}
                   >
                     {message.content}
@@ -239,9 +239,9 @@ const MessageItem = memo(
                   message.metadata.job_matches.length > 0 && (
                     <JobCarousel
                       message=""
-                      data={message.metadata.job_matches.map((job: any) =>
-                        toOptimizedJobMatch(job),
-                      )}
+                      data={(
+                        message.metadata.job_matches as unknown as Job[]
+                      ).map((job) => toOptimizedJobMatch(job))}
                       onApply={(id) => console.log("Apply to job:", id)}
                     />
                   )}

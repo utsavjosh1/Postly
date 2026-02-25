@@ -69,7 +69,7 @@ export class DiscordController {
       const configs = await db
         .select()
         .from(discord_configs)
-        .where(sql`${discord_configs.user_id} = ${user.id}` as any);
+        .where(sql`${discord_configs.user_id} = ${user.id}`);
 
       res.json({
         success: true,
@@ -98,7 +98,7 @@ export class DiscordController {
         .select()
         .from(discord_configs)
         .where(
-          sql`${discord_configs.user_id} = ${user.id} AND ${discord_configs.is_active} = true` as any,
+          sql`${discord_configs.user_id} = ${user.id} AND ${discord_configs.is_active} = true`,
         )
         .limit(1);
 
@@ -143,7 +143,7 @@ export class DiscordController {
           updated_at: new Date(),
         })
         .where(
-          sql`${discord_configs.id} = ${id} AND ${discord_configs.user_id} = ${user.id}` as any,
+          sql`${discord_configs.id} = ${id} AND ${discord_configs.user_id} = ${user.id}`,
         );
 
       res.json({

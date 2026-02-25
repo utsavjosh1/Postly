@@ -62,7 +62,7 @@ export class QueueService {
           const activeConfigs = await db
             .select()
             .from(discord_configs)
-            .where(sql`${discord_configs.is_active} = true` as any);
+            .where(sql`${discord_configs.is_active} = true`);
 
           for (const config of activeConfigs) {
             if (config.channel_id) {

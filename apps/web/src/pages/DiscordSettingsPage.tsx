@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   MessageSquare,
   ExternalLink,
@@ -20,32 +20,7 @@ export function DiscordSettingsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newChannelId, setNewChannelId] = useState("");
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const guildId = params.get("guild_id");
-
-    if (guildId) {
-      handleMagicLink(guildId);
-    } else {
-      loadConfigs();
-    }
-  }, []);
-
-  const handleMagicLink = async (guildId: string) => {
-    setIsLoading(true);
-    try {
-      await discordService.linkServer(guildId);
-      toast.success("Server linked successfully!");
-      // Clean up URL
-      window.history.replaceState({}, "", window.location.pathname);
-      loadConfigs();
-    } catch (error) {
-      toast.error("Failed to link server");
-      loadConfigs();
-    }
-  };
-
-  const loadConfigs = async () => {
+  const loadConfigs = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await discordService.getConfigs();
@@ -56,7 +31,35 @@ export function DiscordSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const handleMagicLink = useCallback(
+    async (guildId: string) => {
+      setIsLoading(true);
+      try {
+        await discordService.linkServer(guildId);
+        toast.success("Server linked successfully!");
+        // Clean up URL
+        window.history.replaceState({}, "", window.location.pathname);
+        loadConfigs();
+      } catch {
+        toast.error("Failed to link server");
+        loadConfigs();
+      }
+    },
+    [loadConfigs],
+  );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const guildId = params.get("guild_id");
+
+    if (guildId) {
+      handleMagicLink(guildId);
+    } else {
+      loadConfigs();
+    }
+  }, [handleMagicLink, loadConfigs]);
 
   const handleUpdateChannel = async (id: string) => {
     if (!newChannelId) return;
@@ -65,7 +68,7 @@ export function DiscordSettingsPage() {
       toast.success("Settings updated");
       setEditingId(null);
       loadConfigs();
-    } catch (error) {
+    } catch {
       toast.error("Update failed");
     }
   };
@@ -77,8 +80,9 @@ export function DiscordSettingsPage() {
       if (res.success) {
         toast.success("Test notification sent");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Test failed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Test failed";
+      toast.error(message);
     } finally {
       setIsTesting(false);
     }
