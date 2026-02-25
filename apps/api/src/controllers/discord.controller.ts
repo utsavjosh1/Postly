@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { db, discord_configs } from "@postly/database";
+import { db, discord_configs, eq, and } from "@postly/database";
 import { queueService } from "../services/queue.service.js";
-import { sql } from "drizzle-orm";
 import type { JwtPayload } from "../middleware/auth.js";
 import { WEB_URL } from "../config/secrets.js";
 
@@ -69,7 +68,7 @@ export class DiscordController {
       const configs = await db
         .select()
         .from(discord_configs)
-        .where(sql`${discord_configs.user_id} = ${user.id}`);
+        .where(eq(discord_configs.user_id, user.id));
 
       res.json({
         success: true,
@@ -98,7 +97,10 @@ export class DiscordController {
         .select()
         .from(discord_configs)
         .where(
-          sql`${discord_configs.user_id} = ${user.id} AND ${discord_configs.is_active} = true`,
+          and(
+            eq(discord_configs.user_id, user.id),
+            eq(discord_configs.is_active, true),
+          ),
         )
         .limit(1);
 
@@ -143,7 +145,10 @@ export class DiscordController {
           updated_at: new Date(),
         })
         .where(
-          sql`${discord_configs.id} = ${id} AND ${discord_configs.user_id} = ${user.id}`,
+          and(
+            eq(discord_configs.id, id as string),
+            eq(discord_configs.user_id, user.id),
+          ),
         );
 
       res.json({

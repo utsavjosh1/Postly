@@ -8,3 +8,4 @@ export { schema };
 export * from "./schema";
 export { pool };
 export * from "./queries";
+export * from "drizzle-orm";

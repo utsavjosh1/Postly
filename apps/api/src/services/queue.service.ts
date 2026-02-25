@@ -1,7 +1,6 @@
 import { Queue, Worker, Job } from "bullmq";
 import { REDIS_URL } from "../config/secrets.js";
-import { db, discord_configs } from "@postly/database";
-import { sql } from "drizzle-orm";
+import { db, discord_configs, eq } from "@postly/database";
 
 const DISCORD_QUEUE_NAME = "discord_notifications";
 
@@ -62,7 +61,7 @@ export class QueueService {
           const activeConfigs = await db
             .select()
             .from(discord_configs)
-            .where(sql`${discord_configs.is_active} = true`);
+            .where(eq(discord_configs.is_active, true));
 
           for (const config of activeConfigs) {
             if (config.channel_id) {

@@ -114,7 +114,7 @@ export class ChatService {
       if (jobMatches.length === 0) {
         try {
           const recentJobs = await jobQueries.findActive(undefined, 5, 0);
-          jobMatches = recentJobs.map((job) => ({
+          jobMatches = recentJobs.map((job: Job) => ({
             ...job,
             match_score: 0, // No score without resume
           }));
