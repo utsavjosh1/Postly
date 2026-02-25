@@ -34,3 +34,14 @@ export const useToastStore = create<ToastState>((set) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     })),
 }));
+
+export const toast = {
+  success: (message: string) =>
+    useToastStore.getState().addToast({ type: "success", message }),
+  error: (message: string) =>
+    useToastStore.getState().addToast({ type: "error", message }),
+  warning: (message: string) =>
+    useToastStore.getState().addToast({ type: "warning", message }),
+  info: (message: string) =>
+    useToastStore.getState().addToast({ type: "info", message }),
+};

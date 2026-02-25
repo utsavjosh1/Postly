@@ -10,6 +10,8 @@ import userRoutes from "./routes/user.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import discordRoutes from "./routes/discord.routes.js";
+import { queueService } from "./services/queue.service.js";
 
 const app = express();
 
@@ -37,7 +39,7 @@ const globalLimiter = rateLimit({
 // Strict rate limiting for auth endpoints — 5 attempts per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 50, // Relaxed from 5 to 50 for development testing
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -65,15 +67,24 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/resumes", resumeRoutes);
 app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/discord", discordRoutes);
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(API_PORT, "0.0.0.0", () => {
+app.listen(API_PORT, "0.0.0.0", async () => {
   console.log(`🚀 API server running on http://0.0.0.0:${API_PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
+
+  // Initialize Discord Job Queue
+  try {
+    await queueService.initDailyCron();
+    queueService.setupWorker();
+  } catch (err) {
+    console.error("Failed to initialize Discord Queue:", err);
+  }
 });
 
 // Graceful shutdown

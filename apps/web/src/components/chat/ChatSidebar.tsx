@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { Plus, LogOut, FileText, MessageSquare } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  Plus,
+  LogOut,
+  FileText,
+  MessageSquare,
+  Settings,
+  LayoutDashboard,
+  User as UserIcon,
+} from "lucide-react";
 import { useChatStore } from "../../stores/chat.store";
 import { useAuthStore } from "../../stores/auth.store";
 import { chatService } from "../../services/chat.service";
@@ -25,10 +33,26 @@ export function ChatSidebar() {
   const { user, logout } = useAuthStore();
 
   const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [selectedResumeId, setSelectedResumeId] = useState<
     string | undefined
   >();
   const [isCreating, setIsCreating] = useState(false);
+
+  // Close settings when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleNewChat = async () => {
     setIsCreating(true);
@@ -115,11 +139,41 @@ export function ChatSidebar() {
         {/* User Profile & Settings */}
         <div
           className={cn(
-            "p-3 border-t border-white/10 bg-zinc-900 shrink-0",
+            "p-3 border-t border-white/10 bg-zinc-900 shrink-0 relative",
             !isSidebarOpen && "hidden",
           )}
+          ref={settingsRef}
         >
-          <div className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-zinc-800 cursor-pointer transition-colors group relative">
+          {/* Settings Dropdown */}
+          {isSettingsOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-zinc-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+              <div className="p-2 space-y-1">
+                <button
+                  onClick={() => {
+                    navigate("/discord-settings");
+                    setIsSettingsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-indigo-400" />
+                  Discord Settings
+                </button>
+                <div className="h-px bg-white/5 my-1" />
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-zinc-800 cursor-pointer transition-colors group relative"
+          >
             <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold uppercase ring-1 ring-inset ring-indigo-500/30">
               {user?.full_name?.[0] || "U"}
             </div>
@@ -130,13 +184,14 @@ export function ChatSidebar() {
               <p className="text-xs text-zinc-500 truncate">Free Plan</p>
             </div>
 
-            <button
-              onClick={logout}
-              className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-700 rounded-lg transition-colors"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="p-1.5 text-zinc-500 group-hover:text-white transition-colors">
+              <Settings
+                className={cn(
+                  "w-4 h-4 transition-transform duration-200",
+                  isSettingsOpen && "rotate-90",
+                )}
+              />
+            </div>
           </div>
         </div>
       </aside>

@@ -8,6 +8,7 @@ import { AuthCallbackPage } from "@pages/AuthCallbackPage";
 import { ChatPage } from "@pages/ChatPage";
 import { ResumePage } from "@pages/ResumePage";
 import { JobsPage } from "@pages/JobsPage";
+import { DiscordSettingsPage } from "@pages/DiscordSettingsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ToastContainer } from "./components/ui/Toast";
 
@@ -53,6 +54,14 @@ function App() {
           element={
             <ProtectedRoute>
               <JobsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="discord-settings"
+          element={
+            <ProtectedRoute>
+              <DiscordSettingsPage />
             </ProtectedRoute>
           }
         />
