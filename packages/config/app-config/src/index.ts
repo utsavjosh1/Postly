@@ -77,6 +77,17 @@ export const REDDIT_USER_AGENT =
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 
+// ─── Dodo Payments ──────────────────────────────────────────────────────────
+
+export const DODO_PAYMENTS_API_KEY = process.env.DODO_PAYMENTS_API_KEY || "";
+export const DODO_PAYMENTS_WEBHOOK_KEY =
+  process.env.DODO_PAYMENTS_WEBHOOK_KEY || "";
+export const DODO_PAYMENTS_ENVIRONMENT =
+  (process.env.DODO_PAYMENTS_ENVIRONMENT as "test_mode" | "live_mode") ||
+  "test_mode";
+export const DODO_PAYMENTS_RETURN_URL =
+  process.env.DODO_PAYMENTS_RETURN_URL || "";
+
 // ─── MinIO / S3 Storage (Optional) ──────────────────────────────────────────
 
 export const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || "localhost";

@@ -31,11 +31,17 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          query: ["@tanstack/react-query"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react")) return "vendor-react";
+            if (id.includes("@tanstack/react-query")) return "vendor-query";
+            if (id.includes("lucide-react")) return "vendor-icons";
+            if (id.includes("axios")) return "vendor-utils";
+            return "vendor-others";
+          }
         },
       },
     },
+    chunkSizeWarningLimit: 1000,
   },
 });
