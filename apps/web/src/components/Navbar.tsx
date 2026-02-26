@@ -1,13 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { authService } from "../services/auth.service";
-import {
-  MessageSquare,
-  Briefcase,
-  FileText,
-  LayoutDashboard,
-  LogOut,
-} from "lucide-react";
+import { MessageSquare, Briefcase, FileText, LogOut } from "lucide-react";
 import { Button } from "./ui/Button";
 
 export function Navbar() {
@@ -95,17 +89,6 @@ export function Navbar() {
                   >
                     <FileText className="w-4 h-4" />
                     Resume
-                  </Link>
-                  <Link
-                    to="/discord-settings"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                      location.pathname === "/discord-settings"
-                        ? "text-white bg-white/10"
-                        : "text-zinc-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    Discord
                   </Link>
                   <div className="w-px h-4 bg-white/10 mx-2" />
                   <Button

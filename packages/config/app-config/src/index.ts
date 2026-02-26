@@ -2,9 +2,6 @@ import * as dotenv from "dotenv";
 import { resolve, join } from "path";
 import { existsSync } from "fs";
 
-// ─── Load .env from monorepo root ────────────────────────────────────────────
-// Walk up from process.cwd() until we find a .env file (no import.meta needed)
-
 function findEnvFile(startDir: string): string | null {
   let dir = startDir;
   while (true) {
@@ -71,11 +68,6 @@ export const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID || "";
 export const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET || "";
 export const REDDIT_USER_AGENT =
   process.env.REDDIT_USER_AGENT || "postly-bot/1.0";
-
-// ─── Stripe (Optional) ──────────────────────────────────────────────────────
-
-export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
-export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 
 // ─── Dodo Payments ──────────────────────────────────────────────────────────
 

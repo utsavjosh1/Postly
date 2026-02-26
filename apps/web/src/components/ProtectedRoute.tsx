@@ -17,7 +17,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [checkAuth, isAuthenticated]);
 
-  // If loading, show spinner
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -26,8 +25,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // If not authenticated, but we have a token, we might be waiting for checkAuth
-  // So show spinner instead of redirecting immediately
   const hasToken = authService.getToken();
   if (!isAuthenticated && hasToken) {
     return (
@@ -37,9 +34,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // If definitely not authenticated (no token or checkAuth failed), redirect
   if (!isAuthenticated) {
-    // Redirect to login but save the attempted location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main, develop]
   schedule:
-    - cron: '0 0 * * 1' # Weekly on Monday at midnight
+    - cron: "0 0 * * 1" # Weekly on Monday at midnight
 
 permissions:
   actions: read
@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript', 'typescript']
+        language: ["javascript", "typescript", "python"]
 
     steps:
       - name: Checkout code
