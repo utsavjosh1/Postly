@@ -701,7 +701,7 @@ class TestEmbeddingService:
             from embedding_service import VoyageEmbeddingService
 
             service = VoyageEmbeddingService.__new__(VoyageEmbeddingService)
-            service.model = "voyage-4-lite"
+            service.model = "voyage-4-large"
 
             text = service._prepare_text({
                 "job_title": "Backend Engineer",
@@ -722,7 +722,7 @@ class TestEmbeddingService:
             from embedding_service import VoyageEmbeddingService
 
             service = VoyageEmbeddingService.__new__(VoyageEmbeddingService)
-            service.model = "voyage-4-lite"
+            service.model = "voyage-4-large"
 
             text = service._prepare_text({})
             assert text == ""
@@ -744,7 +744,7 @@ class TestEmbeddingService:
             import embedding_service
             importlib.reload(embedding_service)
 
-            assert "voyage-4-lite" in embedding_service.VoyageEmbeddingService.MODEL
+            assert "voyage-4-large" in embedding_service.VoyageEmbeddingService.MODEL
 
             if original is not None:
                 os.environ["VOYAGE_MODEL"] = original
