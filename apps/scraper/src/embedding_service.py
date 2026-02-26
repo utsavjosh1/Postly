@@ -33,7 +33,7 @@ class VoyageEmbeddingService:
     Dedicated Voyage AI embedding client with production features.
 
     Features:
-    - voyage-4-lite model (1024 dimensions, matches Drizzle schema)
+    - voyage-4-large model (1024 dimensions, matches Drizzle schema)
     - Built-in rate limiting (300 RPM max)
     - Batch processing (128 texts per request max)
     - Tenacity retry with exponential backoff
@@ -41,7 +41,7 @@ class VoyageEmbeddingService:
     """
 
     # Voyage AI limits
-    MODEL = os.getenv("VOYAGE_MODEL", "voyage-4-lite")
+    MODEL = os.getenv("VOYAGE_MODEL", "voyage-4-large")
     EMBEDDING_DIM = 1024
     MAX_BATCH_SIZE = 128
     MAX_RPM = 300
