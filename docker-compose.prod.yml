@@ -58,6 +58,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    ports:
+      - "6379:6379"
     networks:
       - postly-network
 
@@ -141,6 +143,41 @@ services:
       timeout: 10s
       retries: 2
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - postly-network
+
+  # Discord Bot and Worker
+  bot:
+    image: utsavjoshi/postly-bot:latest
+    container_name: postly-bot
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-postly}
+      DB_USER: ${DB_USER:-postly}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?Discord bot token required}
+      WEB_URL: ${WEB_URL:-http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 150M
     logging:
       driver: "json-file"
       options:

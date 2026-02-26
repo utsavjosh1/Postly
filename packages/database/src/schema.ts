@@ -14,6 +14,37 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+// ─── Discord ─────────────────────────────────────────────────────────────────
+
+export const discord_configs = pgTable(
+  "discord_configs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    guild_id: varchar("guild_id", { length: 255 }).notNull().unique(),
+    channel_id: varchar("channel_id", { length: 255 }),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    is_active: boolean("is_active").default(true),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    guildIdx: index("idx_discord_guild").on(table.guild_id),
+    userIdIdx: index("idx_discord_user").on(table.user_id),
+  }),
+);
+
+export const discordConfigsRelations = relations(
+  discord_configs,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [discord_configs.user_id],
+      references: [users.id],
+    }),
+  }),
+);
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 export const users = pgTable(
@@ -50,6 +81,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   resumes: many(resumes),
   conversations: many(conversations),
   job_matches: many(job_matches),
+  discord_configs: many(discord_configs),
 }));
 
 // ─── Resumes ─────────────────────────────────────────────────────────────────
@@ -63,7 +95,7 @@ export const resumes = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     file_url: text("file_url").notNull(),
     parsed_text: text("parsed_text"),
-    embedding: vector("embedding", { dimensions: 768 }),
+    embedding: vector("embedding", { dimensions: 1024 }),
     skills: jsonb("skills"),
     experience_years: integer("experience_years"),
     education: jsonb("education"),
@@ -97,7 +129,7 @@ export const jobs = pgTable(
     remote: boolean("remote").default(false),
     source: varchar("source", { length: 100 }).notNull(),
     source_url: text("source_url"),
-    embedding: vector("embedding", { dimensions: 768 }),
+    embedding: vector("embedding", { dimensions: 1024 }),
     skills_required: jsonb("skills_required"),
     experience_required: varchar("experience_required", { length: 100 }),
     posted_at: timestamp("posted_at", { withTimezone: true }),

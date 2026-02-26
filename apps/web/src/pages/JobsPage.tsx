@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Briefcase, Filter, RefreshCw, Sparkles } from "lucide-react";
 import { JobCard } from "../components/jobs/JobCard";
@@ -37,6 +37,33 @@ export function JobsPage() {
     setMatchLoading,
   } = useJobStore();
 
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await jobService.getJobs(filters);
+      setJobs(data.jobs, data.total);
+    } catch (error) {
+      console.error("Failed to load jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, setJobs, setLoading]);
+
+  const loadMatches = useCallback(
+    async (resumeId: string) => {
+      setMatchLoading(true);
+      try {
+        const data = await jobService.getMatches(resumeId, true, 20);
+        setMatches(data);
+      } catch (error) {
+        console.error("Failed to load matches:", error);
+      } finally {
+        setMatchLoading(false);
+      }
+    },
+    [setMatches, setMatchLoading],
+  );
+
   // Resume store used for potential future features
   useResumeStore();
 
@@ -47,37 +74,13 @@ export function JobsPage() {
     }
 
     loadJobs();
-  }, [navigate, filters]);
+  }, [navigate, filters, loadJobs]);
 
   useEffect(() => {
     if (selectedResumeId) {
       loadMatches(selectedResumeId);
     }
-  }, [selectedResumeId]);
-
-  const loadJobs = async () => {
-    setLoading(true);
-    try {
-      const data = await jobService.getJobs(filters);
-      setJobs(data.jobs, data.total);
-    } catch (error) {
-      console.error("Failed to load jobs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMatches = async (resumeId: string) => {
-    setMatchLoading(true);
-    try {
-      const data = await jobService.getMatches(resumeId, true, 20);
-      setMatches(data);
-    } catch (error) {
-      console.error("Failed to load matches:", error);
-    } finally {
-      setMatchLoading(false);
-    }
-  };
+  }, [selectedResumeId, loadMatches]);
 
   const handleSaveJob = async (
     jobId: string,
@@ -307,7 +310,7 @@ export function JobsPage() {
         ) : displayJobs.length > 0 ? (
           <div className="space-y-4">
             {displayJobs.map((job) => {
-              const optimizedJob = toOptimizedJobMatch(job as any);
+              const optimizedJob = toOptimizedJobMatch(job);
               return (
                 <JobCard
                   key={job.id}

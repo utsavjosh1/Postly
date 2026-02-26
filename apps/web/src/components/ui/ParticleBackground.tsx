@@ -1,5 +1,41 @@
 import { useEffect, useRef } from "react";
 
+class Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  width: number;
+  height: number;
+
+  constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+    this.x = Math.random() * width;
+    this.y = Math.random() * height;
+    this.vx = (Math.random() - 0.5) * 0.5; // Slow motion
+    this.vy = (Math.random() - 0.5) * 0.5;
+    this.size = Math.random() * 2 + 1; // Micro-particles
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Bounce off edges
+    if (this.x < 0 || this.x > this.width) this.vx *= -1;
+    if (this.y < 0 || this.y > this.height) this.vy *= -1;
+  }
+
+  draw(ctx: CanvasRenderingContext2D, color: string) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
 export function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -20,43 +56,9 @@ export function ParticleBackground() {
     const CONNECT_RADIUS = 150;
     const PARTICLE_COLOR = "rgba(255, 255, 255, 0.7)";
 
-    class Particle {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      size: number;
-
-      constructor() {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.5; // Slow motion
-        this.vy = (Math.random() - 0.5) * 0.5;
-        this.size = Math.random() * 2 + 1; // Micro-particles
-      }
-
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Bounce off edges
-        if (this.x < 0 || this.x > width) this.vx *= -1;
-        if (this.y < 0 || this.y > height) this.vy *= -1;
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = PARTICLE_COLOR;
-        ctx.fill();
-      }
-    }
-
-    // Initialize particles
     const particles: Particle[] = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.push(new Particle());
+      particles.push(new Particle(width, height));
     }
 
     // Interaction handling
@@ -80,7 +82,7 @@ export function ParticleBackground() {
       // Simple physics: Interact with mouse (repel)
       const REPEL_RADIUS = 100;
 
-      particles.forEach((p) => {
+      particles.forEach((p: Particle) => {
         // Mouse interaction logic
         const dx = p.x - mouseX;
         const dy = p.y - mouseY;
@@ -97,7 +99,7 @@ export function ParticleBackground() {
         }
 
         p.update();
-        p.draw();
+        p.draw(ctx, PARTICLE_COLOR);
       });
 
       // Draw connections

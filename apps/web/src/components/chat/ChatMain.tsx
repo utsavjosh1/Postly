@@ -57,7 +57,7 @@ export function ChatMain() {
             </div>
 
             {/* Input Footer */}
-            <div className="shrink-0 w-full max-w-3xl mx-auto px-4 pb-6 pt-2 bg-gradient-to-t from-zinc-900 via-zinc-900 to-transparent z-20 transition-all duration-500">
+            <div className="shrink-0 w-full max-w-3xl mx-auto px-4 pb-6 pt-2 bg-linear-to-t from-zinc-900 via-zinc-900 to-transparent z-20 transition-all duration-500">
               <ChatInput />
               <div className="text-center mt-2">
                 <p className="text-[10px] text-zinc-600">
@@ -71,7 +71,7 @@ export function ChatMain() {
           <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full w-full max-w-3xl mx-auto animate-in fade-in zoom-in-95 duration-500">
             {/* Logo/Greeting */}
             <div className="mb-10 text-center space-y-4">
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60 tracking-tight">
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-b from-white to-white/60 tracking-tight">
                 What are you looking for today?
               </h1>
             </div>

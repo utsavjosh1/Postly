@@ -20,8 +20,12 @@ export function ForgotPasswordPage() {
     try {
       await authService.forgotPassword(email);
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

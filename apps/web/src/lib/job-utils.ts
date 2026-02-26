@@ -12,7 +12,6 @@ interface MatchedJob extends Job {
 export function toOptimizedJobMatch(
   job: MatchedJob | OptimizedJobMatch,
 ): OptimizedJobMatch {
-  // If already optimized, return as is
   if ("display_info" in job) {
     return job as OptimizedJobMatch;
   }

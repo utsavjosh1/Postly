@@ -2,9 +2,6 @@ import * as dotenv from "dotenv";
 import { resolve, join } from "path";
 import { existsSync } from "fs";
 
-// ─── Load .env from monorepo root ────────────────────────────────────────────
-// Walk up from process.cwd() until we find a .env file (no import.meta needed)
-
 function findEnvFile(startDir: string): string | null {
   let dir = startDir;
   while (true) {
@@ -72,10 +69,16 @@ export const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET || "";
 export const REDDIT_USER_AGENT =
   process.env.REDDIT_USER_AGENT || "postly-bot/1.0";
 
-// ─── Stripe (Optional) ──────────────────────────────────────────────────────
+// ─── Dodo Payments ──────────────────────────────────────────────────────────
 
-export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
-export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+export const DODO_PAYMENTS_API_KEY = process.env.DODO_PAYMENTS_API_KEY || "";
+export const DODO_PAYMENTS_WEBHOOK_KEY =
+  process.env.DODO_PAYMENTS_WEBHOOK_KEY || "";
+export const DODO_PAYMENTS_ENVIRONMENT =
+  (process.env.DODO_PAYMENTS_ENVIRONMENT as "test_mode" | "live_mode") ||
+  "test_mode";
+export const DODO_PAYMENTS_RETURN_URL =
+  process.env.DODO_PAYMENTS_RETURN_URL || "";
 
 // ─── MinIO / S3 Storage (Optional) ──────────────────────────────────────────
 

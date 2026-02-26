@@ -1,16 +1,30 @@
 # Dependencies
-node_modules
+node_modules/
 .pnp
 .pnp.js
+jspm_packages/
 
 # Testing
-coverage
+coverage/
+.nyc_output
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+nosetests.xml
+pylintrc
+pytest.ini
+htmlcov/
 
 # Production
-dist
-build
-.next
-out
+dist/
+build/
+.next/
+out/
+bin/
+obj/
+*.tsbuildinfo
 
 # Misc
 .DS_Store
@@ -19,12 +33,21 @@ out
 .env.local
 .env.production
 .env.*.local
+.env.test
+*.bak
+*.tmp
+*.temp
+.vercel
+.eslintcache
+.stylelintcache
 
 # Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Turbo
 .turbo
@@ -35,21 +58,54 @@ yarn-error.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.idea
+.idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.history/
 
 # OS
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Docker
 *.log
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
 
-guide
+# App Specific
+apps/scraper/scraper.pid
+apps/scraper/scraper.log
+todo.md
+guide/
 DOCKER_README.md
 IMPROVEMENTS.md
 DEPLOY.md
-apps/scraper/venv
-todo.md
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

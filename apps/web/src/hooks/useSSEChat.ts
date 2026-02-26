@@ -238,6 +238,7 @@ export function useSSEChat() {
       addConversation,
       addToast,
       setConversationState,
+      activeResumeId,
     ],
   );
 
