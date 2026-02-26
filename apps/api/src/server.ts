@@ -11,7 +11,7 @@ import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import discordRoutes from "./routes/discord.routes.js";
-import dodoRoutes from "./routes/dodo.routes.js";
+// import dodoRoutes from "./routes/dodo.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
