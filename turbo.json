@@ -1,12 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env"],
-  "globalEnv": ["API_URL"],
+  "globalEnv": ["API_URL", "VITE_API_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
-      "env": ["API_URL"]
+      "env": ["API_URL", "VITE_API_URL"]
     },
     "dev": {
       "cache": false,
