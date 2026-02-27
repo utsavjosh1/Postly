@@ -83,12 +83,10 @@ export class UserController {
     try {
       const validation = updateProfileSchema.safeParse(req.body);
       if (!validation.success) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: { message: validation.error.errors[0].message },
-          });
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
         return;
       }
       const payload = req.user as JwtPayload;
@@ -127,12 +125,10 @@ export class UserController {
     try {
       const validation = updateSeekerProfileSchema.safeParse(req.body);
       if (!validation.success) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: { message: validation.error.errors[0].message },
-          });
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
         return;
       }
       const payload = req.user as JwtPayload;
@@ -168,12 +164,10 @@ export class UserController {
     try {
       const validation = updateEmployerProfileSchema.safeParse(req.body);
       if (!validation.success) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: { message: validation.error.errors[0].message },
-          });
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
         return;
       }
       const payload = req.user as JwtPayload;

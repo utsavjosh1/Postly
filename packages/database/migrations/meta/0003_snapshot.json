@@ -167,12 +167,8 @@
           "name": "applications_seeker_id_users_id_fk",
           "tableFrom": "applications",
           "tableTo": "users",
-          "columnsFrom": [
-            "seeker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seeker_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -180,12 +176,8 @@
           "name": "applications_job_id_jobs_id_fk",
           "tableFrom": "applications",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -193,12 +185,8 @@
           "name": "applications_resume_id_resumes_id_fk",
           "tableFrom": "applications",
           "tableTo": "resumes",
-          "columnsFrom": [
-            "resume_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resume_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -208,10 +196,7 @@
         "applications_seeker_id_job_id_unique": {
           "name": "applications_seeker_id_job_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "seeker_id",
-            "job_id"
-          ]
+          "columns": ["seeker_id", "job_id"]
         }
       },
       "policies": {},
@@ -375,12 +360,8 @@
           "name": "career_site_integrations_employer_id_users_id_fk",
           "tableFrom": "career_site_integrations",
           "tableTo": "users",
-          "columnsFrom": [
-            "employer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employer_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -390,10 +371,7 @@
         "career_site_integrations_employer_id_provider_unique": {
           "name": "career_site_integrations_employer_id_provider_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "employer_id",
-            "provider"
-          ]
+          "columns": ["employer_id", "provider"]
         }
       },
       "policies": {},
@@ -506,12 +484,8 @@
           "name": "conversations_user_id_users_id_fk",
           "tableFrom": "conversations",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -519,12 +493,8 @@
           "name": "conversations_resume_id_resumes_id_fk",
           "tableFrom": "conversations",
           "tableTo": "resumes",
-          "columnsFrom": [
-            "resume_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resume_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -623,12 +593,8 @@
           "name": "discord_configs_user_id_users_id_fk",
           "tableFrom": "discord_configs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -638,9 +604,7 @@
         "discord_configs_guild_id_unique": {
           "name": "discord_configs_guild_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "guild_id"
-          ]
+          "columns": ["guild_id"]
         }
       },
       "policies": {},
@@ -811,12 +775,8 @@
           "name": "email_notifications_user_id_users_id_fk",
           "tableFrom": "email_notifications",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -824,12 +784,8 @@
           "name": "email_notifications_template_id_notification_templates_id_fk",
           "tableFrom": "email_notifications",
           "tableTo": "notification_templates",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -992,12 +948,8 @@
           "name": "employer_profiles_user_id_users_id_fk",
           "tableFrom": "employer_profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1007,9 +959,7 @@
         "employer_profiles_user_id_unique": {
           "name": "employer_profiles_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "policies": {},
@@ -1122,12 +1072,8 @@
           "name": "job_matches_user_id_users_id_fk",
           "tableFrom": "job_matches",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1135,12 +1081,8 @@
           "name": "job_matches_resume_id_resumes_id_fk",
           "tableFrom": "job_matches",
           "tableTo": "resumes",
-          "columnsFrom": [
-            "resume_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resume_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1148,12 +1090,8 @@
           "name": "job_matches_job_id_jobs_id_fk",
           "tableFrom": "job_matches",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1163,10 +1101,7 @@
         "job_matches_user_id_job_id_unique": {
           "name": "job_matches_user_id_job_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "job_id"
-          ]
+          "columns": ["user_id", "job_id"]
         }
       },
       "policies": {},
@@ -1370,12 +1305,8 @@
           "name": "jobs_employer_id_users_id_fk",
           "tableFrom": "jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "employer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1457,12 +1388,8 @@
           "name": "message_attachments_message_id_messages_id_fk",
           "tableFrom": "message_attachments",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1607,12 +1534,8 @@
           "name": "messages_conversation_id_conversations_id_fk",
           "tableFrom": "messages",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1715,9 +1638,7 @@
         "notification_templates_slug_unique": {
           "name": "notification_templates_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -1863,12 +1784,8 @@
           "name": "payments_user_id_users_id_fk",
           "tableFrom": "payments",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1876,12 +1793,8 @@
           "name": "payments_subscription_id_subscriptions_id_fk",
           "tableFrom": "payments",
           "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscription_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1891,9 +1804,7 @@
         "payments_dodo_payment_id_unique": {
           "name": "payments_dodo_payment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "dodo_payment_id"
-          ]
+          "columns": ["dodo_payment_id"]
         }
       },
       "policies": {},
@@ -1983,12 +1894,8 @@
           "name": "resumes_user_id_users_id_fk",
           "tableFrom": "resumes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2199,12 +2106,8 @@
           "name": "seeker_profiles_user_id_users_id_fk",
           "tableFrom": "seeker_profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2214,9 +2117,7 @@
         "seeker_profiles_user_id_unique": {
           "name": "seeker_profiles_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "policies": {},
@@ -2392,12 +2293,8 @@
           "name": "subscriptions_user_id_users_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2407,16 +2304,12 @@
         "subscriptions_user_id_unique": {
           "name": "subscriptions_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         },
         "subscriptions_dodo_subscription_id_unique": {
           "name": "subscriptions_dodo_subscription_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "dodo_subscription_id"
-          ]
+          "columns": ["dodo_subscription_id"]
         }
       },
       "policies": {},
@@ -2558,9 +2451,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -2599,34 +2490,17 @@
     "public.notification_status": {
       "name": "notification_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "sent",
-        "failed",
-        "bounced",
-        "opened"
-      ]
+      "values": ["pending", "sent", "failed", "bounced", "opened"]
     },
     "public.payment_status": {
       "name": "payment_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "succeeded",
-        "failed",
-        "refunded",
-        "disputed"
-      ]
+      "values": ["pending", "succeeded", "failed", "refunded", "disputed"]
     },
     "public.subscription_plan": {
       "name": "subscription_plan",
       "schema": "public",
-      "values": [
-        "free",
-        "seeker",
-        "employer",
-        "enterprise"
-      ]
+      "values": ["free", "seeker", "employer", "enterprise"]
     },
     "public.subscription_status": {
       "name": "subscription_status",
@@ -2643,11 +2517,7 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "job_seeker",
-        "employer",
-        "admin"
-      ]
+      "values": ["job_seeker", "employer", "admin"]
     }
   },
   "schemas": {},
