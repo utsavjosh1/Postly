@@ -12,6 +12,7 @@ import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import discordRoutes from "./routes/discord.routes.js";
 import dodoRoutes from "./routes/dodo.routes.js";
+import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
@@ -66,6 +67,7 @@ app.use("/api/v1/resumes", resumeRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/discord", discordRoutes);
 app.use("/api/v1/payments", dodoRoutes);
+app.use("/api/v1/applications", applicationRoutes);
 
 // Error handling
 app.use(notFoundHandler);

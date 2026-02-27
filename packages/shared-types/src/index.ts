@@ -357,3 +357,4 @@ export const AI_ERROR_CODES = {
 export type AIErrorCode = (typeof AI_ERROR_CODES)[keyof typeof AI_ERROR_CODES];
 
 export * from "./schemas.js";
+export * from "./domain.js";

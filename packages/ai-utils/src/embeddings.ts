@@ -1,47 +1,33 @@
 /**
  * embeddings.ts
- * High-level embedding utilities: batch processing with concurrency
- * control and cosine similarity.
+ * High-level embedding utilities: batch processing, cosine similarity, and top-K search.
  */
 
-import {
-  generateVoyageEmbedding,
-  generateVoyageEmbeddings,
-  type EmbeddingMetadata,
-} from "./voyage";
+import { generateVoyageEmbedding, generateVoyageEmbeddings } from "./voyage.js";
+import type { EmbeddingResult } from "@postly/shared-types";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface BatchEmbeddingResult {
-  embeddings: number[][];
-  metadata: EmbeddingMetadata;
-}
+// BatchEmbeddingResult is an alias of EmbeddingResult — re-exported for back-compat.
+export type { EmbeddingResult as BatchEmbeddingResult } from "@postly/shared-types";
 
 // ─── Batch Embedding ─────────────────────────────────────────────────────────
 
 /**
  * Embed many texts using Voyage AI's native batching.
- * Preferred over the old per-item concurrency approach — sends
- * texts in 128-item batches, one API call per batch.
+ * Sends texts in 128-item batches, one API call per batch.
  *
- * @param texts - Array of texts to embed
+ * @param texts     - Array of texts to embed
  * @param inputType - "document" for indexing, "query" for search
- * @returns Embeddings in same order as input + aggregated metadata
  */
 export async function generateBatchEmbeddings(
   texts: string[],
   inputType: "document" | "query" = "document",
-): Promise<BatchEmbeddingResult> {
-  const result = await generateVoyageEmbeddings(texts, inputType);
-  return {
-    embeddings: result.embeddings,
-    metadata: result.metadata,
-  };
+): Promise<EmbeddingResult> {
+  return generateVoyageEmbeddings(texts, inputType);
 }
 
 /**
  * Embed a single text and return just the vector.
- * Convenience wrapper when you don't need metadata.
+ * Convenience wrapper when metadata is not needed.
  */
 export async function embedText(
   text: string,
@@ -55,7 +41,7 @@ export async function embedText(
 
 /**
  * Cosine similarity between two vectors.
- * Returns 0 for invalid / mismatched inputs.
+ * Returns 0 for invalid or mismatched inputs.
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (!a || !b || a.length !== b.length) return 0;
@@ -78,12 +64,12 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 /**
  * Find the top-K most similar embeddings to a query vector.
- * Returns indices sorted by descending similarity.
+ * Returns indices sorted by descending similarity score.
  */
 export function findTopK(
   queryEmbedding: number[],
   candidates: number[][],
-  k: number = 5,
+  k = 5,
 ): { index: number; score: number }[] {
   return candidates
     .map((vec, index) => ({

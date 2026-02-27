@@ -5,7 +5,6 @@ import { DiscordController } from "../controllers/discord.controller.js";
 const router = Router();
 const discordController = new DiscordController();
 
-// All discord routes are protected
 router.use(authenticateToken);
 
 router.get("/callback", discordController.handleCallback);
