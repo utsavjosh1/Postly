@@ -10,10 +10,10 @@ ENV PYTHONPATH=/app
 WORKDIR /app
 
 # Install system dependencies (none required for current requirements.txt, but added for common needs)
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     gcc \
-#     libc-dev \
-#     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .

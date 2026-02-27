@@ -6,7 +6,6 @@ import { ChatController } from "../controllers/chat.controller.js";
 const router = Router();
 const chatController = new ChatController();
 
-// All routes require authentication
 router.use(authenticateToken);
 
 // Conversations

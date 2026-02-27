@@ -11,7 +11,8 @@ import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import discordRoutes from "./routes/discord.routes.js";
-// import dodoRoutes from "./routes/dodo.routes.js";
+import dodoRoutes from "./routes/dodo.routes.js";
+import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
@@ -25,7 +26,6 @@ app.use(
   }),
 );
 
-// Global rate limiting — 100 requests per 15 minutes
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -37,10 +37,9 @@ const globalLimiter = rateLimit({
   },
 });
 
-// Strict rate limiting for auth endpoints — 5 attempts per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50, // Relaxed from 5 to 50 for development testing
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -53,11 +52,9 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Health check endpoint
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
@@ -69,7 +66,8 @@ app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/resumes", resumeRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/discord", discordRoutes);
-// app.use("/api/v1/payments", dodoRoutes);
+app.use("/api/v1/payments", dodoRoutes);
+app.use("/api/v1/applications", applicationRoutes);
 
 // Error handling
 app.use(notFoundHandler);
