@@ -2,10 +2,7 @@ import { defineConfig } from "drizzle-kit";
 import { DATABASE_URL } from "@postly/config";
 
 if (!DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is required for drizzle-kit.\n" +
-      "Add it to your .env file: DATABASE_URL=postgresql://user:pass@localhost:5432/postly",
-  );
+  throw new Error("DATABASE_URL is required for drizzle-kit.");
 }
 
 export default defineConfig({

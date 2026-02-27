@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL with pgvector for vector search
+  # PostgreSQL
   postgres:
     image: pgvector/pgvector:pg16
     container_name: postly-postgres
@@ -35,7 +35,7 @@ services:
     networks:
       - postly-network
 
-  # Redis for job queue and caching
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: postly-redis
@@ -111,7 +111,7 @@ services:
     networks:
       - postly-network
 
-  # Python Job Scraper with Playwright
+  # Scraper
   scraper:
     image: utsavjoshi/postly-scraper:latest
     container_name: postly-scraper
@@ -130,8 +130,8 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "8080:8080"  # Health check endpoint
-    shm_size: '512mb'  # Minimal for Chromium
+      - "8080:8080"  
+    shm_size: '512mb'  
     deploy:
       resources:
         limits:
@@ -151,7 +151,7 @@ services:
     networks:
       - postly-network
 
-  # Discord Bot and Worker
+  # Discord Bot
   bot:
     image: utsavjoshi/postly-bot:latest
     container_name: postly-bot
