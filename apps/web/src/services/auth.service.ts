@@ -18,7 +18,6 @@ export const authService = {
 
     if (!authData) throw new Error("No data received");
 
-    // Store token in localStorage
     if (authData.access_token) {
       localStorage.setItem("access_token", authData.access_token);
     }
@@ -27,8 +26,6 @@ export const authService = {
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    // Map frontend specific fields to backend expected format if needed
-    // The shared type CreateUserInput expects: email, password, full_name, role
     const payload = {
       email: data.email,
       password: data.password,

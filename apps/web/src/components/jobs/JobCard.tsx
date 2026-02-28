@@ -9,10 +9,11 @@ import {
   Wifi,
 } from "lucide-react";
 import type { OptimizedJobMatch } from "@postly/shared-types";
-import { cn } from "../../lib/utils";
-import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
 import { MatchScore } from "./MatchScore";
+
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 interface JobCardProps {
   job: OptimizedJobMatch;
@@ -107,7 +108,7 @@ export function JobCard({
               </div>
             </div>
 
-            {/* Save button - Hide in chat for now or style differently */}
+            {/* Save button */}
             {!isChat && (
               <button
                 onClick={handleSave}
@@ -144,7 +145,6 @@ export function JobCard({
                 </span>
               </span>
             )}
-            {/* Show remote badge */}
             {!isChat && meta.remote && (
               <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                 <Wifi className="w-4 h-4" />
@@ -158,7 +158,7 @@ export function JobCard({
             )}
           </div>
 
-          {/* Skills - Only show first 3 in chat */}
+          {/* Skills */}
           {matching_data.key_skills && matching_data.key_skills.length > 0 && (
             <div
               className={cn(
@@ -169,29 +169,29 @@ export function JobCard({
               {matching_data.key_skills
                 .slice(0, isChat ? 3 : 4)
                 .map((skill) => (
-                  <Badge
+                  <span
                     key={skill}
-                    variant="secondary"
                     className={cn(
-                      "text-xs",
-                      isChat &&
-                        "bg-white/5 text-zinc-400 border-white/5 px-1.5 py-0",
+                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                      isChat
+                        ? "bg-white/5 text-zinc-400 border-white/5 px-1.5 py-0"
+                        : "bg-secondary text-secondary-foreground border-transparent",
                     )}
                   >
                     {skill}
-                  </Badge>
+                  </span>
                 ))}
               {matching_data.key_skills.length > (isChat ? 3 : 4) && (
-                <Badge
-                  variant="outline"
+                <span
                   className={cn(
-                    "text-xs",
-                    isChat &&
-                      "bg-white/5 text-zinc-500 border-white/5 px-1.5 py-0",
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                    isChat
+                      ? "bg-white/5 text-zinc-500 border-white/5 px-1.5 py-0"
+                      : "bg-transparent text-muted-foreground border-border",
                   )}
                 >
                   +{matching_data.key_skills.length - (isChat ? 3 : 4)}
-                </Badge>
+                </span>
               )}
             </div>
           )}
@@ -212,7 +212,7 @@ export function JobCard({
           >
             {isChat ? (
               <button
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   if (onApply) onApply(job.id);
                   else if (meta.apply_url)
@@ -230,10 +230,8 @@ export function JobCard({
             ) : (
               <>
                 {meta.apply_url && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
+                  <button
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       window.open(
                         meta.apply_url,
@@ -241,11 +239,11 @@ export function JobCard({
                         "noopener,noreferrer",
                       );
                     }}
-                    className="gap-1.5"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Apply
-                  </Button>
+                  </button>
                 )}
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />
