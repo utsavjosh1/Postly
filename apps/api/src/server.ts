@@ -19,9 +19,29 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+// WEB_URL can be a comma-separated list of allowed origins, e.g.:
+// WEB_URL=https://postly.learnest.asia,https://www.postly.learnest.asia
+const allowedOrigins = WEB_URL
+  ? WEB_URL.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
+  : [];
+
+if (allowedOrigins.length === 0) {
+  console.warn(
+    "⚠️  WEB_URL is not set — CORS will block all browser requests!",
+  );
+}
+
 app.use(
   cors({
-    origin: WEB_URL,
+    origin: (origin, callback) => {
+      // Allow server-to-server requests (no Origin header)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
     credentials: true,
   }),
 );
