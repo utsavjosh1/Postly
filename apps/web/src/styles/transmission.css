@@ -1,0 +1,385 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSMISSION — Neo-Brutalist Design System
+   Direction 3: Bold Signal / Broadcast Aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Google Fonts ─────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap");
+
+/* ─── Design Tokens ───────────────────────────────────────────────────── */
+:root {
+  /* Palette */
+  --tx-bg: #f0ede6;
+  --tx-surface: #fafaf5;
+  --tx-seeker: #ff3d00;
+  --tx-recruiter: #0038ff;
+  --tx-ink: #111111;
+  --tx-ink-muted: #555555;
+  --tx-border: #111111;
+
+  /* Typography */
+  --tx-font-display: "Instrument Sans", sans-serif;
+  --tx-font-mono: "IBM Plex Mono", monospace;
+
+  /* Transitions — never ease-in-out */
+  --tx-ease-sharp: cubic-bezier(0.77, 0, 0.18, 1);
+  --tx-ease-mechanical: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --tx-ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Radii — brutalist: none */
+  --tx-radius: 0px;
+}
+
+/* ─── Custom Cursors (data URI crosshairs) ────────────────────────────── */
+.tx-cursor-seeker {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%23FF3D00' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%23FF3D00' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='12' r='4' fill='none' stroke='%23FF3D00' stroke-width='1.5'/%3E%3C/svg%3E")
+      12 12,
+    crosshair;
+}
+
+.tx-cursor-recruiter {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%230038FF' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%230038FF' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='12' r='4' fill='none' stroke='%230038FF' stroke-width='1.5'/%3E%3C/svg%3E")
+      12 12,
+    crosshair;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+   All wrapped in prefers-reduced-motion guard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ─── Landing: Split halves from center ─────────────────────────────── */
+  @keyframes split-left {
+    0% {
+      clip-path: inset(0 0 0 50%);
+      opacity: 0;
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+      opacity: 1;
+    }
+  }
+  @keyframes split-right {
+    0% {
+      clip-path: inset(0 50% 0 0);
+      opacity: 0;
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+      opacity: 1;
+    }
+  }
+
+  .tx-split-left {
+    animation: split-left 600ms var(--tx-ease-sharp) forwards;
+  }
+  .tx-split-right {
+    animation: split-right 600ms var(--tx-ease-sharp) 150ms forwards;
+    opacity: 0; /* initial state before animation delay */
+  }
+
+  /* ─── Landing: Headline drops in from above ─────────────────────────── */
+  @keyframes headline-drop {
+    0% {
+      transform: translateY(-80px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .tx-headline-drop {
+    animation: headline-drop 500ms var(--tx-ease-snap) forwards;
+    opacity: 0;
+  }
+  .tx-headline-drop-delay {
+    animation: headline-drop 500ms var(--tx-ease-snap) 150ms forwards;
+    opacity: 0;
+  }
+
+  /* ─── Landing: SVG border trace on hover ────────────────────────────── */
+  @keyframes border-trace {
+    0% {
+      stroke-dashoffset: var(--tx-perimeter);
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .tx-border-trace {
+    stroke-dasharray: var(--tx-perimeter);
+    stroke-dashoffset: var(--tx-perimeter);
+  }
+  .tx-panel:hover .tx-border-trace {
+    animation: border-trace 500ms var(--tx-ease-sharp) forwards;
+  }
+
+  /* ─── Landing: Carrier wave — dividing line pulse ───────────────────── */
+  @keyframes carrier-wave {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .tx-carrier-wave {
+    animation: carrier-wave 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* ─── Landing: Logo glitch — single skewX flicker ──────────────────── */
+  @keyframes logo-glitch {
+    0% {
+      transform: skewX(0deg);
+    }
+    20% {
+      transform: skewX(-8deg);
+    }
+    40% {
+      transform: skewX(5deg);
+    }
+    60% {
+      transform: skewX(-3deg);
+    }
+    80% {
+      transform: skewX(1deg);
+    }
+    100% {
+      transform: skewX(0deg);
+    }
+  }
+
+  .tx-logo-glitch {
+    animation: logo-glitch 200ms var(--tx-ease-sharp) 800ms both;
+  }
+
+  /* ─── Transition: Circle expand from click point ────────────────────── */
+  @keyframes circle-expand {
+    0% {
+      clip-path: circle(0% at var(--tx-click-x) var(--tx-click-y));
+    }
+    100% {
+      clip-path: circle(150% at var(--tx-click-x) var(--tx-click-y));
+    }
+  }
+  @keyframes circle-contract {
+    0% {
+      clip-path: circle(150% at var(--tx-click-x) var(--tx-click-y));
+    }
+    100% {
+      clip-path: circle(0% at var(--tx-click-x) var(--tx-click-y));
+    }
+  }
+
+  .tx-transition-expand {
+    animation: circle-expand 300ms var(--tx-ease-sharp) forwards;
+  }
+  .tx-transition-contract {
+    animation: circle-contract 300ms var(--tx-ease-sharp) forwards;
+  }
+
+  /* ─── Chat: Typewriter for AI messages ──────────────────────────────── */
+  @keyframes typewriter {
+    0% {
+      max-width: 0;
+    }
+    100% {
+      max-width: 100%;
+    }
+  }
+  @keyframes blink-caret {
+    0%,
+    100% {
+      border-color: var(--tx-ink);
+    }
+    50% {
+      border-color: transparent;
+    }
+  }
+
+  .tx-typewriter {
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 0;
+    animation: typewriter 1.2s steps(40, end) forwards;
+    border-right: 2px solid var(--tx-ink);
+  }
+  .tx-typewriter.tx-typewriter-done {
+    border-right: none;
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  /* ─── Chat: User message slide-in ───────────────────────────────────── */
+  @keyframes msg-slide-in {
+    0% {
+      transform: translateX(40px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .tx-msg-slide-in {
+    animation: msg-slide-in 200ms var(--tx-ease-sharp) forwards;
+    opacity: 0;
+  }
+
+  /* ─── Onboarding: Panel slide-in with mechanical overshoot ──────────── */
+  @keyframes panel-slide {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .tx-panel-slide {
+    animation: panel-slide 500ms var(--tx-ease-mechanical) forwards;
+  }
+  .tx-panel-slide-out {
+    animation: panel-slide 300ms var(--tx-ease-sharp) reverse forwards;
+  }
+
+  /* ─── Onboarding: Checkbox wipe fill ────────────────────────────────── */
+  @keyframes checkbox-wipe {
+    0% {
+      clip-path: inset(0 100% 0 0);
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  .tx-checkbox-fill {
+    clip-path: inset(0 100% 0 0);
+  }
+  .tx-checkbox-checked .tx-checkbox-fill {
+    animation: checkbox-wipe 200ms var(--tx-ease-sharp) forwards;
+  }
+
+  /* ─── Send Button: Signal pulse ─────────────────────────────────────── */
+  @keyframes signal-pulse {
+    0% {
+      box-shadow: 0 0 0 0px var(--tx-pulse-color);
+    }
+    70% {
+      box-shadow: 0 0 0 12px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 12px transparent;
+    }
+  }
+
+  .tx-signal-pulse {
+    animation: signal-pulse 400ms var(--tx-ease-sharp) forwards;
+  }
+
+  /* ─── Send Button: Physical press ───────────────────────────────────── */
+  @keyframes button-press {
+    0% {
+      transform: scaleX(1);
+    }
+    50% {
+      transform: scaleX(0.96);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  .tx-button-press {
+    animation: button-press 100ms var(--tx-ease-sharp);
+  }
+} /* end prefers-reduced-motion */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE COMPONENT STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Panel hover luminosity shift ────────────────────────────────────── */
+.tx-panel {
+  position: relative;
+  transition: background-color 200ms var(--tx-ease-sharp);
+}
+.tx-panel-seeker:hover {
+  background-color: #1a0800;
+}
+.tx-panel-recruiter:hover {
+  background-color: #000618;
+}
+
+/* ─── Brutalist Input ─────────────────────────────────────────────────── */
+.tx-input {
+  font-family: var(--tx-font-mono);
+  background: var(--tx-surface);
+  border: 2px solid var(--tx-border);
+  border-radius: var(--tx-radius);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--tx-ink);
+  outline: none;
+  transition: border-color 150ms var(--tx-ease-sharp);
+}
+.tx-input:focus {
+  border-color: var(--tx-seeker);
+}
+.tx-input.tx-input-recruiter:focus {
+  border-color: var(--tx-recruiter);
+}
+.tx-input::placeholder {
+  color: var(--tx-ink-muted);
+}
+
+/* ─── Brutalist Button ────────────────────────────────────────────────── */
+.tx-btn {
+  font-family: var(--tx-font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  border: 2px solid var(--tx-border);
+  border-radius: var(--tx-radius);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition:
+    background-color 150ms var(--tx-ease-sharp),
+    color 150ms var(--tx-ease-sharp);
+}
+.tx-btn-seeker {
+  background: var(--tx-seeker);
+  color: white;
+  border-color: var(--tx-seeker);
+}
+.tx-btn-seeker:hover {
+  background: #cc3100;
+}
+.tx-btn-recruiter {
+  background: var(--tx-recruiter);
+  color: white;
+  border-color: var(--tx-recruiter);
+}
+.tx-btn-recruiter:hover {
+  background: #002ccc;
+}
+
+/* ─── Scrollbar styling ───────────────────────────────────────────────── */
+.tx-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.tx-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tx-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--tx-ink-muted);
+  border-radius: 0;
+}

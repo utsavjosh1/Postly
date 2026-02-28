@@ -20,8 +20,6 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// WEB_URL can be a comma-separated list of allowed origins, e.g.:
-// WEB_URL=https://postly.learnest.asia,https://www.postly.learnest.asia
 const allowedOrigins = WEB_URL
   ? WEB_URL.split(",")
       .map((o) => o.trim())
@@ -37,7 +35,6 @@ if (allowedOrigins.length === 0) {
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server requests (no Origin header)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error(`CORS: origin '${origin}' not allowed`));
@@ -101,7 +98,20 @@ app.listen(API_PORT, "0.0.0.0", async () => {
   // Initialize Discord Job Queue
   try {
     await queueService.initDailyCron();
-    queueService.setupWorker();
+    // Schedule daily dispatch at 9:00 AM UTC
+    const now = new Date();
+    const target = new Date(now);
+    target.setUTCHours(9, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    const msUntilFirst = target.getTime() - now.getTime();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    setTimeout(() => {
+      queueService.dispatchAll();
+      setInterval(() => queueService.dispatchAll(), DAY_MS);
+    }, msUntilFirst);
+
+    console.log(`📅 Discord daily job dispatch cron initialized (9:00 AM)`);
   } catch (err) {
     console.error("Failed to initialize Discord Queue:", err);
   }

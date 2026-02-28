@@ -1,4 +1,4 @@
-import { Queue, Worker, Job } from "bullmq";
+import { Queue } from "bullmq";
 import { REDIS_URL } from "../config/secrets.js";
 import { db, discord_configs, eq } from "@postly/database";
 
@@ -16,72 +16,70 @@ export class QueueService {
   }
 
   /**
-   * Initializes the daily cron job for Discord job drops.
-   * Runs every day at 9:00 AM.
+   * Initializes the daily cron that dispatches job alerts to all active Discord servers.
+   * Runs every day at 9:00 AM UTC.
+   *
+   * Instead of using an intermediate "daily_job_dispatch" job that requires
+   * a Node.js Worker to process, this directly queries active configs and
+   * enqueues one `send_discord_message` job per server — which the Python
+   * bot worker picks up via Redis.
    */
   initDailyCron = async () => {
-    // 9:00 AM daily
+    // Use a repeatable job that fires at 9 AM daily
     await this.discordQueue.add(
       "daily_job_dispatch",
-      {},
+      { trigger: "cron" },
       {
         repeat: {
           pattern: "0 9 * * *",
         },
+        removeOnComplete: true,
+        removeOnFail: 5,
       },
     );
     console.log("📅 Discord daily job dispatch cron initialized (9:00 AM)");
   };
 
   /**
-   * Manually trigger a dispatch for a single server (e.g. for testing)
+   * Dispatch job alerts for all active guilds.
+   * Called by the cron handler or manually.
    */
-  dispatchForGuild = async (guildId: string, channelId: string) => {
-    console.log("Dispatching for guild:", guildId);
-    console.log("Channel ID:", channelId);
-    await this.discordQueue.add("send_discord_message", {
-      guild_id: guildId,
-      channel_id: channelId,
-      timestamp: new Date().toISOString(),
-    });
-    console.log("✅ Job dispatched for guild:", guildId);
+  dispatchAll = async () => {
+    const activeConfigs = await db
+      .select()
+      .from(discord_configs)
+      .where(eq(discord_configs.is_active, true));
+
+    let queued = 0;
+    for (const config of activeConfigs) {
+      if (config.channel_id) {
+        await this.dispatchForGuild(config.guild_id, config.channel_id);
+        queued++;
+      }
+    }
+    console.log(
+      `✅ Queued job alerts for ${queued}/${activeConfigs.length} servers.`,
+    );
+    return queued;
   };
 
   /**
-   * Process the daily_job_dispatch task
-   * Queries all active discord configs and queues a message for each.
+   * Manually trigger a dispatch for a single server (e.g. for testing).
    */
-  setupWorker = () => {
-    new Worker(
-      DISCORD_QUEUE_NAME,
-      async (job: Job) => {
-        if (job.name === "daily_job_dispatch") {
-          console.log("🚀 Starting daily Discord job dispatch sequence...");
-
-          const activeConfigs = await db
-            .select()
-            .from(discord_configs)
-            .where(eq(discord_configs.is_active, true));
-
-          for (const config of activeConfigs) {
-            if (config.channel_id) {
-              await this.discordQueue.add("send_discord_message", {
-                guild_id: config.guild_id,
-                channel_id: config.channel_id,
-              });
-            }
-          }
-          console.log(
-            `✅ Queued job messages for ${activeConfigs.length} servers.`,
-          );
-        }
+  dispatchForGuild = async (guildId: string, channelId: string) => {
+    await this.discordQueue.add(
+      "send_discord_message",
+      {
+        guild_id: guildId,
+        channel_id: channelId,
+        timestamp: new Date().toISOString(),
       },
       {
-        connection: {
-          url: REDIS_URL || "redis://localhost:6379",
-        },
+        removeOnComplete: true,
+        removeOnFail: 3,
       },
     );
+    console.log(`✅ Job dispatched for guild: ${guildId}`);
   };
 }
 

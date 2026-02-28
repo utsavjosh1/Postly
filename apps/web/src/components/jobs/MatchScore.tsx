@@ -1,9 +1,11 @@
-import { cn } from "../../lib/utils";
-
 interface MatchScoreProps {
   score: number;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
+}
+
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 export function MatchScore({
@@ -40,7 +42,6 @@ export function MatchScore({
     <div className="flex flex-col items-center gap-1">
       <div className={cn("relative", container)}>
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-          {/* Background circle */}
           <circle
             cx="50"
             cy="50"
@@ -50,7 +51,6 @@ export function MatchScore({
             strokeWidth={stroke}
             className="text-muted/30"
           />
-          {/* Progress circle */}
           <circle
             cx="50"
             cy="50"

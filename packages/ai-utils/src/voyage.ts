@@ -1,7 +1,7 @@
 /**
  * voyage.ts
  * Voyage AI embedding generation with batching, rate-limiting, and retry logic.
- * Model: voyage-4-large (1024 dims, 32K context, MoE)
+ * Model: voyage-4-lite (1024 dims, 32K context, MoE)
  */
 
 import { VOYAGE_API_KEY, VOYAGE_MODEL } from "@postly/config";

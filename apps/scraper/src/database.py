@@ -191,15 +191,31 @@ class Database:
             """, embedding, job_id)
 
     async def update_embeddings_batch(self, updates: List[tuple]):
-        """Batch update embeddings. Each tuple is (job_id, embedding)."""
-        formatted_updates = [(job_id, str(emb)) for job_id, emb in updates]
+        """Batch update embeddings. Each tuple is (job_id, embedding_list)."""
+        if not updates:
+            return
+
+        success = 0
         async with self.pool.acquire() as conn:
-            await conn.executemany("""
-                UPDATE jobs
-                SET embedding = $2::vector, updated_at = NOW()
-                WHERE id = $1
-            """, formatted_updates)
-        logger.info(f"Batch updated {len(updates)} embeddings")
+            async with conn.transaction():
+                for job_id, emb in updates:
+                    try:
+                        # Convert Python list to pgvector string format: '[0.01,0.02,...]'
+                        if isinstance(emb, list):
+                            vec_str = '[' + ','.join(str(v) for v in emb) + ']'
+                        else:
+                            vec_str = str(emb)
+
+                        await conn.execute("""
+                            UPDATE jobs
+                            SET embedding = $2::vector, updated_at = NOW()
+                            WHERE id = $1
+                        """, job_id, vec_str)
+                        success += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to update embedding for {job_id}: {e}")
+
+        logger.info(f"Batch updated {success}/{len(updates)} embeddings")
 
     # ─── SEARCH ───────────────────────────────────────────────────
 

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { authService } from "../services/auth.service";
-import { Input } from "../components/ui/Input";
-import { Button } from "../components/ui/Button";
-import { ParticleBackground } from "../components/ui/ParticleBackground";
-import { ArrowLeft } from "lucide-react";
+import "../styles/transmission.css";
 
+/**
+ * ForgotPasswordPage — Transmission styled
+ */
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,85 +16,226 @@ export function ForgotPasswordPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
-
     try {
       await authService.forgotPassword(email);
       setIsSuccess(true);
     } catch (err) {
-      const message =
+      setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong. Please try again.";
-      setError(message);
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden py-12 px-4">
-      <ParticleBackground />
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--tx-bg)",
+        fontFamily: "var(--tx-font-mono)",
+        padding: "20px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: "420px" }}>
+        <div style={{ marginBottom: "40px", textAlign: "center" }}>
+          <Link
+            to="/"
+            style={{
+              fontFamily: "var(--tx-font-display)",
+              fontSize: "14px",
+              fontWeight: 800,
+              letterSpacing: "6px",
+              color: "var(--tx-ink)",
+              textDecoration: "none",
+              textTransform: "uppercase",
+            }}
+          >
+            POSTLY
+          </Link>
+          <h1
+            style={{
+              fontFamily: "var(--tx-font-display)",
+              fontSize: "clamp(28px, 5vw, 42px)",
+              fontWeight: 800,
+              color: "var(--tx-ink)",
+              margin: "16px 0 8px",
+              lineHeight: 1.1,
+              letterSpacing: "-1px",
+            }}
+          >
+            RESET PASSWORD
+          </h1>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--tx-ink-muted)",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+            }}
+          >
+            Recover your transmission
+          </p>
+        </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-zinc-900/50 backdrop-blur-md py-8 px-6 shadow-2xl rounded-2xl border border-white/10 ring-1 ring-white/5">
-          <div className="mb-8">
-            <Link
-              to="/login"
-              className="inline-flex items-center text-sm text-zinc-400 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Login
-            </Link>
-            <h2 className="text-3xl font-bold text-white mb-2">
-              Forgot Password?
-            </h2>
-            <p className="text-sm text-gray-300">
-              Enter your email address to reset your password.
-            </p>
-          </div>
+        <div
+          style={{
+            background: "var(--tx-surface)",
+            border: "2px solid var(--tx-border)",
+            borderRadius: "var(--tx-radius)",
+            padding: "32px 28px",
+          }}
+        >
+          <Link
+            to="/login"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "11px",
+              color: "var(--tx-ink-muted)",
+              textDecoration: "none",
+              marginBottom: "20px",
+              letterSpacing: "1px",
+            }}
+          >
+            ← BACK TO LOGIN
+          </Link>
 
           {isSuccess ? (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-6 text-center">
-              <h3 className="text-green-400 font-semibold mb-2">
-                Check your email
+            <div
+              style={{
+                padding: "20px",
+                border: "2px solid var(--tx-ink)",
+                textAlign: "center",
+              }}
+            >
+              <h3
+                style={{
+                  fontFamily: "var(--tx-font-display)",
+                  fontSize: "16px",
+                  fontWeight: 700,
+                  color: "var(--tx-ink)",
+                  marginBottom: "8px",
+                }}
+              >
+                CHECK YOUR EMAIL
               </h3>
-              <p className="text-zinc-300 text-sm mb-6">
-                We have sent a password reset link to {email}.
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--tx-ink-muted)",
+                  marginBottom: "16px",
+                  lineHeight: 1.5,
+                }}
+              >
+                Reset link sent to {email}
               </p>
-              <Link to="/login">
-                <Button className="w-full bg-white text-black hover:bg-zinc-200">
-                  Return to Login
-                </Button>
+              <Link
+                to="/login"
+                style={{
+                  display: "inline-block",
+                  padding: "10px 20px",
+                  fontFamily: "var(--tx-font-mono)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  color: "var(--tx-surface)",
+                  background: "var(--tx-ink)",
+                  border: "2px solid var(--tx-ink)",
+                  textDecoration: "none",
+                }}
+              >
+                RETURN TO LOGIN
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit}>
               {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    border: "2px solid var(--tx-seeker)",
+                    background: "rgba(255,61,0,0.06)",
+                    color: "var(--tx-seeker)",
+                    fontSize: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
                   {error}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Input
-                  label="Email address"
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    color: "var(--tx-ink-muted)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  EMAIL
+                </label>
+                <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="h-12 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-white/30 focus:ring-white/10 rounded-lg transition-all hover:bg-black/50"
-                  labelClassName="text-zinc-300"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    background: "var(--tx-bg)",
+                    border: "2px solid var(--tx-border)",
+                    borderRadius: "var(--tx-radius)",
+                    fontFamily: "var(--tx-font-mono)",
+                    fontSize: "13px",
+                    color: "var(--tx-ink)",
+                    outline: "none",
+                    transition: "border-color 150ms var(--tx-ease-sharp)",
+                    boxSizing: "border-box",
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--tx-ink)")
+                  }
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--tx-border)")
+                  }
                 />
               </div>
 
-              <Button
+              <button
                 type="submit"
-                className="w-full h-12 text-base bg-white text-black hover:bg-zinc-200 transition-all font-semibold rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02]"
-                isLoading={isSubmitting}
+                disabled={isSubmitting}
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  fontFamily: "var(--tx-font-mono)",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  color: "var(--tx-surface)",
+                  background: "var(--tx-ink)",
+                  border: "2px solid var(--tx-ink)",
+                  borderRadius: "var(--tx-radius)",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  opacity: isSubmitting ? 0.6 : 1,
+                  transition: "opacity 150ms var(--tx-ease-sharp)",
+                }}
               >
-                Send Reset Link
-              </Button>
+                {isSubmitting ? "···" : "SEND RESET LINK →"}
+              </button>
             </form>
           )}
         </div>
