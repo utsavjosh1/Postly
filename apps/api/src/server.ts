@@ -18,11 +18,15 @@ import { queueService } from "./services/queue.service.js";
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 const allowedOrigins = WEB_URL
   ? WEB_URL.split(",")
-      .map((o) => o.trim())
+      .map((o) => o.trim().replace(/\/$/, "")) // Remove trailing slash
       .filter(Boolean)
   : [];
 
@@ -35,11 +39,22 @@ if (allowedOrigins.length === 0) {
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // Normalize incoming origin
+      const normalizedOrigin = origin.replace(/\/$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      console.error(`CORS Blocked: origin '${origin}' not in allowed list`);
       callback(new Error(`CORS: origin '${origin}' not allowed`));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   }),
 );
 

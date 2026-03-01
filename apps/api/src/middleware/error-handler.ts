@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { NODE_ENV } from "../config/secrets.js";
+import { NODE_ENV, WEB_URL } from "../config/secrets.js";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -17,6 +17,23 @@ export function errorHandler(
 
   if (NODE_ENV !== "production") {
     console.error("Error:", err);
+  }
+
+  // Ensure CORS headers are present even in error responses, but ONLY for trusted origins
+  const origin = _req.headers.origin;
+  if (origin) {
+    const allowedOrigins = WEB_URL
+      ? WEB_URL.split(",")
+          .map((o) => o.trim().replace(/\/$/, ""))
+          .filter(Boolean)
+      : [];
+
+    const normalizedOrigin = origin.replace(/\/$/, "");
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin as string);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
   }
 
   res.status(statusCode).json({
