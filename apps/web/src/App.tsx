@@ -4,7 +4,6 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PageLoader } from "./components/ui/PageLoader";
 import { ToastContainer } from "./components/ui/Toast";
 
-// ─── Lazy-loaded Transmission pages ─────────────────────────────────
 const TransmissionLanding = lazy(() =>
   import("@pages/TransmissionLanding").then((m) => ({
     default: m.TransmissionLanding,
@@ -41,7 +40,6 @@ const TransmissionNotFound = lazy(() =>
   })),
 );
 
-// ─── Auth utilities ─────────────────────────────────────────────────
 const ForgotPasswordPage = lazy(() =>
   import("./pages/ForgotPasswordPage").then((m) => ({
     default: m.ForgotPasswordPage,

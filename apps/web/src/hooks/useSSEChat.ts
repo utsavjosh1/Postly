@@ -65,7 +65,6 @@ export function useSSEChat() {
           try {
             const newConv = await chatService.createConversation(
               undefined,
-              message,
             );
             currentConversationId = newConv.id;
             addConversation(newConv);

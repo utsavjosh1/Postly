@@ -7,6 +7,7 @@ import {
   subscriptionQueries,
 } from "@postly/database";
 import type { JwtPayload } from "../middleware/auth.js";
+import { CacheService } from "../services/cache.service.js";
 
 const updateProfileSchema = z.object({
   full_name: z.string().min(1).max(100).optional(),
@@ -50,7 +51,14 @@ export class UserController {
   ): Promise<void> => {
     try {
       const payload = req.user as JwtPayload;
-      const user = await userQueries.findById(payload.id);
+      const cacheKey = CacheService.generateKey("user:profile", payload.id);
+
+      const user = await CacheService.getOrSet(
+        cacheKey,
+        300, // 5 minutes TTL
+        async () => await userQueries.findById(payload.id),
+      );
+
       if (!user) {
         res
           .status(404)
@@ -97,6 +105,11 @@ export class UserController {
           .json({ success: false, error: { message: "User not found" } });
         return;
       }
+
+      // Invalidate profile cache
+      const cacheKey = CacheService.generateKey("user:profile", payload.id);
+      await CacheService.invalidate(cacheKey);
+
       res.json({ success: true, data: updated });
     } catch (error) {
       next(error);

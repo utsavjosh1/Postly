@@ -21,6 +21,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "job_seeker",
   "employer",
   "admin",
+  "discord_owner",
 ]);
 
 export const applicationStatusEnum = pgEnum("application_status", [
@@ -183,6 +184,7 @@ export const jobs = pgTable(
     locationIdx: index("idx_jobs_location").on(table.location),
     remoteIdx: index("idx_jobs_remote").on(table.remote),
     jobTypeIdx: index("idx_jobs_type").on(table.job_type),
+    activeIdx: index("idx_jobs_active").on(table.is_active),
   }),
 );
 

@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import { tokenBucketRateLimiter } from "./middleware/token-bucket-rate-limit.js";
+import { pool } from "@postly/database";
+import { logger } from "@postly/logger";
 import { API_PORT, WEB_URL, NODE_ENV } from "./config/secrets.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
@@ -16,6 +18,8 @@ import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
+
+import { redis as healthRedis } from "./lib/redis.js";
 
 // Security middleware
 app.use(
@@ -58,28 +62,45 @@ app.use(
   }),
 );
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: { message: "Too many requests, please try again later" },
-  },
+const globalLimiter = tokenBucketRateLimiter({
+  maxTokens: 100,
+  refillRateSec: 10, // 10 tokens per second refill
+  keyPrefix: "rl:global",
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      message: "Too many authentication attempts, please try again later",
-    },
-  },
+const authLimiter = tokenBucketRateLimiter({
+  maxTokens: 50,
+  refillRateSec: 5, // 5 tokens per second refill
+  keyPrefix: "rl:auth",
+});
+
+// Health check — registered BEFORE rate limiter so it's never throttled
+app.get("/health", async (_req, res) => {
+  const checks: Record<string, string> = {};
+
+  // Check Postgres
+  try {
+    await pool.query("SELECT 1");
+    checks.db = "ok";
+  } catch {
+    checks.db = "failed";
+  }
+
+  // Check Redis
+  try {
+    await healthRedis.ping();
+    checks.redis = "ok";
+  } catch {
+    checks.redis = "failed";
+  }
+
+  const allHealthy = checks.db === "ok" && checks.redis === "ok";
+  res.status(allHealthy ? 200 : 503).json({
+    status: allHealthy ? "ok" : "degraded",
+    checks,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use(globalLimiter);
@@ -87,8 +108,23 @@ app.use(globalLimiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+// Request logging middleware (structured for production log aggregation)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    // Only log in production or for slow requests
+    if (NODE_ENV === "production" || duration > 1000) {
+      logger.info("request", {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration_ms: duration,
+        user_id: (req as any).user?.id || null,
+      });
+    }
+  });
+  next();
 });
 
 // API routes
@@ -113,34 +149,20 @@ app.listen(API_PORT, "0.0.0.0", async () => {
   // Initialize Discord Job Queue
   try {
     await queueService.initDailyCron();
-    // Schedule daily dispatch at 9:00 AM UTC
-    const now = new Date();
-    const target = new Date(now);
-    target.setUTCHours(9, 0, 0, 0);
-    if (target <= now) target.setDate(target.getDate() + 1);
-    const msUntilFirst = target.getTime() - now.getTime();
-    const DAY_MS = 24 * 60 * 60 * 1000;
-
-    setTimeout(() => {
-      queueService.dispatchAll();
-      setInterval(() => queueService.dispatchAll(), DAY_MS);
-    }, msUntilFirst);
-
-    console.log(`📅 Discord daily job dispatch cron initialized (9:00 AM)`);
   } catch (err) {
     console.error("Failed to initialize Discord Queue:", err);
   }
 });
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully...");
+// Graceful shutdown — close all connections before exiting
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received, shutting down gracefully...`);
+  healthRedis.disconnect();
+  await pool.end();
   process.exit(0);
-});
+};
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received, shutting down gracefully...");
-  process.exit(0);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 export default app;

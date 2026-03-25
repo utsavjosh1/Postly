@@ -1,113 +1,58 @@
 # GitHub Secrets Configuration
 
-This document lists all the secrets that need to be configured in GitHub repository settings for CI/CD pipelines to work properly.
+All secrets needed for CI/CD pipelines. Configure in **Settings → Secrets and variables → Actions**.
 
 ## Required Secrets
 
-### Docker Hub (for docker-build job)
+### VPS Deployment
 
-- **DOCKER_USERNAME** - Your Docker Hub username
-- **DOCKER_PASSWORD** - Your Docker Hub password or access token
+| Secret        | Description                         | Example       |
+| ------------- | ----------------------------------- | ------------- |
+| `VPS_HOST`    | VPS IP address or hostname          | `203.0.113.1` |
+| `VPS_USER`    | SSH username on VPS                 | `deploy`      |
+| `VPS_PORT`    | SSH port                            | `22`          |
+| `VPS_SSH_KEY` | Private SSH key for the deploy user | Full PEM key  |
 
-### Code Coverage (optional)
+### Container Registry (GHCR)
 
-- **CODECOV_TOKEN** - Codecov token for uploading coverage reports
-  - Get from: https://codecov.io/
-
-### Deployment Secrets
-
-#### Staging Environment
-
-- **STAGING_DATABASE_URL** - PostgreSQL connection string for staging
-  - Format: `postgresql://user:password@host:port/database`
-
-#### Production Environment
-
-- **PRODUCTION_DATABASE_URL** - PostgreSQL connection string for production
-  - Format: `postgresql://user:password@host:port/database`
-
-### Notifications (optional)
-
-- **SLACK_WEBHOOK_URL** - Slack webhook URL for deployment notifications
-  - Create at: https://api.slack.com/messaging/webhooks
+> [!NOTE]
+> GHCR uses `GITHUB_TOKEN` automatically — no additional secrets needed for pushing images.
 
 ## How to Add Secrets
 
 1. Go to your GitHub repository
-2. Click on **Settings** → **Secrets and variables** → **Actions**
+2. Click **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
-4. Add each secret with its corresponding value
+4. Add each secret listed above
 
-## Environment-Specific Secrets
+## VPS Setup Checklist
 
-### Staging
+Before the deploy workflow can succeed, ensure the VPS has:
 
-Go to **Settings** → **Environments** → **staging** → **Add secret**
+1. Docker and Docker Compose installed
+2. The `deploy` user with docker group access
+3. Project directory at `/opt/postly` with `.env` file (`chmod 600`)
+4. GHCR login configured: `docker login ghcr.io -u <github-user> -p <PAT>`
+5. SSH key added to `~/.ssh/authorized_keys` for the deploy user
 
-### Production
-
-Go to **Settings** → **Environments** → **production** → **Add secret**
-
-## Security Best Practices
-
-1. **Never commit secrets to the repository**
-2. **Rotate secrets regularly** (every 3-6 months)
-3. **Use environment-specific secrets** for staging vs production
-4. **Limit secret access** to specific workflows/environments
-5. **Enable branch protection** for main and develop branches
-6. **Require approval** for production deployments
-
-## Additional Configuration
-
-### Branch Protection Rules (Recommended)
+## Branch Protection Rules (Recommended)
 
 For `main` branch:
 
 - ✅ Require pull request reviews before merging
-- ✅ Require status checks to pass before merging
-  - lint
-  - type-check
-  - test
-  - build
+- ✅ Require status checks to pass (lint, type-check, test, build)
 - ✅ Require branches to be up to date before merging
-- ✅ Require conversation resolution before merging
 - ✅ Do not allow bypassing the above settings
 
-For `develop` branch:
+## Rollback
 
-- ✅ Require status checks to pass before merging
-- ✅ Require branches to be up to date before merging
+Every deploy tags images with the Git SHA. To rollback:
 
-### Environment Protection Rules
-
-For `production` environment:
-
-- ✅ Required reviewers (at least 1)
-- ✅ Wait timer: 5 minutes
-- ✅ Deployment branches: Only `main` and tags matching `v*`
-
-For `staging` environment:
-
-- ✅ Deployment branches: Only `main` and `develop`
-
-## Verifying Configuration
-
-After adding secrets, you can verify they're working by:
-
-1. Pushing to a feature branch
-2. Creating a pull request to `develop` or `main`
-3. Check that CI workflow runs successfully
-4. For deployment, merge to `main` and verify deployment workflow
-
-## Troubleshooting
-
-If workflows fail due to missing secrets:
-
-1. Check workflow logs for specific error messages
-2. Verify secret names match exactly (case-sensitive)
-3. Ensure secrets are set in the correct environment
-4. Check that workflow has permission to access the secret
-
-## Contact
-
-For questions about secrets configuration, contact your DevOps team or repository administrator.
+```bash
+ssh deploy@<VPS_HOST>
+cd /opt/postly
+export API_IMAGE=ghcr.io/<repo>/api:<previous-sha>
+export SCRAPER_IMAGE=ghcr.io/<repo>/scraper:<previous-sha>
+export BOT_IMAGE=ghcr.io/<repo>/bot:<previous-sha>
+docker compose -f docker-compose.prod.yml up -d --no-deps api bot scraper
+```

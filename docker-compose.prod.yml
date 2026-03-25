@@ -1,5 +1,6 @@
 services:
-  # PostgreSQL
+
+  # ─── PostgreSQL with pgvector ──────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
     container_name: postly-postgres
@@ -8,69 +9,77 @@ services:
       POSTGRES_USER: ${DB_USER:-postly}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
       POSTGRES_DB: ${DB_NAME:-postly}
-      DATABASE_URL: postgresql://${DB_USER:-postly}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-postly}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./packages/database/migrations:/docker-entrypoint-initdb.d:ro
     command: >
       postgres
-      -c shared_buffers=64MB
-      -c effective_cache_size=128MB
-      -c work_mem=4MB
-      -c maintenance_work_mem=32MB
+      -c shared_buffers=256MB
+      -c effective_cache_size=512MB
+      -c work_mem=16MB
+      -c maintenance_work_mem=64MB
       -c max_connections=30
       -c random_page_cost=1.1
+      -c wal_compression=on
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 180M
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postly}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - postly-network
 
-  # Redis
+  # ─── Redis (Job Queue & Caching) ──────────────────────────
   redis:
     image: redis:7-alpine
     container_name: postly-redis
     restart: unless-stopped
     command: >
       redis-server
-      --maxmemory 40mb
-      --maxmemory-policy noeviction
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
       --appendonly yes
       --save 60 1
+      --loglevel warning
     volumes:
       - redis_data:/data
     deploy:
       resources:
         limits:
           cpus: '0.1'
-          memory: 50M
+          memory: 80M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
-    ports:
-      - "6379:6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     networks:
       - postly-network
+    # NOTE: No ports exposed — only accessible via internal Docker network
 
-  # API Server
+  # ─── API Server ────────────────────────────────────────────
   api:
-    image: utsavjoshi/postly-api:latest
+    image: ${API_IMAGE:-utsavjoshi/postly-api:latest}
     container_name: postly-api
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NODE_OPTIONS: "--max-old-space-size=200"
+      NODE_OPTIONS: "--max-old-space-size=384"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-postly}
@@ -96,26 +105,28 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.3'
-          memory: 220M
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/health', (res) => { if (res.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 15s
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    ports:
-      - "3000:3000"
     networks:
       - postly-network
+    ports:
+      - "3000:3000"
+    # NOTE: No ports exposed — traffic flows through Nginx only
 
-  # Scraper
+  # ─── Scraper (Python + Playwright) ────────────────────────
   scraper:
-    image: utsavjoshi/postly-scraper:latest
+    image: ${SCRAPER_IMAGE:-utsavjoshi/postly-scraper:latest}
     container_name: postly-scraper
     restart: unless-stopped
     environment:
@@ -131,13 +142,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8080:8080"  
-    shm_size: '512mb'  
+    shm_size: '512mb'
     deploy:
       resources:
         limits:
-          cpus: '0.3'
+          cpus: '0.5'
           memory: 400M
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
@@ -153,9 +162,9 @@ services:
     networks:
       - postly-network
 
-  # Discord Bot
+  # ─── Discord Bot ───────────────────────────────────────────
   bot:
-    image: utsavjoshi/postly-bot:latest
+    image: ${BOT_IMAGE:-utsavjoshi/postly-bot:latest}
     container_name: postly-bot
     restart: unless-stopped
     environment:
@@ -179,7 +188,7 @@ services:
       resources:
         limits:
           cpus: '0.2'
-          memory: 150M
+          memory: 200M
     logging:
       driver: "json-file"
       options:
@@ -187,7 +196,6 @@ services:
         max-file: "3"
     networks:
       - postly-network
-
 
 volumes:
   postgres_data:
