@@ -183,8 +183,7 @@ export function TransmissionLanding() {
         {/* ─── RIGHT PANEL: HIRING ───────────────────────────────────── */}
         <div
           ref={recruiterRef}
-          className={`tx-panel tx-panel-recruiter tx-cursor-recruiter ${mounted ? "tx-split-right" : ""}`}
-          onClick={(e) => handleRoleClick("recruiter", e)}
+          className={`tx-panel tx-panel-recruiter tx-panel-disabled ${mounted ? "tx-split-right" : ""}`}
           style={{
             flex: 1,
             display: "flex",
@@ -194,8 +193,12 @@ export function TransmissionLanding() {
             background: "#0D0D0D",
             position: "relative",
             opacity: mounted ? undefined : 0,
+            cursor: "not-allowed",
           }}
         >
+          {/* Coming Soon Badge */}
+          <div className="tx-badge-coming-soon">COMING SOON</div>
+
           {/* SVG border trace overlay */}
           <svg
             style={{
@@ -274,7 +277,7 @@ export function TransmissionLanding() {
               textTransform: "uppercase",
             }}
           >
-            ← Click to enter
+            🚧 Feature Offline
           </div>
         </div>
 

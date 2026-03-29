@@ -31,31 +31,85 @@ interface JobIntent {
  */
 function getJobIntent(message: string): JobIntent {
   const techKeywords = [
-    "react", "frontend", "backend", "fullstack", "node", "python", "java", "typescript",
-    "javascript", "html", "css", "vue", "angular", "aws", "cloud", "devops",
-    "structural", "environmental", "civil", "mechanical", "electrical"
+    "react",
+    "frontend",
+    "backend",
+    "fullstack",
+    "node",
+    "python",
+    "java",
+    "typescript",
+    "javascript",
+    "html",
+    "css",
+    "vue",
+    "angular",
+    "aws",
+    "cloud",
+    "devops",
+    "structural",
+    "environmental",
+    "civil",
+    "mechanical",
+    "electrical",
   ];
   const levelKeywords = [
-    "software", "engineer", "developer", "designer", "architect", "manager", "lead", 
-    "senior", "junior", "intern", "graduate", "entry", "level", "remote", "hybrid"
+    "software",
+    "engineer",
+    "developer",
+    "designer",
+    "architect",
+    "manager",
+    "lead",
+    "senior",
+    "junior",
+    "intern",
+    "graduate",
+    "entry",
+    "level",
+    "remote",
+    "hybrid",
   ];
   const generalKeywords = [
-    "job", "career", "hiring", "opportunity", "opening", "position",
-    "vacancy", "work", "stack", "hire", "recruiting", "talent",
-    "apply", "application", "resume", "cv", "salary", "role", "brief",
-    "looking for", "hunting", "find", "search"
+    "job",
+    "career",
+    "hiring",
+    "opportunity",
+    "opening",
+    "position",
+    "vacancy",
+    "work",
+    "stack",
+    "hire",
+    "recruiting",
+    "talent",
+    "apply",
+    "application",
+    "resume",
+    "cv",
+    "salary",
+    "role",
+    "brief",
+    "looking for",
+    "hunting",
+    "find",
+    "search",
   ];
   const lowercaseMsg = message.toLowerCase();
-  
-  const foundTech = techKeywords.filter(kw => lowercaseMsg.includes(kw));
-  const foundLevel = levelKeywords.filter(kw => lowercaseMsg.includes(kw));
-  const hasGeneral = generalKeywords.some(kw => lowercaseMsg.includes(kw));
-  
+
+  const foundTech = techKeywords.filter((kw) => lowercaseMsg.includes(kw));
+  const foundLevel = levelKeywords.filter((kw) => lowercaseMsg.includes(kw));
+  const hasGeneral = generalKeywords.some((kw) => lowercaseMsg.includes(kw));
+
   return {
-    isRelated: foundTech.length > 0 || foundLevel.length > 0 || hasGeneral || message.length > 50,
+    isRelated:
+      foundTech.length > 0 ||
+      foundLevel.length > 0 ||
+      hasGeneral ||
+      message.length > 50,
     isSpecific: foundTech.length > 0 || foundLevel.length > 0,
     techKeywords: foundTech,
-    allKeywords: [...foundTech, ...foundLevel]
+    allKeywords: [...foundTech, ...foundLevel],
   };
 }
 // ... (omitting helper for brevity in diff)
@@ -114,13 +168,13 @@ export class ChatService {
       // 2. Get conversation context and user context
       const [conversation, user] = await Promise.all([
         conversationQueries.findById(conversationId, userId),
-        userQueries.findById(userId)
+        userQueries.findById(userId),
       ]);
       if (!conversation) {
         throw new Error("Conversation not found");
       }
-      
-      const userRole = user?.role || "job_seeker";
+
+      const userRole = user?.roles[0] || "job_seeker";
 
       const messages = await conversationQueries.getMessages(conversationId);
 
@@ -138,7 +192,11 @@ export class ChatService {
           resumeContext = `\n\nUser's Resume Summary:\n- Skills: ${resume.skills?.join(", ") || "Not specified"}\n- Experience: ${resume.experience_years || 0} years\n- Summary: ${resume.parsed_text.substring(0, 1000)}`;
 
           // Find matching jobs based on resume ONLY if not employer AND intent is related
-          if (userRole !== "employer" && userRole !== "admin" && intent.isRelated) {
+          if (
+            userRole !== "employer" &&
+            userRole !== "admin" &&
+            intent.isRelated
+          ) {
             try {
               jobMatches = await matchingService.findMatchingJobs(
                 effectiveResumeId,
@@ -159,7 +217,12 @@ export class ChatService {
 
       // 4b. FALLBACK: If no resume or no matches, fetch recent active jobs
       // Only do this if the user is not an employer AND intent is related
-      if (jobMatches.length === 0 && userRole !== "employer" && userRole !== "admin" && intent.isRelated) {
+      if (
+        jobMatches.length === 0 &&
+        userRole !== "employer" &&
+        userRole !== "admin" &&
+        intent.isRelated
+      ) {
         try {
           const recentJobs = await jobQueries.findActive(undefined, 5, 0);
           jobMatches = recentJobs.map((job: Job) => ({
@@ -175,17 +238,23 @@ export class ChatService {
       // If user specified tech keywords, at least one must match.
       // Otherwise, at least one level/general keyword must match.
       if (intent.isSpecific && jobMatches.length > 0) {
-        jobMatches = jobMatches.filter(job => {
+        jobMatches = jobMatches.filter((job) => {
           const searchSpace = (
-            (job.title || "") + " " + 
-            (job.description || "") + " " + 
+            (job.title || "") +
+            " " +
+            (job.description || "") +
+            " " +
             (job.skills_required?.join(" ") || "")
           ).toLowerCase();
-          
+
           if (intent.techKeywords.length > 0) {
-            return intent.techKeywords.some((kw: string) => searchSpace.includes(kw));
+            return intent.techKeywords.some((kw: string) =>
+              searchSpace.includes(kw),
+            );
           }
-          return intent.allKeywords.some((kw: string) => searchSpace.includes(kw));
+          return intent.allKeywords.some((kw: string) =>
+            searchSpace.includes(kw),
+          );
         });
       }
 
@@ -203,19 +272,25 @@ export class ChatService {
 
       let roleSpecificInstructions = "";
       if (userRole === "employer") {
-        roleSpecificInstructions = "You are an AI assistant helping an employer looking to hire candidates. Your ONLY function is to help with hiring, evaluating candidates, and posting jobs.";
+        roleSpecificInstructions =
+          "You are an AI assistant helping an employer looking to hire candidates. Your ONLY function is to help with hiring, evaluating candidates, and posting jobs.";
       } else {
-        roleSpecificInstructions = "You are an AI career assistant helping with resume analysis and job search.";
+        roleSpecificInstructions =
+          "You are an AI career assistant helping with resume analysis and job search.";
       }
 
       const systemPrompt = `${roleSpecificInstructions}
-${userRole !== "employer" ? `
+${
+  userRole !== "employer"
+    ? `
 Your capabilities:
 - Analyze resumes and provide constructive feedback
 - Suggest relevant job opportunities from our database
 - Offer career advice and interview tips
 - Help with job applications
-` : ""}
+`
+    : ""
+}
 IMPORTANT INSTRUCTIONS:
 1. ${userRole === "employer" ? "Focus STRICTLY on helping the employer with hiring. UNDER NO CIRCUMSTANCES should you suggest, mention, or offer job listings, career advice, or job search help to an employer. If asked for jobs, politely clarify your role." : "When the user explicitly asks for jobs or career opportunities, reference the jobs listed below. If they just say 'hi' or make small talk, respond conversationally without bringing up jobs."}
 2. DO NOT invent or hallucinate facts.

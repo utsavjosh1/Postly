@@ -7,9 +7,28 @@ const devFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
 });
 
+interface LogInfo {
+  level: string;
+  message: string;
+  timestamp?: string;
+  stack?: string;
+  req?: {
+    method?: string;
+    url?: string;
+    headers?: {
+      authorization?: string;
+    };
+  };
+  body?: {
+    password?: string;
+    token?: string;
+  };
+  [key: string]: unknown;
+}
+
 // Redact sensitive fields from logs
 const redactSensitive = winston.format((info) => {
-  const data = info as Record<string, any>;
+  const data = info as unknown as LogInfo;
   if (data.req?.headers?.authorization) {
     data.req.headers.authorization = "[REDACTED]";
   }

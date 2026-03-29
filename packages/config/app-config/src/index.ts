@@ -80,6 +80,12 @@ export const DODO_PAYMENTS_ENVIRONMENT =
 export const DODO_PAYMENTS_RETURN_URL =
   process.env.DODO_PAYMENTS_RETURN_URL || "";
 
+// ─── Email (Resend) ──────────────────────────────────────────────────────────
+
+export const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+export const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Postly <onboarding@resend.dev>";
+
+
 // ─── MinIO / S3 Storage (Optional) ──────────────────────────────────────────
 
 export const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || "localhost";

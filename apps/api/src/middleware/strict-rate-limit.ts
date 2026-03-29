@@ -105,8 +105,8 @@ export const chatRateLimiter = createStrictRateLimiter({
     const user = req.user as JwtPayload | undefined;
     if (!user) return 3;
 
-    if (user.role === "admin") return Infinity;
-    if (user.role === "employer") return 50;
+    if (user.roles.includes("admin")) return Infinity;
+    if (user.roles.includes("employer")) return 50;
 
     return 3;
   },

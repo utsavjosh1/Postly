@@ -1,11 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
+import { Redis } from "ioredis";
 
 interface RateLimitConfig {
   maxTokens: number;
   refillRateSec: number;
   keyPrefix?: string;
+}
+
+interface RedisWithTokenBucket extends Redis {
+  consumeTokenBucket(
+    key: string,
+    maxTokens: number,
+    refillRateSec: number,
+    nowMs: number,
+    requested: number,
+  ): Promise<[number, string]>;
 }
 
 // Token Bucket algorithm using Redis Lua script to prevent race conditions.
@@ -100,15 +111,9 @@ export const tokenBucketRateLimiter = (config: RateLimitConfig) => {
       const requested = 1;
 
       // Executing the predefined Lua Script
-      const [grantedResult, currentTokensResult] = (await (
-        redis as any
-      ).consumeTokenBucket(
-        key,
-        maxTokens,
-        refillRateSec,
-        nowMs,
-        requested,
-      )) as [number, string];
+      const [grantedResult, currentTokensResult] = await (
+        redis as RedisWithTokenBucket
+      ).consumeTokenBucket(key, maxTokens, refillRateSec, nowMs, requested);
 
       const granted = grantedResult === 1;
       const currentTokens = parseFloat(currentTokensResult);

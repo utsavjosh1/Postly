@@ -42,6 +42,21 @@ export function TransmissionChat() {
   const { id: conversationIdParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const role = (searchParams.get("role") as Role) || "seeker";
+  const { addToast } = useToastStore();
+
+  // Redirect if role is recruiter (Hiring feature is Coming Soon)
+  useEffect(() => {
+    if (role === "recruiter") {
+      addToast({
+        type: "error",
+        message: "Hiring feature is coming soon. Redirecting...",
+      });
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("role", "seeker");
+      navigate({ search: newParams.toString() }, { replace: true });
+    }
+  }, [role, searchParams, navigate, addToast]);
+
   const accentColor =
     role === "seeker" ? "var(--tx-seeker)" : "var(--tx-recruiter)";
   const accentHex = role === "seeker" ? "#FF3D00" : "#0038FF";
@@ -56,7 +71,6 @@ export function TransmissionChat() {
   const setLoading = useChatStore((s) => s.setLoading);
   const setActiveResumeId = useChatStore((s) => s.setActiveResumeId);
   const { sendMessage, stopGeneration } = useSSEChat();
-  const { addToast } = useToastStore();
 
   /* ─── Local State ────────────────────────────────────────────────── */
   const [input, setInput] = useState("");

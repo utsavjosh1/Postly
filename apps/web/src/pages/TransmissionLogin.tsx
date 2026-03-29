@@ -21,8 +21,10 @@ export function TransmissionLogin() {
     try {
       await login({ email, password });
       navigate("/");
-    } catch {
-      // Error handled by store
+    } catch (err: any) {
+      if (err?.response?.data?.error?.code === "EMAIL_NOT_VERIFIED") {
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+      }
     }
   };
 

@@ -5,9 +5,7 @@ import type {
   ResumeAnalysis,
   EducationEntry,
 } from "@postly/shared-types";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 
 export class ResumeService {
@@ -40,8 +38,10 @@ export class ResumeService {
    * Parse PDF file
    */
   private async parsePDF(buffer: Buffer): Promise<string> {
-    const data = await pdfParse(buffer);
-    return data.text.trim();
+    // Use the class-based API for pdf-parse v2
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    return result.text.trim();
   }
 
   /**

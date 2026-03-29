@@ -120,7 +120,9 @@ app.use((req, res, next) => {
         url: req.url,
         status: res.statusCode,
         duration_ms: duration,
-        user_id: (req as any).user?.id || null,
+        user_id:
+          (req as unknown as Request & { user?: { id: string } }).user?.id ||
+          null,
       });
     }
   });

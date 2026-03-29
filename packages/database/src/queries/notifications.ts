@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { db } from "../index";
 import { email_notifications, notification_templates } from "../schema";
 import type {
@@ -13,7 +13,12 @@ export const notificationQueries = {
     const [result] = await db
       .select()
       .from(notification_templates)
-      .where(eq(notification_templates.slug, slug));
+      .where(
+        and(
+          eq(notification_templates.slug, slug),
+          isNull(notification_templates.deleted_at),
+        ),
+      );
 
     return result ?? null;
   },
@@ -93,7 +98,12 @@ export const notificationQueries = {
     return db
       .select()
       .from(email_notifications)
-      .where(eq(email_notifications.user_id, userId))
+      .where(
+        and(
+          eq(email_notifications.user_id, userId),
+          isNull(email_notifications.deleted_at),
+        ),
+      )
       .orderBy(desc(email_notifications.created_at))
       .limit(limit);
   },

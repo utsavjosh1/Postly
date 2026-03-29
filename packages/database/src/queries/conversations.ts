@@ -1,4 +1,4 @@
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, isNull } from "drizzle-orm";
 import { db } from "../index";
 import { conversations, messages } from "../schema";
 import type {
@@ -32,7 +32,10 @@ export const conversationQueries = {
     limit = 50,
     includeArchived = false,
   ): Promise<Conversation[]> {
-    const conditions = [eq(conversations.user_id, userId)];
+    const conditions = [
+      eq(conversations.user_id, userId),
+      isNull(conversations.deleted_at),
+    ];
     if (!includeArchived) {
       conditions.push(eq(conversations.is_archived, false));
     }
@@ -54,7 +57,13 @@ export const conversationQueries = {
     const [result] = await db
       .select()
       .from(conversations)
-      .where(and(eq(conversations.id, id), eq(conversations.user_id, userId)));
+      .where(
+        and(
+          eq(conversations.id, id),
+          eq(conversations.user_id, userId),
+          isNull(conversations.deleted_at),
+        ),
+      );
 
     return (result as unknown as Conversation) || null;
   },

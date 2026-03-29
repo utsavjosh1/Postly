@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { db } from "../index";
 import { job_matches, jobs } from "../schema";
 import type { JobMatch, Job } from "@postly/shared-types";
@@ -47,7 +47,9 @@ export const matchQueries = {
       })
       .from(job_matches)
       .innerJoin(jobs, eq(job_matches.job_id, jobs.id))
-      .where(eq(job_matches.user_id, userId))
+      .where(
+        and(eq(job_matches.user_id, userId), isNull(job_matches.deleted_at)),
+      )
       .orderBy(desc(job_matches.match_score), desc(job_matches.created_at))
       .limit(limit);
 
@@ -72,7 +74,11 @@ export const matchQueries = {
       .from(job_matches)
       .innerJoin(jobs, eq(job_matches.job_id, jobs.id))
       .where(
-        and(eq(job_matches.user_id, userId), eq(job_matches.is_saved, true)),
+        and(
+          eq(job_matches.user_id, userId),
+          eq(job_matches.is_saved, true),
+          isNull(job_matches.deleted_at),
+        ),
       )
       .orderBy(desc(job_matches.created_at))
       .limit(limit);

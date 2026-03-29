@@ -1,4 +1,4 @@
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import { db } from "../index";
 import { seeker_profiles } from "../schema";
@@ -38,7 +38,12 @@ export const seekerProfileQueries = {
     const [result] = await db
       .select()
       .from(seeker_profiles)
-      .where(eq(seeker_profiles.user_id, userId));
+      .where(
+        and(
+          eq(seeker_profiles.user_id, userId),
+          isNull(seeker_profiles.deleted_at),
+        ),
+      );
 
     return result ?? null;
   },

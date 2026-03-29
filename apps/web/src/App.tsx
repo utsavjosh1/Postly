@@ -19,6 +19,12 @@ const TransmissionRegister = lazy(() =>
     default: m.TransmissionRegister,
   })),
 );
+const VerifyOtpPage = lazy(() =>
+  import("./pages/VerifyOtpPage").then((m) => ({
+    default: m.VerifyOtpPage,
+  })),
+);
+
 const TransmissionPricing = lazy(() =>
   import("@pages/TransmissionPricing").then((m) => ({
     default: m.TransmissionPricing,
@@ -60,6 +66,8 @@ function App() {
           <Route path="/" element={<TransmissionLanding />} />
           <Route path="login" element={<TransmissionLogin />} />
           <Route path="register" element={<TransmissionRegister />} />
+          <Route path="verify-otp" element={<VerifyOtpPage />} />
+
           <Route path="pricing" element={<TransmissionPricing />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="login/callback" element={<AuthCallbackPage />} />

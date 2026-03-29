@@ -30,7 +30,7 @@ export const authService = {
       email: data.email,
       password: data.password,
       full_name: data.full_name,
-      role: data.role,
+      roles: data.roles,
     };
 
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
@@ -58,6 +58,26 @@ export const authService = {
       token: data.token,
       password: data.password,
     });
+  },
+
+  async verifyOtp(data: { email: string; code: string }): Promise<AuthResponse> {
+    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/auth/verify-otp",
+      data,
+    );
+    const authData = response.data.data;
+
+    if (!authData) throw new Error("No data received");
+
+    if (authData.access_token) {
+      localStorage.setItem("access_token", authData.access_token);
+    }
+
+    return authData;
+  },
+
+  async resendOtp(email: string): Promise<void> {
+    await apiClient.post("/auth/resend-otp", { email });
   },
 
   logout(): void {
