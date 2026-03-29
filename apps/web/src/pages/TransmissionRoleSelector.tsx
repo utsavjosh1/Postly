@@ -6,8 +6,8 @@ import {
 import "../styles/transmission.css";
 
 /**
- * TransmissionLanding
- * ───────────────────
+ * TransmissionRoleSelector
+ * ────────────────────────
  * Full-viewport split-screen role selection.
  * Left = SEEKING (orange-red) | Right = HIRING (blue)
  *
@@ -20,7 +20,7 @@ import "../styles/transmission.css";
  * - clip-path circle transition on click
  */
 
-export function TransmissionLanding() {
+export function TransmissionRoleSelector() {
   const [mounted, setMounted] = useState(false);
   const { state: transState, trigger } = useTransmissionTransition();
   const seekerRef = useRef<HTMLDivElement>(null);

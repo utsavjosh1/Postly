@@ -35,7 +35,7 @@ export function VerifyOtpPage() {
     if (code.length !== 6) return;
     try {
       await verifyOtp({ email, code });
-      navigate("/");
+      navigate("/chat?role=seeker");
     } catch {
       // Error handled by store
     }

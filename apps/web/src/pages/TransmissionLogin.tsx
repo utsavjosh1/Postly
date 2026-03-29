@@ -20,7 +20,7 @@ export function TransmissionLogin() {
     e.preventDefault();
     try {
       await login({ email, password });
-      navigate("/");
+      navigate("/chat?role=seeker");
     } catch (err: any) {
       if (err?.response?.data?.error?.code === "EMAIL_NOT_VERIFIED") {
         navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
