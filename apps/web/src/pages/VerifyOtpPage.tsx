@@ -100,7 +100,10 @@ export function VerifyOtpPage() {
               letterSpacing: "0.5px",
             }}
           >
-            SENT TO: <span style={{ color: "var(--tx-ink)", fontWeight: 700 }}>{email}</span>
+            SENT TO:{" "}
+            <span style={{ color: "var(--tx-ink)", fontWeight: 700 }}>
+              {email}
+            </span>
           </p>
         </div>
 
@@ -149,7 +152,9 @@ export function VerifyOtpPage() {
               <input
                 type="text"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 required
                 maxLength={6}
                 placeholder="000000"
@@ -169,8 +174,12 @@ export function VerifyOtpPage() {
                   transition: "border-color 150ms var(--tx-ease-sharp)",
                   boxSizing: "border-box",
                 }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--tx-ink)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--tx-border)")}
+                onFocus={(e) =>
+                  (e.currentTarget.style.borderColor = "var(--tx-ink)")
+                }
+                onBlur={(e) =>
+                  (e.currentTarget.style.borderColor = "var(--tx-border)")
+                }
               />
             </div>
 
@@ -191,12 +200,15 @@ export function VerifyOtpPage() {
                 background: "var(--tx-ink)",
                 border: "2px solid var(--tx-ink)",
                 borderRadius: "var(--tx-radius)",
-                cursor: (isLoading || code.length !== 6) ? "not-allowed" : "pointer",
-                opacity: (isLoading || code.length !== 6) ? 0.6 : 1,
-                transition: "opacity 150ms var(--tx-ease-sharp), transform 100ms var(--tx-ease-sharp)",
+                cursor:
+                  isLoading || code.length !== 6 ? "not-allowed" : "pointer",
+                opacity: isLoading || code.length !== 6 ? 0.6 : 1,
+                transition:
+                  "opacity 150ms var(--tx-ease-sharp), transform 100ms var(--tx-ease-sharp)",
               }}
               onMouseDown={(e) => {
-                if (!isLoading && code.length === 6) e.currentTarget.style.transform = "scaleX(0.98)";
+                if (!isLoading && code.length === 6)
+                  e.currentTarget.style.transform = "scaleX(0.98)";
               }}
               onMouseUp={(e) => {
                 e.currentTarget.style.transform = "scaleX(1)";
@@ -214,14 +226,19 @@ export function VerifyOtpPage() {
               style={{
                 background: "none",
                 border: "none",
-                color: (isLoading || resendTimer > 0) ? "var(--tx-ink-muted)" : "var(--tx-ink)",
+                color:
+                  isLoading || resendTimer > 0
+                    ? "var(--tx-ink-muted)"
+                    : "var(--tx-ink)",
                 fontSize: "11px",
                 fontWeight: 700,
                 letterSpacing: "1px",
                 textTransform: "uppercase",
-                cursor: (isLoading || resendTimer > 0) ? "not-allowed" : "pointer",
+                cursor:
+                  isLoading || resendTimer > 0 ? "not-allowed" : "pointer",
                 padding: "4px 8px",
-                borderBottom: resendTimer === 0 ? "2px solid var(--tx-ink)" : "none",
+                borderBottom:
+                  resendTimer === 0 ? "2px solid var(--tx-ink)" : "none",
                 transition: "opacity 150ms var(--tx-ease-sharp)",
               }}
             >

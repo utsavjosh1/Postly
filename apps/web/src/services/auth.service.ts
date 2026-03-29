@@ -60,7 +60,10 @@ export const authService = {
     });
   },
 
-  async verifyOtp(data: { email: string; code: string }): Promise<AuthResponse> {
+  async verifyOtp(data: {
+    email: string;
+    code: string;
+  }): Promise<AuthResponse> {
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/verify-otp",
       data,

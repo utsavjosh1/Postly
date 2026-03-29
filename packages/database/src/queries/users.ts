@@ -1,6 +1,11 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../index";
-import { users, employer_profiles, seeker_profiles, otp_codes } from "../schema";
+import {
+  users,
+  employer_profiles,
+  seeker_profiles,
+  otp_codes,
+} from "../schema";
 import type { User, CreateUserDbInput, UserRole } from "@postly/shared-types";
 
 export const userQueries = {

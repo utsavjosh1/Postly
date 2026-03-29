@@ -26,7 +26,6 @@ export function TransmissionRegister() {
     } catch {
       // Error surfaced via store
     }
-
   };
 
   const inputStyle: React.CSSProperties = {

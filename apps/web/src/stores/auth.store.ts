@@ -72,7 +72,8 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch (error) {
           set({
-            error: error instanceof Error ? error.message : "Verification failed",
+            error:
+              error instanceof Error ? error.message : "Verification failed",
             isLoading: false,
           });
           throw error;
@@ -86,7 +87,8 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
         } catch (error) {
           set({
-            error: error instanceof Error ? error.message : "Failed to resend code",
+            error:
+              error instanceof Error ? error.message : "Failed to resend code",
             isLoading: false,
           });
           throw error;

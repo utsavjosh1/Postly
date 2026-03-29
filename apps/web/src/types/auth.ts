@@ -38,4 +38,3 @@ export interface VerifyOtpRequest {
 export interface ResendOtpRequest {
   email: string;
 }
-

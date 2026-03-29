@@ -127,7 +127,8 @@ export function TransmissionHome() {
             textTransform: "uppercase",
           }}
         >
-          The Future of Work is <span style={{ color: "var(--tx-seeker)" }}>Broadcast</span>.
+          The Future of Work is{" "}
+          <span style={{ color: "var(--tx-seeker)" }}>Broadcast</span>.
         </h1>
         <p
           style={{

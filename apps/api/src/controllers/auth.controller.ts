@@ -15,7 +15,6 @@ import {
 } from "../config/secrets.js";
 import { resend } from "../lib/resend.js";
 
-
 // ─── Validation Schemas ──────────────────────────────────────────────────────
 
 const registerSchema = z.object({
@@ -50,7 +49,6 @@ const verifyOtpSchema = z.object({
 const resendOtpSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
-
 
 // ─── Controller ──────────────────────────────────────────────────────────────
 
@@ -148,7 +146,8 @@ export class AuthController {
       res.status(201).json({
         success: true,
         data: {
-          message: "Registration successful. Please check your email for the verification code.",
+          message:
+            "Registration successful. Please check your email for the verification code.",
           email: user.email,
         },
       });
@@ -208,7 +207,6 @@ export class AuthController {
         });
         return;
       }
-
 
       // Track login timestamp
       await userQueries.updateLastLogin(user.id);
@@ -454,7 +452,9 @@ export class AuthController {
       if (!otp) {
         res.status(400).json({
           success: false,
-          error: { message: "No verification code found. Please request a new one." },
+          error: {
+            message: "No verification code found. Please request a new one.",
+          },
         });
         return;
       }
@@ -464,7 +464,9 @@ export class AuthController {
         await otpQueries.deleteOtp(otp.id);
         res.status(400).json({
           success: false,
-          error: { message: "Verification code expired. Please request a new one." },
+          error: {
+            message: "Verification code expired. Please request a new one.",
+          },
         });
         return;
       }
@@ -473,7 +475,9 @@ export class AuthController {
       if (otp.attempts >= 3) {
         res.status(429).json({
           success: false,
-          error: { message: "Too many failed attempts. Please request a new code." },
+          error: {
+            message: "Too many failed attempts. Please request a new code.",
+          },
         });
         return;
       }
@@ -492,7 +496,6 @@ export class AuthController {
       // Success
       await otpQueries.verifyUser(user.id);
       await otpQueries.deleteOtp(otp.id);
-
 
       const tokens = this.generateTokens(user);
       const response: AuthResponse = {
@@ -552,12 +555,15 @@ export class AuthController {
 
       const existingOtp = await otpQueries.findOtpByUserId(user.id);
       if (existingOtp) {
-        const timeSinceCreation = Date.now() - new Date(existingOtp.created_at || 0).getTime();
+        const timeSinceCreation =
+          Date.now() - new Date(existingOtp.created_at || 0).getTime();
         if (timeSinceCreation < 60 * 1000) {
           const waitTime = Math.ceil((60 * 1000 - timeSinceCreation) / 1000);
           res.status(429).json({
             success: false,
-            error: { message: `Please wait ${waitTime} seconds before requesting a new code.` },
+            error: {
+              message: `Please wait ${waitTime} seconds before requesting a new code.`,
+            },
           });
           return;
         }
@@ -569,7 +575,6 @@ export class AuthController {
       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
       await otpQueries.upsertOtp(user.id, otpHash, otpExpiry);
-
 
       await resend.emails.send({
         from: RESEND_FROM_EMAIL,

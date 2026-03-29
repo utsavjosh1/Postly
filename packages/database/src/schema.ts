@@ -92,7 +92,6 @@ export const botPlatformEnum = pgEnum("bot_platform", [
   "slack",
 ]);
 
-
 // ─── Users ────────────────────────────────────────────────────────────────────
 // Base auth table for all user types (job_seeker, employer, admin).
 
@@ -285,8 +284,6 @@ export const system_prompts = pgTable(
     activeSlugIdx: index("idx_system_prompts_active").on(t.slug, t.is_active),
   }),
 );
-
-
 
 // ─── Discord ──────────────────────────────────────────────────────────────────
 // Discord guild/channel configuration linked to a user.
@@ -756,8 +753,6 @@ export const payments = pgTable(
 // ─── Notification Templates ───────────────────────────────────────────────────
 // Reusable Handlebars-style email templates keyed by a unique slug.
 
-
-
 // ─── Email Notifications ──────────────────────────────────────────────────────
 // Per-user email dispatch log for job alerts and transactional emails.
 
@@ -794,10 +789,6 @@ export const email_notifications = pgTable(
     templateIdx: index("idx_email_notif_template").on(table.template_id),
   }),
 );
-
-
-
-
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
@@ -847,8 +838,6 @@ export const audit_log = pgTable("audit_log", {
 });
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
-
-
 
 export const token_usage = pgTable(
   "token_usage",
@@ -973,8 +962,6 @@ export const bot_posts = pgTable(
 
 // ─── Scraper Infrastructure ──────────────────────────────────────────────────
 
-
-
 export const job_fingerprints = pgTable("job_fingerprints", {
   id: uuid("id").primaryKey().defaultRandom(),
   job_id: uuid("job_id")
@@ -989,15 +976,9 @@ export const job_fingerprints = pgTable("job_fingerprints", {
   last_seen_at: timestamp("last_seen_at", { withTimezone: true }).defaultNow(),
 });
 
-
-
 // ─── AI Improvements ─────────────────────────────────────────────────────────
 
-
-
 // ─── Promo Codes ─────────────────────────────────────────────────────────────
-
-
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 // Declared after all tables to avoid forward-reference errors.
