@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import bcrypt from "bcrypt";
 import {
   userQueries,
   seekerProfileQueries,
@@ -11,6 +12,14 @@ import { CacheService } from "../services/cache.service.js";
 
 const updateProfileSchema = z.object({
   full_name: z.string().min(1).max(100).optional(),
+  avatar_url: z.string().url().or(z.string().length(0)).optional(),
+  timezone: z.string().max(50).optional(),
+  locale: z.string().max(20).optional(),
+});
+
+const changePasswordSchema = z.object({
+  current_password: z.string().min(1),
+  new_password: z.string().min(8),
 });
 
 const updateSeekerProfileSchema = z.object({
@@ -208,6 +217,82 @@ export class UserController {
       res.json({
         success: true,
         data: subscription ?? { plan: "free", status: "active" },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validation = changePasswordSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: { message: validation.error.errors[0].message },
+        });
+        return;
+      }
+      const payload = req.user as JwtPayload;
+      const { current_password, new_password } = validation.data;
+
+      const user = await userQueries.findByEmail(payload.email);
+      if (!user || !user.password_hash) {
+        res
+          .status(404)
+          .json({ success: false, error: { message: "User not found" } });
+        return;
+      }
+
+      const isValid = await bcrypt.compare(
+        current_password,
+        user.password_hash,
+      );
+      if (!isValid) {
+        res
+          .status(401)
+          .json({ success: false, error: { message: "Invalid current password" } });
+        return;
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const password_hash = await bcrypt.hash(new_password, salt);
+
+      await userQueries.updatePassword(payload.id, password_hash);
+
+      res.json({ success: true, data: { message: "Password updated successfully" } });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadAvatar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          error: { message: "No file uploaded" },
+        });
+        return;
+      }
+
+      // Construct the public URL for the image
+      // Note: In production, substitute with actual domain or CDN URL
+      const host = req.get("host");
+      const protocol = req.protocol;
+      const fileUrl = `${protocol}://${host}/uploads/avatars/${req.file.filename}`;
+
+      res.json({
+        success: true,
+        data: { url: fileUrl },
       });
     } catch (error) {
       next(error);

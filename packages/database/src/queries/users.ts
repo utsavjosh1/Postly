@@ -79,7 +79,9 @@ export const userQueries = {
    */
   async update(
     id: string,
-    updates: Partial<Pick<User, "full_name" | "roles" | "timezone" | "locale">>,
+    updates: Partial<
+      Pick<User, "full_name" | "roles" | "timezone" | "locale" | "avatar_url">
+    >,
   ): Promise<User | null> {
     if (Object.keys(updates).length === 0) {
       return this.findById(id);
@@ -259,6 +261,18 @@ export const userQueries = {
         updated_at: new Date(),
       })
       .where(eq(users.id, userId))
+      .returning({ id: users.id });
+
+    return !!result;
+  },
+  /**
+   * Update user password
+   */
+  async updatePassword(id: string, passwordHash: string): Promise<boolean> {
+    const [result] = await db
+      .update(users)
+      .set({ password_hash: passwordHash, updated_at: new Date() })
+      .where(eq(users.id, id))
       .returning({ id: users.id });
 
     return !!result;

@@ -20,6 +20,11 @@ import { queueService } from "./services/queue.service.js";
 const app = express();
 
 import { redis as healthRedis } from "./lib/redis.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Security middleware
 app.use(
@@ -138,6 +143,9 @@ app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/discord", discordRoutes);
 app.use("/api/v1/payments", dodoRoutes);
 app.use("/api/v1/applications", applicationRoutes);
+
+// Static files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Error handling
 app.use(notFoundHandler);

@@ -8,6 +8,7 @@ export interface User {
   roles: UserRole[];
   is_verified: boolean;
   timezone?: string | null;
+  avatar_url?: string | null;
   locale?: string | null;
   deleted_at?: Date | null;
   password_reset_token?: string;

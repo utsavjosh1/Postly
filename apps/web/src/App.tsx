@@ -45,6 +45,11 @@ const TransmissionIntegrations = lazy(() =>
     default: m.TransmissionIntegrations,
   })),
 );
+const TransmissionSettings = lazy(() =>
+  import("@pages/TransmissionSettings").then((m) => ({
+    default: m.TransmissionSettings,
+  })),
+);
 const TransmissionNotFound = lazy(() =>
   import("@pages/TransmissionNotFound").then((m) => ({
     default: m.TransmissionNotFound,
@@ -100,6 +105,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TransmissionIntegrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute>
+                <TransmissionSettings />
               </ProtectedRoute>
             }
           />
