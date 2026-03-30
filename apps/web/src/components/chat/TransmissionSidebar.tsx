@@ -77,7 +77,10 @@ export function TransmissionSidebar({
   // Click outside profile menu handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
         setIsProfileOpen(false);
       }
     };
@@ -422,10 +425,12 @@ export function TransmissionSidebar({
               transition: "background-color 150ms var(--tx-ease-sharp)",
             }}
             onMouseEnter={(e) => {
-              if (!isProfileOpen) e.currentTarget.style.backgroundColor = "var(--tx-bg)";
+              if (!isProfileOpen)
+                e.currentTarget.style.backgroundColor = "var(--tx-bg)";
             }}
             onMouseLeave={(e) => {
-              if (!isProfileOpen) e.currentTarget.style.backgroundColor = "transparent";
+              if (!isProfileOpen)
+                e.currentTarget.style.backgroundColor = "transparent";
             }}
           >
             <div
@@ -455,7 +460,13 @@ export function TransmissionSidebar({
               >
                 {user?.full_name?.[0]?.toUpperCase() || "U"}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minWidth: 0,
+                }}
+              >
                 <span
                   style={{
                     fontFamily: "var(--tx-font-mono)",

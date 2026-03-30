@@ -52,6 +52,10 @@ router.get("/subscription", userController.getSubscription);
 router.post("/change-password", userController.changePassword);
 
 // Avatar
-router.post("/upload-avatar", upload.single("avatar"), userController.uploadAvatar);
+router.post(
+  "/upload-avatar",
+  upload.single("avatar"),
+  userController.uploadAvatar,
+);
 
 export default router;

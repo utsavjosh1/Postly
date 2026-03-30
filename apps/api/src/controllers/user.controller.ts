@@ -255,7 +255,10 @@ export class UserController {
       if (!isValid) {
         res
           .status(401)
-          .json({ success: false, error: { message: "Invalid current password" } });
+          .json({
+            success: false,
+            error: { message: "Invalid current password" },
+          });
         return;
       }
 
@@ -264,7 +267,10 @@ export class UserController {
 
       await userQueries.updatePassword(payload.id, password_hash);
 
-      res.json({ success: true, data: { message: "Password updated successfully" } });
+      res.json({
+        success: true,
+        data: { message: "Password updated successfully" },
+      });
     } catch (error) {
       next(error);
     }
