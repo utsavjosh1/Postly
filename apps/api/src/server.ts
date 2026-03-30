@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { tokenBucketRateLimiter } from "./middleware/token-bucket-rate-limit.js";
 import { pool } from "@postly/database";
 import { logger } from "@postly/logger";
@@ -67,16 +68,21 @@ app.use(
   }),
 );
 
-const globalLimiter = tokenBucketRateLimiter({
-  maxTokens: 100,
-  refillRateSec: 10, // 10 tokens per second refill
-  keyPrefix: "rl:global",
-});
-
-const authLimiter = tokenBucketRateLimiter({
+const aiRateLimiter = tokenBucketRateLimiter({
   maxTokens: 50,
   refillRateSec: 5, // 5 tokens per second refill
-  keyPrefix: "rl:auth",
+  keyPrefix: "rl:ai",
+});
+
+const apiRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { message: "Too many requests, please try again later." },
+  },
 });
 
 // Health check — registered BEFORE rate limiter so it's never throttled
@@ -108,7 +114,8 @@ app.get("/health", async (_req, res) => {
   });
 });
 
-app.use(globalLimiter);
+// Apply global API rate limit (Standard Window)
+app.use(apiRateLimiter);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -135,11 +142,11 @@ app.use((req, res, next) => {
 });
 
 // API routes
-app.use("/api/v1/auth", authLimiter, authRoutes);
+app.use("/api/v1/auth", authRoutes); // apiRateLimiter is global
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
-app.use("/api/v1/resumes", resumeRoutes);
-app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/resumes", aiRateLimiter, resumeRoutes);
+app.use("/api/v1/chat", aiRateLimiter, chatRoutes);
 app.use("/api/v1/discord", discordRoutes);
 app.use("/api/v1/payments", dodoRoutes);
 app.use("/api/v1/applications", applicationRoutes);
