@@ -253,12 +253,10 @@ export class UserController {
         user.password_hash,
       );
       if (!isValid) {
-        res
-          .status(401)
-          .json({
-            success: false,
-            error: { message: "Invalid current password" },
-          });
+        res.status(401).json({
+          success: false,
+          error: { message: "Invalid current password" },
+        });
         return;
       }
 
