@@ -372,6 +372,38 @@
   background: #002ccc;
 }
 
+/* ─── Coming Soon Badge ───────────────────────────────────────────────── */
+.tx-badge-coming-soon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  background: var(--tx-bg);
+  color: var(--tx-ink);
+  border: 2px solid var(--tx-ink);
+  padding: 8px 16px;
+  font-family: var(--tx-font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  z-index: 30;
+  box-shadow: 6px 6px 0px var(--tx-ink);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tx-panel-disabled {
+  opacity: 0.6;
+  filter: grayscale(0.8);
+  pointer-events: none;
+}
+
+.tx-panel-disabled:hover {
+  background-color: #0D0D0D !important;
+}
+
 /* ─── Scrollbar styling ───────────────────────────────────────────────── */
 .tx-scrollbar::-webkit-scrollbar {
   width: 6px;

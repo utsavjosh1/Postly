@@ -27,6 +27,7 @@ export const paymentQueries = {
         subscription_id: resolvedSubId,
         ...input,
         currency: input.currency ?? "USD",
+        idempotency_key: input.idempotency_key,
       })
       .returning();
 

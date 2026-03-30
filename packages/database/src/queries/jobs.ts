@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, isNull, ilike } from "drizzle-orm";
+import { eq, desc, and, sql, isNull, ilike, isNotNull } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import { db } from "../index";
 import { jobs } from "../schema";
@@ -30,6 +30,9 @@ export const jobQueries = {
         experience_required: input.experience_required,
         expires_at: input.expires_at,
         employer_id: employerId,
+        scrape_source_id: input.scrape_source_id,
+        external_job_id: input.external_job_id,
+        fingerprint: input.fingerprint,
       })
       .returning();
 
@@ -74,6 +77,9 @@ export const jobQueries = {
           updated_at: new Date(),
           expires_at: expiresAt,
           is_active: true,
+          scrape_source_id: input.scrape_source_id,
+          external_job_id: input.external_job_id,
+          fingerprint: input.fingerprint,
         })
         .where(eq(jobs.source_url, input.source_url))
         .returning();
@@ -100,6 +106,9 @@ export const jobQueries = {
         embedding: input.embedding,
         expires_at: expiresAt,
         is_active: true,
+        scrape_source_id: input.scrape_source_id,
+        external_job_id: input.external_job_id,
+        fingerprint: input.fingerprint,
       })
       .returning();
 
@@ -114,7 +123,7 @@ export const jobQueries = {
     limit = 50,
     offset = 0,
   ): Promise<Job[]> {
-    const conditions = [eq(jobs.is_active, true)];
+    const conditions = [eq(jobs.is_active, true), isNull(jobs.deleted_at)];
 
     if (filters?.location) {
       conditions.push(ilike(jobs.location, `%${filters.location}%`));
@@ -158,7 +167,13 @@ export const jobQueries = {
     const result = await db
       .select({ ...getTableColumns(jobs), similarity })
       .from(jobs)
-      .where(and(eq(jobs.is_active, true), sql`${jobs.embedding} IS NOT NULL`))
+      .where(
+        and(
+          eq(jobs.is_active, true),
+          isNull(jobs.deleted_at),
+          isNotNull(jobs.embedding),
+        ),
+      )
       .orderBy(sql`${jobs.embedding} <=> ${JSON.stringify(embedding)}::vector`)
       .limit(limit);
 
@@ -172,7 +187,7 @@ export const jobQueries = {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })
       .from(jobs)
-      .where(eq(jobs.is_active, true));
+      .where(and(eq(jobs.is_active, true), isNull(jobs.deleted_at)));
 
     return Number(result.count);
   },

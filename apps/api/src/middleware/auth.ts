@@ -13,7 +13,7 @@ import type { UserRole } from "@postly/shared-types";
 export interface JwtPayload {
   id: string;
   email: string;
-  role: UserRole;
+  roles: UserRole[];
   iat?: number;
   exp?: number;
 }

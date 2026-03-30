@@ -10,6 +10,8 @@ interface AuthState {
   error: string | null;
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
+  verifyOtp: (data: { email: string; code: string }) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   setAuth: (user: User, token: string) => void;
@@ -44,7 +46,25 @@ export const useAuthStore = create<AuthState>()(
       register: async (data: RegisterRequest) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authService.register(data);
+          await authService.register(data);
+          // Don't set user/isAuthenticated yet, wait for OTP
+          set({
+            isLoading: false,
+          });
+        } catch (error) {
+          set({
+            error:
+              error instanceof Error ? error.message : "Registration failed",
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      verifyOtp: async (data: { email: string; code: string }) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authService.verifyOtp(data);
           set({
             user: response.user,
             isAuthenticated: true,
@@ -53,7 +73,22 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({
             error:
-              error instanceof Error ? error.message : "Registration failed",
+              error instanceof Error ? error.message : "Verification failed",
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      resendOtp: async (email: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.resendOtp(email);
+          set({ isLoading: false });
+        } catch (error) {
+          set({
+            error:
+              error instanceof Error ? error.message : "Failed to resend code",
             isLoading: false,
           });
           throw error;

@@ -40,6 +40,13 @@ export const subscriptionQueries = {
     return result;
   },
 
+  async updatePromoCode(userId: string, promoCodeId: string) {
+    await db
+      .update(subscriptions)
+      .set({ promo_code_id: promoCodeId, updated_at: new Date() })
+      .where(eq(subscriptions.user_id, userId));
+  },
+
   async updateStatus(
     userId: string,
     status: SubscriptionStatus,

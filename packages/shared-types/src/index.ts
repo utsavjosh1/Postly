@@ -1,12 +1,16 @@
 // User types
-export type UserRole = "job_seeker" | "employer" | "admin";
+export type UserRole = "job_seeker" | "employer" | "admin" | "discord_owner";
 
 export interface User {
   id: string;
   email: string;
   full_name?: string;
-  role: UserRole;
+  roles: UserRole[];
   is_verified: boolean;
+  timezone?: string | null;
+  avatar_url?: string | null;
+  locale?: string | null;
+  deleted_at?: Date | null;
   password_reset_token?: string;
   password_reset_expires_at?: Date;
   last_login_at?: Date;
@@ -18,7 +22,7 @@ export interface CreateUserInput {
   email: string;
   password: string;
   full_name?: string;
-  role?: UserRole;
+  roles?: UserRole[];
 }
 
 /** DB-level input for creating a user (password already hashed) */
@@ -26,7 +30,7 @@ export interface CreateUserDbInput {
   email: string;
   password_hash: string;
   full_name?: string;
-  role?: UserRole;
+  roles?: UserRole[];
 }
 
 export interface LoginInput {
@@ -114,6 +118,9 @@ export interface CreateJobInput {
   skills_required?: string[];
   experience_required?: string;
   expires_at?: Date;
+  scrape_source_id?: string;
+  external_job_id?: string;
+  fingerprint?: string;
 }
 
 /** Input from web scrapers — used by the scraper service to upsert jobs */
@@ -133,6 +140,9 @@ export interface ScrapedJobInput {
   posted_at?: Date;
   expires_at?: Date;
   embedding?: number[];
+  scrape_source_id?: string;
+  external_job_id?: string;
+  fingerprint?: string;
 }
 
 // Job Match types

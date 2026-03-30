@@ -1,13 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { Redis } from "ioredis";
-import { REDIS_URL, NODE_ENV } from "../config/secrets.js";
+import { NODE_ENV } from "../config/secrets.js";
+import { redis } from "../lib/redis.js";
 import type { JwtPayload } from "./auth.js";
-
-// Initialize Redis client
-const redis = new Redis(REDIS_URL || "redis://localhost:6379");
-redis.on("error", (err) => {
-  console.error("Redis (strict-rate-limit) connection error:", err);
-});
 
 interface RateLimitConfig {
   windowMs: number;
@@ -53,11 +47,28 @@ export const createStrictRateLimiter = (config: RateLimitConfig) => {
       // Get current count
       const currentCount = await redis.get(key);
       const count = currentCount ? parseInt(currentCount, 10) : 0;
+      const remaining = Math.max(0, maxLimit - count);
+
+      let resetDate: Date;
+      if (count > 0) {
+        const ttl = await redis.ttl(key);
+        resetDate = new Date(Date.now() + ttl * 1000);
+      } else {
+        resetDate = new Date(Date.now() + config.windowMs);
+      }
+
+      // Set AI specific rate limit headers
+      res.setHeader(
+        "X-AI-RateLimit-Limit",
+        maxLimit === Infinity ? "Infinity" : maxLimit.toString(),
+      );
+      res.setHeader(
+        "X-AI-RateLimit-Remaining",
+        maxLimit === Infinity ? "Infinity" : remaining.toString(),
+      );
+      res.setHeader("X-AI-RateLimit-Reset", resetDate.toISOString());
 
       if (count >= maxLimit && maxLimit !== Infinity) {
-        const ttl = await redis.ttl(key);
-        const resetDate = new Date(Date.now() + ttl * 1000);
-
         res.status(429).json({
           success: false,
           error: {
@@ -94,8 +105,8 @@ export const chatRateLimiter = createStrictRateLimiter({
     const user = req.user as JwtPayload | undefined;
     if (!user) return 3;
 
-    if (user.role === "admin") return Infinity;
-    if (user.role === "employer") return 50;
+    if (user.roles.includes("admin")) return Infinity;
+    if (user.roles.includes("employer")) return 50;
 
     return 3;
   },

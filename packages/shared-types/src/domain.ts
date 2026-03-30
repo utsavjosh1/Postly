@@ -102,7 +102,12 @@ export interface SeekerProfile extends SeekerProfileData {
 
 // ─── Subscription Types ───────────────────────────────────────────────────────
 
-export type SubscriptionPlan = "free" | "seeker" | "employer" | "enterprise";
+export type SubscriptionPlan =
+  | "free"
+  | "seeker"
+  | "employer"
+  | "enterprise"
+  | "discord_owner";
 export type SubscriptionStatus =
   | "active"
   | "cancelled"
@@ -152,6 +157,7 @@ export interface CreatePaymentInput {
   currency?: string;
   paid_at?: Date;
   raw_payload?: unknown;
+  idempotency_key?: string;
 }
 
 export interface Payment extends CreatePaymentInput {

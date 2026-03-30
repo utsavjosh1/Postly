@@ -1,30 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import "../styles/transmission.css";
 
 /**
- * TransmissionLogin
- * ─────────────────
- * Neo-brutalist login page. Hard borders, monospace, warm concrete background.
+ * VerifyOtpPage
+ * ─────────────
+ * Neo-brutalist verification page for 6-digit email OTP.
  */
-export function TransmissionLogin() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export function VerifyOtpPage() {
+  const [code, setCode] = useState("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, isLoading, error } = useAuthStore();
-  const urlError = searchParams.get("error");
+  const { verifyOtp, resendOtp, isLoading, error } = useAuthStore();
+  const email = searchParams.get("email") || "";
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (!email) {
+      navigate("/register");
+    }
+  }, [email, navigate]);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [resendTimer]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (code.length !== 6) return;
     try {
-      await login({ email, password });
+      await verifyOtp({ email, code });
       navigate("/chat?role=seeker");
-    } catch (err: any) {
-      if (err?.response?.data?.error?.code === "EMAIL_NOT_VERIFIED") {
-        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
-      }
+    } catch {
+      // Error handled by store
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendTimer > 0) return;
+    try {
+      await resendOtp(email);
+      setResendTimer(60);
+    } catch {
+      // Error handled by store
     }
   };
 
@@ -60,7 +83,7 @@ export function TransmissionLogin() {
           <h1
             style={{
               fontFamily: "var(--tx-font-display)",
-              fontSize: "clamp(36px, 6vw, 52px)",
+              fontSize: "clamp(36px, 6vw, 48px)",
               fontWeight: 800,
               color: "var(--tx-ink)",
               margin: "16px 0 8px",
@@ -68,17 +91,19 @@ export function TransmissionLogin() {
               letterSpacing: "-1px",
             }}
           >
-            SIGN IN
+            VERIFY EMAIL
           </h1>
           <p
             style={{
               fontSize: "12px",
               color: "var(--tx-ink-muted)",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
+              letterSpacing: "0.5px",
             }}
           >
-            Access your transmission
+            SENT TO:{" "}
+            <span style={{ color: "var(--tx-ink)", fontWeight: 700 }}>
+              {email}
+            </span>
           </p>
         </div>
 
@@ -92,7 +117,7 @@ export function TransmissionLogin() {
           }}
         >
           {/* Error */}
-          {(error || urlError) && (
+          {error && (
             <div
               style={{
                 padding: "10px 14px",
@@ -104,15 +129,12 @@ export function TransmissionLogin() {
                 letterSpacing: "0.5px",
               }}
             >
-              {error ||
-                (urlError === "access_denied"
-                  ? "ACCESS DENIED"
-                  : "AUTHENTICATION FAILED")}
+              {error.toUpperCase()}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            {/* Email */}
+            {/* OTP Code */}
             <div style={{ marginBottom: "20px" }}>
               <label
                 style={{
@@ -122,94 +144,32 @@ export function TransmissionLogin() {
                   letterSpacing: "2px",
                   textTransform: "uppercase",
                   color: "var(--tx-ink-muted)",
-                  marginBottom: "6px",
+                  marginBottom: "8px",
                 }}
               >
-                EMAIL
+                6-DIGIT CODE
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={code}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 required
-                placeholder="you@example.com"
+                maxLength={6}
+                placeholder="000000"
                 style={{
                   width: "100%",
-                  padding: "12px 14px",
+                  padding: "16px",
                   background: "var(--tx-bg)",
                   border: "2px solid var(--tx-border)",
                   borderRadius: "var(--tx-radius)",
                   fontFamily: "var(--tx-font-mono)",
-                  fontSize: "13px",
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  letterSpacing: "12px",
                   color: "var(--tx-ink)",
-                  outline: "none",
-                  transition: "border-color 150ms var(--tx-ease-sharp)",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = "var(--tx-ink)")
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = "var(--tx-border)")
-                }
-              />
-            </div>
-
-            {/* Password */}
-            <div style={{ marginBottom: "8px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "6px",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    letterSpacing: "2px",
-                    textTransform: "uppercase",
-                    color: "var(--tx-ink-muted)",
-                  }}
-                >
-                  PASSWORD
-                </label>
-                <Link
-                  to="/forgot-password"
-                  style={{
-                    fontSize: "10px",
-                    color: "var(--tx-ink-muted)",
-                    textDecoration: "none",
-                    letterSpacing: "1px",
-                    transition: "color 150ms var(--tx-ease-sharp)",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = "var(--tx-ink)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "var(--tx-ink-muted)")
-                  }
-                >
-                  FORGOT?
-                </Link>
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  background: "var(--tx-bg)",
-                  border: "2px solid var(--tx-border)",
-                  borderRadius: "var(--tx-radius)",
-                  fontFamily: "var(--tx-font-mono)",
-                  fontSize: "13px",
-                  color: "var(--tx-ink)",
+                  textAlign: "center",
                   outline: "none",
                   transition: "border-color 150ms var(--tx-ease-sharp)",
                   boxSizing: "border-box",
@@ -226,11 +186,11 @@ export function TransmissionLogin() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || code.length !== 6}
               style={{
                 width: "100%",
                 padding: "14px",
-                marginTop: "24px",
+                marginTop: "12px",
                 fontFamily: "var(--tx-font-mono)",
                 fontSize: "13px",
                 fontWeight: 700,
@@ -240,25 +200,51 @@ export function TransmissionLogin() {
                 background: "var(--tx-ink)",
                 border: "2px solid var(--tx-ink)",
                 borderRadius: "var(--tx-radius)",
-                cursor: isLoading ? "not-allowed" : "pointer",
-                opacity: isLoading ? 0.6 : 1,
+                cursor:
+                  isLoading || code.length !== 6 ? "not-allowed" : "pointer",
+                opacity: isLoading || code.length !== 6 ? 0.6 : 1,
                 transition:
                   "opacity 150ms var(--tx-ease-sharp), transform 100ms var(--tx-ease-sharp)",
               }}
               onMouseDown={(e) => {
-                if (!isLoading)
+                if (!isLoading && code.length === 6)
                   e.currentTarget.style.transform = "scaleX(0.98)";
               }}
               onMouseUp={(e) => {
                 e.currentTarget.style.transform = "scaleX(1)";
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scaleX(1)";
-              }}
             >
-              {isLoading ? "···" : "TRANSMIT →"}
+              {isLoading ? "···" : "VERIFY CODE →"}
             </button>
           </form>
+
+          {/* Resend */}
+          <div style={{ marginTop: "24px", textAlign: "center" }}>
+            <button
+              onClick={handleResend}
+              disabled={isLoading || resendTimer > 0}
+              style={{
+                background: "none",
+                border: "none",
+                color:
+                  isLoading || resendTimer > 0
+                    ? "var(--tx-ink-muted)"
+                    : "var(--tx-ink)",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                cursor:
+                  isLoading || resendTimer > 0 ? "not-allowed" : "pointer",
+                padding: "4px 8px",
+                borderBottom:
+                  resendTimer === 0 ? "2px solid var(--tx-ink)" : "none",
+                transition: "opacity 150ms var(--tx-ease-sharp)",
+              }}
+            >
+              {resendTimer > 0 ? `RESEND IN ${resendTimer}S` : "RESEND CODE"}
+            </button>
+          </div>
         </div>
 
         {/* Footer */}
@@ -271,7 +257,7 @@ export function TransmissionLogin() {
             letterSpacing: "0.5px",
           }}
         >
-          No account?{" "}
+          WANT TO START OVER?{" "}
           <Link
             to="/register"
             style={{
@@ -279,10 +265,9 @@ export function TransmissionLogin() {
               fontWeight: 700,
               textDecoration: "none",
               borderBottom: "2px solid var(--tx-ink)",
-              transition: "border-color 150ms var(--tx-ease-sharp)",
             }}
           >
-            SIGN UP
+            JOIN AGAIN
           </Link>
         </p>
       </div>

@@ -3,6 +3,7 @@ import {
   conversationQueries,
   resumeQueries,
   jobQueries,
+  userQueries,
 } from "@postly/database";
 import { matchingService } from "./matching.service.js";
 import type {
@@ -17,6 +18,101 @@ interface MatchedJob extends Job {
   match_score: number;
   ai_explanation?: string;
 }
+
+interface JobIntent {
+  isRelated: boolean;
+  isSpecific: boolean;
+  techKeywords: string[];
+  allKeywords: string[];
+}
+
+/**
+ * More precise intent detection for job-related queries
+ */
+function getJobIntent(message: string): JobIntent {
+  const techKeywords = [
+    "react",
+    "frontend",
+    "backend",
+    "fullstack",
+    "node",
+    "python",
+    "java",
+    "typescript",
+    "javascript",
+    "html",
+    "css",
+    "vue",
+    "angular",
+    "aws",
+    "cloud",
+    "devops",
+    "structural",
+    "environmental",
+    "civil",
+    "mechanical",
+    "electrical",
+  ];
+  const levelKeywords = [
+    "software",
+    "engineer",
+    "developer",
+    "designer",
+    "architect",
+    "manager",
+    "lead",
+    "senior",
+    "junior",
+    "intern",
+    "graduate",
+    "entry",
+    "level",
+    "remote",
+    "hybrid",
+  ];
+  const generalKeywords = [
+    "job",
+    "career",
+    "hiring",
+    "opportunity",
+    "opening",
+    "position",
+    "vacancy",
+    "work",
+    "stack",
+    "hire",
+    "recruiting",
+    "talent",
+    "apply",
+    "application",
+    "resume",
+    "cv",
+    "salary",
+    "role",
+    "brief",
+    "looking for",
+    "hunting",
+    "find",
+    "search",
+  ];
+  const lowercaseMsg = message.toLowerCase();
+
+  const foundTech = techKeywords.filter((kw) => lowercaseMsg.includes(kw));
+  const foundLevel = levelKeywords.filter((kw) => lowercaseMsg.includes(kw));
+  const hasGeneral = generalKeywords.some((kw) => lowercaseMsg.includes(kw));
+
+  return {
+    isRelated:
+      foundTech.length > 0 ||
+      foundLevel.length > 0 ||
+      hasGeneral ||
+      message.length > 50,
+    isSpecific: foundTech.length > 0 || foundLevel.length > 0,
+    techKeywords: foundTech,
+    allKeywords: [...foundTech, ...foundLevel],
+  };
+}
+// ... (omitting helper for brevity in diff)
 
 // Helper to transform raw job data to UI-ready format
 function toOptimizedJobMatch(job: MatchedJob): OptimizedJobMatch {
@@ -69,14 +165,16 @@ export class ChatService {
         userMessage,
       );
 
-      // 2. Get conversation context
-      const conversation = await conversationQueries.findById(
-        conversationId,
-        userId,
-      );
+      // 2. Get conversation context and user context
+      const [conversation, user] = await Promise.all([
+        conversationQueries.findById(conversationId, userId),
+        userQueries.findById(userId),
+      ]);
       if (!conversation) {
         throw new Error("Conversation not found");
       }
+
+      const userRole = user?.roles[0] || "job_seeker";
 
       const messages = await conversationQueries.getMessages(conversationId);
 
@@ -86,21 +184,28 @@ export class ChatService {
       // 4. Load resume context and job matches if available
       let resumeContext = "";
       let jobMatches: MatchedJob[] = [];
+      const intent = getJobIntent(userMessage);
 
       if (effectiveResumeId) {
         const resume = await resumeQueries.findById(effectiveResumeId);
         if (resume?.parsed_text) {
           resumeContext = `\n\nUser's Resume Summary:\n- Skills: ${resume.skills?.join(", ") || "Not specified"}\n- Experience: ${resume.experience_years || 0} years\n- Summary: ${resume.parsed_text.substring(0, 1000)}`;
 
-          // Find matching jobs based on resume
-          try {
-            jobMatches = await matchingService.findMatchingJobs(
-              effectiveResumeId,
-              userId,
-              5, // Limit to top 5
-            );
-          } catch (err) {
-            console.error("Failed to fetch job matches:", err);
+          // Find matching jobs based on resume ONLY if not employer AND intent is related
+          if (
+            userRole !== "employer" &&
+            userRole !== "admin" &&
+            intent.isRelated
+          ) {
+            try {
+              jobMatches = await matchingService.findMatchingJobs(
+                effectiveResumeId,
+                userId,
+                5, // Limit to top 5
+              );
+            } catch (err) {
+              console.error("Failed to fetch job matches:", err);
+            }
           }
         }
 
@@ -111,7 +216,13 @@ export class ChatService {
       }
 
       // 4b. FALLBACK: If no resume or no matches, fetch recent active jobs
-      if (jobMatches.length === 0) {
+      // Only do this if the user is not an employer AND intent is related
+      if (
+        jobMatches.length === 0 &&
+        userRole !== "employer" &&
+        userRole !== "admin" &&
+        intent.isRelated
+      ) {
         try {
           const recentJobs = await jobQueries.findActive(undefined, 5, 0);
           jobMatches = recentJobs.map((job: Job) => ({
@@ -121,6 +232,30 @@ export class ChatService {
         } catch (err) {
           console.error("Failed to fetch recent jobs:", err);
         }
+      }
+
+      // 4c. FILTER: If intent is specific, ensure matches are actually relevant.
+      // If user specified tech keywords, at least one must match.
+      // Otherwise, at least one level/general keyword must match.
+      if (intent.isSpecific && jobMatches.length > 0) {
+        jobMatches = jobMatches.filter((job) => {
+          const searchSpace = (
+            (job.title || "") +
+            " " +
+            (job.description || "") +
+            " " +
+            (job.skills_required?.join(" ") || "")
+          ).toLowerCase();
+
+          if (intent.techKeywords.length > 0) {
+            return intent.techKeywords.some((kw: string) =>
+              searchSpace.includes(kw),
+            );
+          }
+          return intent.allKeywords.some((kw: string) =>
+            searchSpace.includes(kw),
+          );
+        });
       }
 
       // 5. Build system prompt with job context
@@ -135,21 +270,33 @@ export class ChatService {
           .join("\n")}`;
       }
 
-      const systemPrompt = `You are an AI career assistant helping with resume analysis and job search.
+      let roleSpecificInstructions = "";
+      if (userRole === "employer") {
+        roleSpecificInstructions =
+          "You are an AI assistant helping an employer looking to hire candidates. Your ONLY function is to help with hiring, evaluating candidates, and posting jobs.";
+      } else {
+        roleSpecificInstructions =
+          "You are an AI career assistant helping with resume analysis and job search.";
+      }
 
+      const systemPrompt = `${roleSpecificInstructions}
+${
+  userRole !== "employer"
+    ? `
 Your capabilities:
 - Analyze resumes and provide constructive feedback
 - Suggest relevant job opportunities from our database
 - Offer career advice and interview tips
 - Help with job applications
-
+`
+    : ""
+}
 IMPORTANT INSTRUCTIONS:
-1. When the user asks for jobs, ALWAYS reference the jobs listed below if any are available. These are REAL jobs from our database.
-2. Summarize the available jobs briefly and let the user know they can see the full details in the job cards.
-3. DO NOT invent or hallucinate job listings. Only mention jobs that are explicitly listed in "Available job opportunities" or "Matching job opportunities" section below.
-4. If no jobs are listed below, inform the user that no jobs are currently available in our database.
+1. ${userRole === "employer" ? "Focus STRICTLY on helping the employer with hiring. UNDER NO CIRCUMSTANCES should you suggest, mention, or offer job listings, career advice, or job search help to an employer. If asked for jobs, politely clarify your role." : "When the user explicitly asks for jobs or career opportunities, reference the jobs listed below. If they just say 'hi' or make small talk, respond conversationally without bringing up jobs."}
+2. DO NOT invent or hallucinate facts.
+${userRole !== "employer" ? "3. DO NOT hallucinate job listings. Only mention jobs explicitly listed in the context below.\n4. If the user asks for jobs and none are listed, inform the user that no jobs are currently available." : ""}
 
-Be professional, encouraging, and concise.${resumeContext}${jobContext}`;
+Be professional, encouraging, and concise.${resumeContext}${userRole !== "employer" ? jobContext : ""}`;
 
       // 6. Prepare conversation history
       const conversationHistory = messages
