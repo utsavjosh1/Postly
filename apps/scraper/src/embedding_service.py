@@ -103,46 +103,81 @@ class VoyageEmbeddingService:
     
     def _prepare_text(self, job: Dict[str, Any]) -> str:
         """
-        Prepare weighted text for embedding.
+        Prepare comprehensive weighted text for embedding.
         
-        Uses weighted field merging for better embedding quality:
-        - Job title (30%) - repeated for emphasis
-        - Skills (25%)
-        - Description (30%) - truncated
-        - Industry (10%)
-        - Company (5%)
+        Reads ALL available job fields for richer vector search:
+        - Job title (high weight — repeated 3x)
+        - Skills (high weight — repeated 2x)
+        - Description (medium weight — truncated to 3000 chars)
+        - Location, job type, remote status (medium weight)
+        - Salary range, experience (low-medium weight)
+        - Company name, industry (low weight)
+        
+        This produces embeddings that capture the full context of a job,
+        enabling more accurate vector search for queries like:
+        "remote React developer in New York $120k+"
         """
         parts = []
         
-        # Job title (high weight - repeat 3x)
-        title = job.get('job_title', '')
+        # Job title (high weight — repeat 3x for emphasis)
+        title = job.get('job_title', '') or job.get('title', '')
         if title:
-            parts.extend([title] * 3)
+            parts.extend([f"Job Title: {title}"] * 3)
         
-        # Skills (medium-high weight)
+        # Skills (high weight — repeated 2x)
         skills = job.get('skills_required', [])
         if skills:
             if isinstance(skills, list):
-                skills_text = ', '.join(skills)
+                skills_text = ', '.join(str(s) for s in skills)
             else:
                 skills_text = str(skills)
-            parts.extend([skills_text] * 2)
+            parts.extend([f"Skills: {skills_text}"] * 2)
         
-        # Description (high weight but truncate)
-        description = job.get('job_description', '')
+        # Description (medium-high weight, truncated)
+        description = job.get('job_description', '') or job.get('description', '')
         if description:
-            # Take first 3000 chars to stay within token limits
             parts.append(description[:3000])
+        
+        # Location (important for geo-based search)
+        location = job.get('location', '')
+        if location:
+            parts.append(f"Location: {location}")
+        
+        # Remote status (critical for modern job search)
+        remote = job.get('remote', False)
+        if remote:
+            parts.append("Work Type: Remote, Work from home, WFH")
+        
+        # Job type (full-time, part-time, contract, etc.)
+        job_type = job.get('job_type', '')
+        if job_type:
+            parts.append(f"Employment Type: {job_type}")
+        
+        # Salary range (important for salary-based queries)
+        salary_min = job.get('salary_min')
+        salary_max = job.get('salary_max')
+        if salary_min or salary_max:
+            salary_parts = []
+            if salary_min:
+                salary_parts.append(f"${salary_min:,.0f}" if isinstance(salary_min, (int, float)) else f"${salary_min}")
+            if salary_max:
+                salary_parts.append(f"${salary_max:,.0f}" if isinstance(salary_max, (int, float)) else f"${salary_max}")
+            parts.append(f"Salary Range: {' - '.join(salary_parts)} per year")
+        
+        # Experience level
+        experience = job.get('experience_required', '')
+        if experience:
+            parts.append(f"Experience Required: {experience}")
+        
+        # Company name (low weight)
+        company = job.get('company_name', '') or job.get('company', '')
+        if company:
+            parts.append(f"Company: {company}")
         
         # Industry (low weight)
         industry = job.get('industry', '')
         if industry:
-            parts.append(industry)
-        
-        # Company (lowest weight)
-        company = job.get('company_name', '')
-        if company:
-            parts.append(company)
+            parts.append(f"Industry: {industry}")
         
         combined = '\n'.join(parts)
         

@@ -29,6 +29,7 @@ class HealthCheckServer:
             "database_connected": False,
             "last_scrape": None,
             "jobs_in_db": 0,
+            "consecutive_failures": 0,
             "errors": [],
         }
 
@@ -40,13 +41,17 @@ class HealthCheckServer:
     async def health_check(self, request) -> web.Response:
         """Liveness probe."""
         uptime = (datetime.utcnow() - self.start_time).total_seconds()
+        consecutive_failures = self.status.get("consecutive_failures", 0)
+        is_healthy = self.status["healthy"] and consecutive_failures < 3
+        
         return web.json_response(
             {
-                "status": "healthy" if self.status["healthy"] else "unhealthy",
+                "status": "healthy" if is_healthy else "unhealthy",
                 "uptime_seconds": uptime,
+                "consecutive_failures": consecutive_failures,
                 "timestamp": datetime.utcnow().isoformat(),
             },
-            status=200 if self.status["healthy"] else 503,
+            status=200 if is_healthy else 503,
         )
 
     async def readiness_check(self, request) -> web.Response:
@@ -104,9 +109,14 @@ scraper_errors_total {len(self.status["errors"])}
             logger.error(f"Failed to start health server: {e}")
 
     async def stop(self):
-        """Stop the health check server."""
-        if self.site:
-            await self.site.stop()
-        if self.runner:
-            await self.runner.cleanup()
-        logger.info("Health check server stopped")
+        """Stop the health check server gracefully."""
+        try:
+            if self.site:
+                await self.site.stop()
+                self.site = None
+            if self.runner:
+                await self.runner.cleanup()
+                self.runner = None
+            logger.info("Health check server stopped")
+        except Exception as e:
+            logger.warning(f"Error during health server shutdown: {e}")

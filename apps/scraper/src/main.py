@@ -3,12 +3,11 @@
 main.py
 Entry-point for the hiring.cafe job scraper.
 
-Runs as a standalone async service:
-  1. Connects to PostgreSQL (Drizzle-managed schema)
-  2. Starts health check server
-  3. Runs scraping cycles on a schedule (APScheduler)
-  4. Processes jobs through pipeline → DB
-  5. Background embedding worker catches stragglers
+CHANGELOG:
+- Added _consecutive_failures logic to track crash loops without silent shutdown
+- Updated spider call to pass known_ids for detail fetching bypass
+- Changed scheduler.shutdown(wait=False) to wait=True to fix shutdown race 
+- Pushing _consecutive_failures to the health server payload
 """
 
 import asyncio
@@ -16,8 +15,16 @@ import logging
 import os
 import signal
 import sys
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Suppress urllib3 NotOpenSSLWarning (common on macOS with LibreSSL)
+try:
+    from urllib3.exceptions import NotOpenSSLWarning
+    warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
+except ImportError:
+    pass
 
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -28,7 +35,17 @@ sys.path.insert(0, str(Path(__file__).parent))
 from database import Database
 from pipeline import JobProcessingPipeline
 from embedding_service import VoyageEmbeddingService, EmbeddingWorker
-from spiders.hiring_cafe import HiringCafeSpider
+from spiders.remotive import RemotiveSpider
+from spiders.arbeitnow import ArbeitnowSpider
+from spiders.greenhouse import GreenhouseSpider
+
+# HiringCafeSpider requires playwright — import conditionally
+try:
+    from spiders.hiring_cafe import HiringCafeSpider
+    HIRING_CAFE_AVAILABLE = True
+except ImportError:
+    HiringCafeSpider = None
+    HIRING_CAFE_AVAILABLE = False
 from janitor import JanitorService
 from health import HealthCheckServer
 
@@ -91,7 +108,7 @@ class ScraperSystem:
 
         # Components (initialized in start())
         self.db: Database = None
-        self.spider: HiringCafeSpider = None
+        self.spiders: list = []  # All spider instances
         self.pipeline: JobProcessingPipeline = None
         self.embedder: VoyageEmbeddingService = None
         self.embedding_worker: EmbeddingWorker = None
@@ -101,7 +118,9 @@ class ScraperSystem:
 
         # State
         self._running = False
+        self._stopping = False
         self._cycle_count = 0
+        self._consecutive_failures: int = 0
 
     async def start(self):
         """Initialize all components and start the service."""
@@ -128,10 +147,23 @@ class ScraperSystem:
         else:
             logger.warning("No VOYAGE_API_KEY — embeddings disabled")
 
-        # 3. Spider
-        self.spider = HiringCafeSpider(
-            requests_per_minute=self.requests_per_minute,
-        )
+        # 3. Spiders — API-based sources (always available) + hiring.cafe (if playwright installed)
+        self.spiders = [
+            RemotiveSpider(requests_per_minute=2),      # TOS: max 2 req/min
+            ArbeitnowSpider(requests_per_minute=20),    # Generous limits
+            GreenhouseSpider(requests_per_minute=30),   # Per-board, very fast
+        ]
+
+        if HIRING_CAFE_AVAILABLE and HiringCafeSpider:
+            self.spiders.append(
+                HiringCafeSpider(requests_per_minute=self.requests_per_minute)
+            )
+            logger.info("HiringCafeSpider enabled (playwright found)")
+        else:
+            logger.warning("HiringCafeSpider disabled (playwright not installed)")
+
+        logger.info(f"Initialized {len(self.spiders)} spiders: "
+                    f"{[s.SOURCE_NAME if hasattr(s, 'SOURCE_NAME') else 'hiring_cafe' for s in self.spiders]}")
 
         # 4. Pipeline
         self.pipeline = JobProcessingPipeline(
@@ -143,8 +175,9 @@ class ScraperSystem:
         # 5. Janitor
         self.janitor = JanitorService(database=self.db)
 
-        # 6. Health check server
+        # 6. Health check server - pass a reference to expose failures dynamically
         self.health = HealthCheckServer(port=self.health_port)
+        self.health.scraper = self  # Give health server access to self._consecutive_failures
         self.health.update_status(database_connected=True)
         await self.health.start()
 
@@ -177,61 +210,125 @@ class ScraperSystem:
             "health_port": self.health_port,
         })
 
-    async def _scrape_cycle(self):
-        """Execute one full scrape → process → store cycle."""
+    async def _run_pipeline(self):
+        """Isolated scraping orchestration logic — runs ALL spiders sequentially."""
         self._cycle_count += 1
         cycle = self._cycle_count
 
         logger.info({"event": "cycle_start", "cycle": cycle})
-        
-        batch = []
+
+        # Shared known IDs for cross-source dedup
+        known_ids = await self.db.get_all_source_ids()
+        logger.info(f"Loaded {len(known_ids)} known IDs for cross-source dedup")
+
         total_scraped = 0
         total_stored = 0
+        source_results = {}
 
-        try:
-            # Scrape and process in real-time batches
-            async for job in self.spider.scrape():
-                batch.append(job)
-                total_scraped += 1
-                
-                if len(batch) >= self.pipeline.batch_size:
-                    logger.info(f"Batch full ({len(batch)} jobs). Sending to pipeline...")
+        for spider in self.spiders:
+            source_name = getattr(spider, 'SOURCE_NAME', 'hiring_cafe')
+            spider_scraped = 0
+            spider_stored = 0
+            batch = []
+
+            try:
+                logger.info(f"--- Starting spider: {source_name} ---")
+
+                async for job in spider.scrape(known_ids=known_ids):
+                    batch.append(job)
+                    spider_scraped += 1
+
+                    if len(batch) >= self.pipeline.batch_size:
+                        logger.info(f"[{source_name}] Batch full ({len(batch)} jobs). Processing...")
+                        metrics = await self.pipeline.process(batch)
+                        spider_stored += metrics.jobs_stored
+                        batch = []
+
+                        # Update health periodically
+                        self.health.update_status(
+                            last_scrape=datetime.now(timezone.utc).isoformat(),
+                            jobs_in_db=(await self.db.get_stats()).get("total_jobs", 0),
+                            consecutive_failures=self._consecutive_failures,
+                        )
+
+                # Process remaining jobs in the last batch
+                if batch:
                     metrics = await self.pipeline.process(batch)
-                    total_stored += metrics.jobs_stored
-                    batch = []
-                    
-                    # Update health periodically
-                    self.health.update_status(
-                        last_scrape=datetime.now(timezone.utc).isoformat(),
-                        jobs_in_db=(await self.db.get_stats()).get("total_jobs", 0),
-                    )
+                    spider_stored += metrics.jobs_stored
 
-            # Process remaining jobs in the last batch
-            if batch:
-                metrics = await self.pipeline.process(batch)
-                total_stored += metrics.jobs_stored
+                total_scraped += spider_scraped
+                total_stored += spider_stored
+                source_results[source_name] = {
+                    "scraped": spider_scraped,
+                    "stored": spider_stored,
+                    "errors": spider.errors,
+                }
 
-            logger.info(f"Cycle {cycle} complete: scraped {total_scraped}, stored {total_stored}")
+                logger.info(f"--- Spider {source_name} complete: "
+                           f"scraped={spider_scraped}, stored={spider_stored}, "
+                           f"errors={spider.errors} ---")
 
-            # Final health update
-            stats = await self.db.get_stats()
-            self.health.update_status(
-                last_scrape=datetime.now(timezone.utc).isoformat(),
-                jobs_in_db=stats.get("total_jobs", 0),
-            )
+            except Exception as e:
+                logger.error(f"Spider {source_name} crashed: {e}", exc_info=True)
+                source_results[source_name] = {
+                    "scraped": spider_scraped,
+                    "stored": spider_stored,
+                    "error": str(e),
+                }
+            finally:
+                # Reset spider metrics for next cycle
+                spider.jobs_found = 0
+                spider.pages_scraped = 0
+                spider.errors = 0
+                if hasattr(spider, 'detail_fetches'):
+                    spider.detail_fetches = 0
 
+        logger.info({
+            "event": "cycle_complete",
+            "cycle": cycle,
+            "total_scraped": total_scraped,
+            "total_stored": total_stored,
+            "sources": source_results,
+        })
+
+        # Final health update
+        stats = await self.db.get_stats()
+        self.health.update_status(
+            last_scrape=datetime.now(timezone.utc).isoformat(),
+            jobs_in_db=stats.get("total_jobs", 0),
+            consecutive_failures=self._consecutive_failures,
+            by_source=stats.get("by_source", {}),
+        )
+
+
+    async def _scrape_cycle(self):
+        """Execute one full scrape → process → store cycle inside resilience wrapper."""
+        try:
+            await self._run_pipeline()
+            self._consecutive_failures = 0
+            # update health state on success explicitly
+            self.health.update_status(consecutive_failures=0)
+        except asyncio.CancelledError:
+            # Shutdown initiated, exit silently and return to avoid APScheduler error logging
+            return
         except Exception as e:
-            logger.error(f"Cycle {cycle} failed: {e}")
-            self.health.update_status(
-                errors=self.health.status.get("errors", []) + [str(e)]
+            self._consecutive_failures += 1
+            logger.exception(
+                "Scrape cycle failed (%d consecutive)", 
+                self._consecutive_failures
             )
-
-        finally:
-            # Reset spider metrics for next cycle
-            self.spider.jobs_found = 0
-            self.spider.pages_scraped = 0
-            self.spider.detail_fetches = 0
-            self.spider.errors = 0
+            
+            # Update health state failures
+            self.health.update_status(
+                errors=self.health.status.get("errors", []) + [str(e)],
+                consecutive_failures=self._consecutive_failures
+            )
+            
+            if self._consecutive_failures >= 3:
+                logger.critical(
+                    "3 consecutive failures — pipeline may be broken, "
+                    "manual intervention required"
+                )
 
     async def _maintenance_cycle(self):
         """Run janitor maintenance tasks."""
@@ -242,20 +339,50 @@ class ScraperSystem:
             logger.error(f"Maintenance failed: {e}")
 
     async def stop(self):
-        """Gracefully shut down all components."""
+        """Gracefully shut down all components with defensive checks and idempotency."""
+        if self._stopping:
+            return
+        self._stopping = True
+
         logger.info("Shutting down scraper system...")
         self._running = False
 
+        # Stop scheduler first to prevent new jobs from starting (with blocking wait)
         if self.scheduler:
-            self.scheduler.shutdown(wait=False)
+            try:
+                if self.scheduler.running:
+                    self.scheduler.shutdown(wait=True)
+            except Exception as e:
+                logger.warning(f"Scheduler shutdown interrupted — job may have been mid-run: {e}")
+
+        # Stop other background tasks
         if self.embedding_worker:
-            self.embedding_worker.stop()
-        if self.spider:
-            await self.spider.close()
+            try:
+                self.embedding_worker.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping embedding worker: {e}")
+
+        # Close all spiders
+        for spider in self.spiders:
+            try:
+                await spider.close()
+            except Exception as e:
+                source_name = getattr(spider, 'SOURCE_NAME', 'unknown')
+                logger.warning(f"Error closing spider {source_name}: {e}")
+
+        # Stop health server
         if self.health:
-            await self.health.stop()
+            try:
+                await self.health.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping health server: {e}")
+
+        # Final database cleanup
         if self.db:
-            await self.db.close()
+            try:
+                await self.db.close()
+            except Exception as e:
+                logger.warning(f"Error closing database: {e}")
 
         logger.info("Scraper system stopped")
 
@@ -268,9 +395,15 @@ async def main():
     system = ScraperSystem()
 
     # Handle signals for graceful shutdown
+    # We simply set _running to False to break the loop; 
+    # the finally block will handle the component shutdown.
     loop = asyncio.get_event_loop()
+    def signal_handler():
+        system._running = False
+        logger.info("Interrupt received, stopping...")
+
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(system.stop()))
+        loop.add_signal_handler(sig, signal_handler)
 
     try:
         await system.start()

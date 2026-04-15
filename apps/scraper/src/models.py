@@ -38,7 +38,7 @@ class ScrapedJob(BaseModel):
     salary_max: Optional[Decimal] = None
     job_type: Optional[str] = None
     remote: bool = False
-    source: str = "hiring_cafe"
+    source: str = Field(..., description="Source identifier (e.g. hiring_cafe, remotive, arbeitnow, greenhouse)")
     source_url: Optional[str] = None  # External apply URL
     skills_required: Optional[list[str]] = Field(default_factory=list)
     experience_required: Optional[str] = None
@@ -50,8 +50,9 @@ class ScrapedJob(BaseModel):
     # Embedding (768-dim for Drizzle schema)
     embedding: Optional[list[float]] = None
 
-    # hiring.cafe specific — used for dedup, not stored in DB
-    requisition_id: str = Field(..., description="hiring.cafe requisition ID for dedup")
+    # Source-specific ID — used for dedup. Not stored in DB.
+    # hiring.cafe uses requisition_id, Greenhouse uses gh-{board}-{id}, etc.
+    requisition_id: str = Field(default="", description="Source-specific ID for dedup")
 
     # Metadata (not stored in DB)
     meta: dict = Field(default_factory=dict, exclude=True)

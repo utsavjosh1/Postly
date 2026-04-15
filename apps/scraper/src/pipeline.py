@@ -3,7 +3,10 @@
 pipeline.py
 Simplified job processing pipeline: Scrape → Dedup → Embed → Store.
 
-No Scrapy adapter — only async pipeline for hiring.cafe JSON API.
+CHANGELOG:
+- Removed self._known_urls global state to prevent infinite RAM leak
+- Implemented scoped database existence checking per batch
+- Optimized embedding calls to only run for genuinely new jobs
 """
 
 import asyncio
@@ -19,7 +22,7 @@ logger = logging.getLogger(__name__)
 class JobProcessingPipeline:
     """
     Processes scraped jobs through:
-    1. Deduplication (by source_url)
+    1. Deduplication (by scoped DB check)
     2. Embedding generation (Voyage AI)
     3. Batch insertion to DB
     """
@@ -36,26 +39,13 @@ class JobProcessingPipeline:
 
         # Metrics
         self.metrics = ScrapingMetrics()
-        self._known_urls: Optional[set] = None
-
-    async def _load_known_urls(self):
-        """Cache existing source_urls for dedup."""
-        if self._known_urls is None:
-            self._known_urls = await self.db.get_existing_source_urls("hiring_cafe")
-            logger.info(f"Loaded {len(self._known_urls)} existing hiring_cafe URLs")
-
-    def _is_duplicate(self, job: ScrapedJob) -> bool:
-        """Check if job is already in DB by source_url."""
-        if not job.source_url:
-            return False
-        return job.source_url in self._known_urls
 
     async def _embed_batch(self, jobs: List[ScrapedJob]) -> List[ScrapedJob]:
         """Generate embeddings for a batch of jobs."""
         if not self.embedder or not jobs:
             return jobs
 
-        # Prepare text representations
+        # Pass ALL fields for comprehensive embeddings
         job_dicts = []
         for job in jobs:
             job_dicts.append({
@@ -64,6 +54,11 @@ class JobProcessingPipeline:
                 "job_description": job.description[:3000],
                 "skills_required": job.skills_required or [],
                 "location": job.location or "",
+                "remote": job.remote,
+                "job_type": job.job_type or "",
+                "salary_min": float(job.salary_min) if job.salary_min else None,
+                "salary_max": float(job.salary_max) if job.salary_max else None,
+                "experience_required": job.experience_required or "",
             })
 
         try:
@@ -90,22 +85,21 @@ class JobProcessingPipeline:
         """
         Run the full pipeline on a list of scraped jobs.
 
-        Returns metrics for this batch.
+        NOTE on deduplication: We previously held `_known_urls` in memory, 
+        which caused unbounded RAM growth over weeks. The new approach queries 
+        `source_url = ANY($1)` scoping existence checks strictly to the current batch.
         """
         start = time.time()
         self.metrics = ScrapingMetrics()
         self.metrics.jobs_found = len(jobs)
 
         # Step 1: Dedup
-        await self._load_known_urls()
-        unique_jobs = []
-        for job in jobs:
-            if self._is_duplicate(job):
-                self.metrics.duplicates_skipped += 1
-            else:
-                unique_jobs.append(job)
-                if job.source_url:
-                    self._known_urls.add(job.source_url)
+        urls = [j.source_url for j in jobs if j.source_url]
+        existing_urls = await self.db.get_existing_urls(urls)
+        
+        unique_jobs = [j for j in jobs if j.source_url not in existing_urls]
+        
+        self.metrics.duplicates_skipped += len(jobs) - len(unique_jobs)
 
         logger.info({
             "event": "dedup_complete",
@@ -119,6 +113,7 @@ class JobProcessingPipeline:
             return self.metrics
 
         # Step 2: Embed in batches
+        # We only embed `unique_jobs` to avoid re-embedding jobs that already exist in DB
         for i in range(0, len(unique_jobs), self.batch_size):
             batch = unique_jobs[i : i + self.batch_size]
             await self._embed_batch(batch)
