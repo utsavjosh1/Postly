@@ -21,17 +21,21 @@ export function errorHandler(
 
   // Ensure CORS headers are present even in error responses, but ONLY for trusted origins
   const origin = _req.headers.origin;
-  if (origin) {
+  if (typeof origin === "string" && origin.length > 0) {
     const allowedOrigins = WEB_URL
       ? WEB_URL.split(",")
           .map((o) => o.trim().replace(/\/$/, ""))
           .filter(Boolean)
       : [];
 
-    const normalizedOrigin = origin.replace(/\/$/, "");
+    const normalizedOrigin = origin.trim().replace(/\/$/, "");
+    const matchedOrigin =
+      normalizedOrigin !== "null"
+        ? allowedOrigins.find((o) => o === normalizedOrigin)
+        : undefined;
 
-    if (allowedOrigins.includes(normalizedOrigin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin as string);
+    if (matchedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", matchedOrigin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
     }
   }
