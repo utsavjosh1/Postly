@@ -19,6 +19,8 @@ import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 import { redis as healthRedis } from "./lib/redis.js";
 import path from "path";
@@ -85,8 +87,21 @@ const apiRateLimiter = rateLimit({
   },
 });
 
-// Health check — registered BEFORE rate limiter so it's never throttled
-app.get("/health", async (_req, res) => {
+const healthRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { message: "Health check rate limit exceeded." },
+  },
+});
+
+
+// Health check — rate limited to prevent DB/Redis connection exhaustion
+app.get("/health", healthRateLimiter, async (_req, res) => {
+
   const checks: Record<string, string> = {};
 
   // Check Postgres
