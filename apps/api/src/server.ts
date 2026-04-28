@@ -21,7 +21,6 @@ import { queueService } from "./services/queue.service.js";
 const app = express();
 app.set("trust proxy", 1);
 
-
 import { redis as healthRedis } from "./lib/redis.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -98,10 +97,8 @@ const healthRateLimiter = rateLimit({
   },
 });
 
-
 // Health check — rate limited to prevent DB/Redis connection exhaustion
 app.get("/health", healthRateLimiter, async (_req, res) => {
-
   const checks: Record<string, string> = {};
 
   // Check Postgres
