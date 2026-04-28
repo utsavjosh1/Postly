@@ -9,3 +9,4 @@ export * from "./seeker_profiles";
 export * from "./subscriptions";
 export * from "./payments";
 export * from "./notifications";
+export * from "./bots";

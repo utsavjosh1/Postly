@@ -21,8 +21,8 @@ export function TransmissionRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await register({ full_name: name, email, password, role: userType });
-      navigate("/");
+      await register({ full_name: name, email, password, roles: [userType] });
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch {
       // Error surfaced via store
     }

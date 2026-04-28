@@ -58,7 +58,9 @@ export function TransmissionSidebar({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations
   const { data: fetchedConversations } = useQuery({
@@ -71,6 +73,24 @@ export function TransmissionSidebar({
       setConversations(fetchedConversations);
     }
   }, [fetchedConversations, setConversations]);
+
+  // Click outside profile menu handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+    if (isProfileOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProfileOpen]);
 
   const handleNewChat = async () => {
     if (isCreating) return;
@@ -324,83 +344,166 @@ export function TransmissionSidebar({
 
         {/* User profile */}
         <div
+          ref={profileRef}
           style={{
             padding: "12px",
             borderTop: "2px solid var(--tx-border)",
             flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            position: "relative",
           }}
         >
+          {/* Dropdown Menu */}
+          {isProfileOpen && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "calc(100% + 8px)",
+                left: "12px",
+                right: "12px",
+                background: "var(--tx-surface)",
+                border: "2px solid var(--tx-border)",
+                boxShadow: "4px 4px 0px var(--tx-border)",
+                zIndex: 100,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {[
+                // { label: "Pricing", path: "/pricing" },
+                { label: "Account Settings", path: "/settings" },
+                { label: "Integration", path: "/integrations" },
+                { label: "Logout", action: logout, danger: true },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.path) navigate(item.path);
+                    if (item.action) item.action();
+                    setIsProfileOpen(false);
+                  }}
+                  style={{
+                    padding: "12px 16px",
+                    fontFamily: "var(--tx-font-mono)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    textAlign: "left",
+                    color: item.danger ? "var(--tx-seeker)" : "var(--tx-ink)",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--tx-border)",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    transition: "all 150ms var(--tx-ease-sharp)",
+                  }}
+                  className="tx-menu-item"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--tx-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            role="button"
+            tabIndex={0}
             style={{
+              padding: "8px",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
-              minWidth: 0,
+              justifyContent: "space-between",
+              cursor: "pointer",
+              background: isProfileOpen ? "var(--tx-bg)" : "transparent",
+              transition: "background-color 150ms var(--tx-ease-sharp)",
+            }}
+            onMouseEnter={(e) => {
+              if (!isProfileOpen)
+                e.currentTarget.style.backgroundColor = "var(--tx-bg)";
+            }}
+            onMouseLeave={(e) => {
+              if (!isProfileOpen)
+                e.currentTarget.style.backgroundColor = "transparent";
             }}
           >
             <div
               style={{
-                width: "28px",
-                height: "28px",
-                border: "2px solid var(--tx-border)",
-                borderRadius: "var(--tx-radius)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--tx-font-mono)",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "var(--tx-ink)",
-                flexShrink: 0,
+                gap: "10px",
+                minWidth: 0,
               }}
             >
-              {user?.full_name?.[0]?.toUpperCase() || "U"}
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  border: "2px solid var(--tx-border)",
+                  borderRadius: "var(--tx-radius)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "var(--tx-font-mono)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "var(--tx-ink)",
+                  background: "var(--tx-surface)",
+                  flexShrink: 0,
+                }}
+              >
+                {user?.full_name?.[0]?.toUpperCase() || "U"}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--tx-font-mono)",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: "var(--tx-ink)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user?.full_name || "User"}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--tx-font-mono)",
+                    fontSize: "9px",
+                    color: "var(--tx-ink-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {role}
+                </span>
+              </div>
             </div>
-            <span
+
+            <div
               style={{
-                fontFamily: "var(--tx-font-mono)",
-                fontSize: "11px",
-                color: "var(--tx-ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                fontSize: "10px",
+                color: "var(--tx-ink-muted)",
+                transform: isProfileOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 200ms var(--tx-ease-sharp)",
               }}
             >
-              {user?.full_name || "User"}
-            </span>
+              ▲
+            </div>
           </div>
-
-          <button
-            onClick={() => logout()}
-            style={{
-              fontFamily: "var(--tx-font-mono)",
-              fontSize: "10px",
-              fontWeight: 600,
-              color: "var(--tx-ink-muted)",
-              background: "transparent",
-              border: "1px solid var(--tx-ink-muted)",
-              borderRadius: "var(--tx-radius)",
-              padding: "4px 8px",
-              cursor: "pointer",
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-              transition:
-                "color 150ms var(--tx-ease-sharp), border-color 150ms var(--tx-ease-sharp)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--tx-seeker)";
-              e.currentTarget.style.borderColor = "var(--tx-seeker)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--tx-ink-muted)";
-              e.currentTarget.style.borderColor = "var(--tx-ink-muted)";
-            }}
-          >
-            EXIT
-          </button>
         </div>
       </aside>
 

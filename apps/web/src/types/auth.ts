@@ -29,3 +29,12 @@ export interface ResetPasswordRequest {
   password: string;
   confirmPassword?: string;
 }
+
+export interface VerifyOtpRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}

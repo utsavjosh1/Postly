@@ -3,14 +3,20 @@
 database.py
 Database layer writing to the Drizzle-managed `jobs` table.
 
-Schema is managed by Drizzle migrations — this module does NOT create tables.
-It only performs INSERT/UPDATE/SELECT/DELETE operations on the existing schema.
+CHANGELOG:
+- Added format_vector from utils to safely format pgvector strings
+- Added index creation for source_url on startup
+- Replaced str() embedding conversions with format_vector()
+- Added get_existing_urls() for fast, targeted duplicate filtering
+- Fixed remove_duplicates() to delete the older record using created_at 
 """
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Set
 import asyncpg
 from datetime import datetime, timezone
+
+from utils import format_vector
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +48,7 @@ class Database:
             )
             logger.info("Database connection pool created")
 
-            # Verify the jobs table exists
+            # Verify the jobs table exists and set up index
             async with self.pool.acquire() as conn:
                 exists = await conn.fetchval("""
                     SELECT EXISTS(
@@ -54,7 +60,13 @@ class Database:
                     raise RuntimeError(
                         "Table 'jobs' does not exist — run Drizzle migrations first"
                     )
-                logger.info("Verified jobs table exists")
+                
+                # Add index on source_url for O(1) existence checks during batch dedup
+                await conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_jobs_source_url ON jobs(source_url);
+                """)
+                
+                logger.info("Verified jobs table exists and source_url index is ready")
 
         except Exception as e:
             logger.error(f"Failed to connect to database: {e}")
@@ -107,7 +119,7 @@ class Database:
                     job_data.get("posted_at"),
                     job_data.get("expires_at"),
                     job_data.get("is_active", True),
-                    str(job_data.get("embedding")) if job_data.get("embedding") else None,
+                    format_vector(job_data.get("embedding")),
                 )
                 return True
         except asyncpg.exceptions.UniqueViolationError:
@@ -158,7 +170,7 @@ class Database:
                             job.get("posted_at"),
                             job.get("expires_at"),
                             job.get("is_active", True),
-                            str(job.get("embedding")) if job.get("embedding") else None,
+                            format_vector(job.get("embedding")),
                         )
                         inserted += 1
                     except Exception as e:
@@ -188,7 +200,7 @@ class Database:
                 UPDATE jobs
                 SET embedding = $1::vector, updated_at = NOW()
                 WHERE id = $2
-            """, embedding, job_id)
+            """, format_vector(embedding), job_id)
 
     async def update_embeddings_batch(self, updates: List[tuple]):
         """Batch update embeddings. Each tuple is (job_id, embedding_list)."""
@@ -200,12 +212,7 @@ class Database:
             async with conn.transaction():
                 for job_id, emb in updates:
                     try:
-                        # Convert Python list to pgvector string format: '[0.01,0.02,...]'
-                        if isinstance(emb, list):
-                            vec_str = '[' + ','.join(str(v) for v in emb) + ']'
-                        else:
-                            vec_str = str(emb)
-
+                        vec_str = format_vector(emb)
                         await conn.execute("""
                             UPDATE jobs
                             SET embedding = $2::vector, updated_at = NOW()
@@ -294,6 +301,45 @@ class Database:
             """, source)
             return {row["source_url"] for row in rows if row["source_url"]}
 
+    async def get_existing_urls(self, urls: List[str]) -> Set[str]:
+        """Check which of the provided URLs already exist in the database."""
+        if not urls:
+            return set()
+            
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT source_url FROM jobs WHERE source_url = ANY($1)
+            """, urls)
+            return {row["source_url"] for row in rows if row["source_url"]}
+
+    async def get_all_source_ids(self) -> Set[str]:
+        """Fetch all known source_urls for skipping already-scraped jobs across all sources."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT source_url, source FROM jobs WHERE source_url IS NOT NULL"
+            )
+            ids = set()
+            for row in rows:
+                url = row["source_url"]
+                source = row["source"]
+                # Add the full URL for general dedup
+                ids.add(url)
+                # For hiring.cafe, also extract the requisition_id suffix
+                if source == "hiring_cafe" and "/viewjob/" in url:
+                    ids.add(url.split("/viewjob/")[-1].split("/")[0])
+                # For greenhouse, add the gh-{board}-{id} key
+                elif source == "greenhouse":
+                    # URL format: https://boards.greenhouse.io/{board}/jobs/{id}
+                    parts = url.rstrip("/").split("/")
+                    if len(parts) >= 2:
+                        try:
+                            gh_id = parts[-1]
+                            board = parts[-3] if len(parts) >= 4 else ""
+                            ids.add(f"gh-{board}-{gh_id}")
+                        except (IndexError, ValueError):
+                            pass
+        return ids
+
     # ─── CLEANUP ──────────────────────────────────────────────────
 
     async def cleanup_old_jobs(self, days: int = 30) -> int:
@@ -317,26 +363,28 @@ class Database:
             return count
 
     async def deactivate_stale_jobs(self, days: int = 14) -> int:
-        """Mark jobs as inactive if not refreshed recently."""
+        """Mark jobs as inactive if not refreshed recently (across all sources)."""
         async with self.pool.acquire() as conn:
             result = await conn.execute("""
                 UPDATE jobs
                 SET is_active = FALSE, updated_at = NOW()
                 WHERE updated_at < NOW() - MAKE_INTERVAL(days => $1)
                     AND is_active = TRUE
-                    AND source = 'hiring_cafe'
             """, days)
             count = int(result.split()[-1])
             logger.info(f"Deactivated {count} stale jobs (> {days} days)")
             return count
 
     async def remove_duplicates(self) -> int:
-        """Remove duplicate jobs based on identical description."""
+        """Remove duplicate jobs based on identical source_url."""
         async with self.pool.acquire() as conn:
             result = await conn.execute("""
+                -- Explaining decision: using created_at to preserve the new scrape data. 
+                -- We delete the OLDER record (smaller created_at) when duplicate URLs exist
+                -- because id is a UUID type which cannot be ordered reliably by comparison operator.
                 DELETE FROM jobs a USING jobs b
-                WHERE a.id > b.id
-                AND a.description = b.description
+                WHERE a.created_at < b.created_at
+                AND a.source_url = b.source_url
                 AND a.source = b.source
             """)
             count = int(result.split()[-1])
@@ -358,9 +406,11 @@ class Database:
             stats["remote_jobs"] = await conn.fetchval(
                 "SELECT COUNT(*) FROM jobs WHERE remote = TRUE"
             )
-            stats["hiring_cafe_jobs"] = await conn.fetchval(
-                "SELECT COUNT(*) FROM jobs WHERE source = 'hiring_cafe'"
+            # Per-source breakdown
+            source_rows = await conn.fetch(
+                "SELECT source, COUNT(*) as cnt FROM jobs GROUP BY source"
             )
+            stats["by_source"] = {row["source"]: row["cnt"] for row in source_rows}
             return stats
 
     async def close(self):

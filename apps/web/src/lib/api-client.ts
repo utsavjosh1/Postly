@@ -24,9 +24,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired, try to refresh
       localStorage.removeItem("access_token");
-      // window.location.href = "/login"; // Temporarily disabled for debugging
+      window.location.href = "/login";
       console.warn("401 Unauthorized - Token removed");
     }
     return Promise.reject(error);

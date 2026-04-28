@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { tokenBucketRateLimiter } from "./middleware/token-bucket-rate-limit.js";
+import { pool } from "@postly/database";
+import { logger } from "@postly/logger";
 import { API_PORT, WEB_URL, NODE_ENV } from "./config/secrets.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
@@ -10,12 +13,20 @@ import userRoutes from "./routes/user.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
-import discordRoutes from "./routes/discord.routes.js";
+import botRoutes from "./routes/bot.routes.js";
 import dodoRoutes from "./routes/dodo.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
 
 const app = express();
+app.set("trust proxy", 1);
+
+import { redis as healthRedis } from "./lib/redis.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Security middleware
 app.use(
@@ -58,48 +69,102 @@ app.use(
   }),
 );
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+const aiRateLimiter = tokenBucketRateLimiter({
+  maxTokens: 50,
+  refillRateSec: 5, // 5 tokens per second refill
+  keyPrefix: "rl:ai",
+});
+
+const apiRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    error: { message: "Too many requests, please try again later" },
+    error: { message: "Too many requests, please try again later." },
   },
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50,
+const healthRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    error: {
-      message: "Too many authentication attempts, please try again later",
-    },
+    error: { message: "Health check rate limit exceeded." },
   },
 });
 
-app.use(globalLimiter);
+// Health check — rate limited to prevent DB/Redis connection exhaustion
+app.get("/health", healthRateLimiter, async (_req, res) => {
+  const checks: Record<string, string> = {};
+
+  // Check Postgres
+  try {
+    await pool.query("SELECT 1");
+    checks.db = "ok";
+  } catch {
+    checks.db = "failed";
+  }
+
+  // Check Redis
+  try {
+    await healthRedis.ping();
+    checks.redis = "ok";
+  } catch {
+    checks.redis = "failed";
+  }
+
+  const allHealthy = checks.db === "ok" && checks.redis === "ok";
+  res.status(allHealthy ? 200 : 503).json({
+    status: allHealthy ? "ok" : "degraded",
+    checks,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Apply global API rate limit (Standard Window)
+app.use(apiRateLimiter);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+// Request logging middleware (structured for production log aggregation)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    // Only log in production or for slow requests
+    if (NODE_ENV === "production" || duration > 1000) {
+      logger.info("request", {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration_ms: duration,
+        user_id:
+          (req as unknown as Request & { user?: { id: string } }).user?.id ||
+          null,
+      });
+    }
+  });
+  next();
 });
 
 // API routes
-app.use("/api/v1/auth", authLimiter, authRoutes);
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
-app.use("/api/v1/resumes", resumeRoutes);
-app.use("/api/v1/chat", chatRoutes);
-app.use("/api/v1/discord", discordRoutes);
+app.use("/api/v1/resumes", aiRateLimiter, resumeRoutes);
+app.use("/api/v1/chat", aiRateLimiter, chatRoutes);
+app.use("/api/v1/bots", botRoutes);
 app.use("/api/v1/payments", dodoRoutes);
 app.use("/api/v1/applications", applicationRoutes);
+
+// Static files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Error handling
 app.use(notFoundHandler);
@@ -110,37 +175,23 @@ app.listen(API_PORT, "0.0.0.0", async () => {
   console.log(`🚀 API server running on http://0.0.0.0:${API_PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
 
-  // Initialize Discord Job Queue
+  // Initialize Bot Job Queue
   try {
     await queueService.initDailyCron();
-    // Schedule daily dispatch at 9:00 AM UTC
-    const now = new Date();
-    const target = new Date(now);
-    target.setUTCHours(9, 0, 0, 0);
-    if (target <= now) target.setDate(target.getDate() + 1);
-    const msUntilFirst = target.getTime() - now.getTime();
-    const DAY_MS = 24 * 60 * 60 * 1000;
-
-    setTimeout(() => {
-      queueService.dispatchAll();
-      setInterval(() => queueService.dispatchAll(), DAY_MS);
-    }, msUntilFirst);
-
-    console.log(`📅 Discord daily job dispatch cron initialized (9:00 AM)`);
   } catch (err) {
-    console.error("Failed to initialize Discord Queue:", err);
+    console.error("Failed to initialize Bot Queue:", err);
   }
 });
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully...");
+// Graceful shutdown — close all connections before exiting
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received, shutting down gracefully...`);
+  healthRedis.disconnect();
+  await pool.end();
   process.exit(0);
-});
+};
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received, shutting down gracefully...");
-  process.exit(0);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 export default app;

@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { db } from "../index";
 import { employer_profiles } from "../schema";
 import type {
@@ -20,7 +20,12 @@ export const employerProfileQueries = {
     const [result] = await db
       .select()
       .from(employer_profiles)
-      .where(eq(employer_profiles.user_id, userId));
+      .where(
+        and(
+          eq(employer_profiles.user_id, userId),
+          isNull(employer_profiles.deleted_at),
+        ),
+      );
 
     return result ?? null;
   },
@@ -29,7 +34,9 @@ export const employerProfileQueries = {
     const [result] = await db
       .select()
       .from(employer_profiles)
-      .where(eq(employer_profiles.id, id));
+      .where(
+        and(eq(employer_profiles.id, id), isNull(employer_profiles.deleted_at)),
+      );
 
     return result ?? null;
   },

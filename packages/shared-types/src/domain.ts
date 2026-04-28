@@ -24,13 +24,6 @@ export interface Application {
   status: ApplicationStatus;
   status_history: StatusHistoryEntry[];
   cover_letter?: string | null;
-  notes?: string | null;
-  external_url?: string | null;
-  contact_info?: unknown;
-  next_interview_at?: Date | null;
-  offer_details?: unknown;
-  match_score?: string | null;
-  ai_explanation?: string | null;
   applied_at?: Date | null;
   created_at: Date;
   updated_at: Date;
@@ -102,7 +95,7 @@ export interface SeekerProfile extends SeekerProfileData {
 
 // ─── Subscription Types ───────────────────────────────────────────────────────
 
-export type SubscriptionPlan = "free" | "seeker" | "employer" | "enterprise";
+export type SubscriptionPlan = "seeker" | "employer" | "discord_owner";
 export type SubscriptionStatus =
   | "active"
   | "cancelled"
@@ -152,6 +145,7 @@ export interface CreatePaymentInput {
   currency?: string;
   paid_at?: Date;
   raw_payload?: unknown;
+  idempotency_key?: string;
 }
 
 export interface Payment extends CreatePaymentInput {
@@ -171,40 +165,20 @@ export type NotificationStatus =
   | "bounced"
   | "opened";
 
-export interface CreateNotificationTemplateInput {
-  slug: string;
-  name: string;
-  subject: string;
-  html_body: string;
-  text_body?: string;
-  metadata?: unknown;
-}
-
 export interface CreateNotificationInput {
   user_id: string;
-  template_id?: string;
+  type?: string;
   to_email: string;
   subject: string;
-  template_variables?: unknown;
-  job_ids?: string[];
+  content: string;
   scheduled_at?: Date;
 }
 
-export interface NotificationTemplate extends CreateNotificationTemplateInput {
-  id: string;
-  is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface EmailNotification extends CreateNotificationInput {
+export interface Notification extends CreateNotificationInput {
   id: string;
   status: NotificationStatus;
-  provider_message_id?: string | null;
   error_message?: string | null;
-  retry_count: number;
   sent_at?: Date | null;
-  opened_at?: Date | null;
   created_at: Date;
 }
 
@@ -259,3 +233,13 @@ export interface VectorSearchResult {
   similarity: number;
   [key: string]: unknown;
 }
+
+export interface JobSearchFilters {
+  location?: string;
+  job_type?: string;
+  remote?: boolean;
+  salary_min?: number;
+  skills?: string[];
+}
+
+export type BotPlatform = "discord" | "reddit" | "twitter";

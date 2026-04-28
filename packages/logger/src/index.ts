@@ -2,42 +2,83 @@ import winston from "winston";
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
-// Custom log format
-const logFormat = printf(({ level, message, timestamp, stack }) => {
+// Custom log format for development
+const devFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
+});
+
+interface LogInfo {
+  level: string;
+  message: string;
+  timestamp?: string;
+  stack?: string;
+  req?: {
+    method?: string;
+    url?: string;
+    headers?: {
+      authorization?: string;
+    };
+  };
+  body?: {
+    password?: string;
+    token?: string;
+  };
+  [key: string]: unknown;
+}
+
+// Redact sensitive fields from logs
+const redactSensitive = winston.format((info) => {
+  const data = info as unknown as LogInfo;
+  if (data.req?.headers?.authorization) {
+    data.req.headers.authorization = "[REDACTED]";
+  }
+  if (data.body?.password) {
+    data.body.password = "[REDACTED]";
+  }
+  if (data.body?.token) {
+    data.body.token = "[REDACTED]";
+  }
+  return info;
 });
 
 // Create logger instance
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
+  defaultMeta: {
+    service: process.env.SERVICE_NAME || "unknown-service",
+    env: process.env.NODE_ENV || "development",
+  },
   format: combine(
     errors({ stack: true }),
+    redactSensitive(),
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-    logFormat,
   ),
-  transports: [
-    // Console transport with colors
+  transports: [],
+});
+
+// Production: structured JSON to stdout (for Loki/Promtail to pick up)
+if (process.env.NODE_ENV === "production") {
+  logger.add(
     new winston.transports.Console({
-      format: combine(colorize(), logFormat),
+      format: combine(timestamp(), winston.format.json()),
     }),
-    // File transport for errors
+  );
+} else {
+  // Development: colorized human-readable output + file logs
+  logger.add(
+    new winston.transports.Console({
+      format: combine(colorize(), devFormat),
+    }),
+  );
+  logger.add(
     new winston.transports.File({
       filename: "logs/error.log",
       level: "error",
     }),
-    // File transport for all logs
+  );
+  logger.add(
     new winston.transports.File({
       filename: "logs/combined.log",
-    }),
-  ],
-});
-
-// Production environment: disable console colors, enable JSON format
-if (process.env.NODE_ENV === "production") {
-  logger.clear();
-  logger.add(
-    new winston.transports.Console({
-      format: combine(timestamp(), winston.format.json()),
     }),
   );
 }

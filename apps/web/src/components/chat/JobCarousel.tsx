@@ -15,13 +15,44 @@ export function JobCarousel({
   onApply,
 }: JobCarouselProps) {
   return (
-    <div className="w-full space-y-4">
-      {message && <p className="text-zinc-100">{message}</p>}
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+      }}
+    >
+      {message && (
+        <p
+          style={{
+            fontFamily: "var(--tx-font-mono)",
+            fontSize: "13px",
+            color: "var(--tx-ink)",
+          }}
+        >
+          {message}
+        </p>
+      )}
 
       {/* Scroll Container */}
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent snap-x">
+      <div
+        className="tx-scrollbar"
+        style={{
+          display: "flex",
+          gap: "16px",
+          overflowX: "auto",
+          paddingBottom: "16px",
+          scrollSnapType: "x mandatory",
+          margin: "0 -20px",
+          padding: "0 20px 16px 20px",
+        }}
+      >
         {data.map((job) => (
-          <div key={job.id} className="snap-center">
+          <div
+            key={job.id}
+            style={{ scrollSnapAlign: "center", flexShrink: 0 }}
+          >
             <JobCard job={job} onApply={onApply} variant="chat" />
           </div>
         ))}
@@ -29,14 +60,39 @@ export function JobCarousel({
 
       {/* Actions */}
       {suggested_actions && suggested_actions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
           {suggested_actions.map((action, i) => (
             <button
               key={i}
-              className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-sm text-zinc-300 transition-colors flex items-center gap-1.5 group"
+              style={{
+                fontFamily: "var(--tx-font-mono)",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "var(--tx-ink)",
+                background: "transparent",
+                border: "2px solid var(--tx-border)",
+                borderRadius: "var(--tx-radius)",
+                padding: "6px 12px",
+                cursor: "pointer",
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition:
+                  "background-color 150ms var(--tx-ease-sharp), color 150ms var(--tx-ease-sharp)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--tx-ink)";
+                e.currentTarget.style.color = "var(--tx-surface)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "var(--tx-ink)";
+              }}
             >
               {action}
-              <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+              <ChevronRight className="w-3 h-3" />
             </button>
           ))}
         </div>

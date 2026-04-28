@@ -3,11 +3,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PageLoader } from "./components/ui/PageLoader";
 import { ToastContainer } from "./components/ui/Toast";
+import "./styles/transmission.css";
 
-// ─── Lazy-loaded Transmission pages ─────────────────────────────────
-const TransmissionLanding = lazy(() =>
-  import("@pages/TransmissionLanding").then((m) => ({
-    default: m.TransmissionLanding,
+const TransmissionHome = lazy(() =>
+  import("@pages/TransmissionHome").then((m) => ({
+    default: m.TransmissionHome,
+  })),
+);
+const TransmissionRoleSelector = lazy(() =>
+  import("@pages/TransmissionRoleSelector").then((m) => ({
+    default: m.TransmissionRoleSelector,
   })),
 );
 const TransmissionLogin = lazy(() =>
@@ -20,6 +25,12 @@ const TransmissionRegister = lazy(() =>
     default: m.TransmissionRegister,
   })),
 );
+const VerifyOtpPage = lazy(() =>
+  import("./pages/VerifyOtpPage").then((m) => ({
+    default: m.VerifyOtpPage,
+  })),
+);
+
 const TransmissionPricing = lazy(() =>
   import("@pages/TransmissionPricing").then((m) => ({
     default: m.TransmissionPricing,
@@ -35,13 +46,17 @@ const TransmissionIntegrations = lazy(() =>
     default: m.TransmissionIntegrations,
   })),
 );
+const TransmissionSettings = lazy(() =>
+  import("@pages/TransmissionSettings").then((m) => ({
+    default: m.TransmissionSettings,
+  })),
+);
 const TransmissionNotFound = lazy(() =>
   import("@pages/TransmissionNotFound").then((m) => ({
     default: m.TransmissionNotFound,
   })),
 );
 
-// ─── Auth utilities ─────────────────────────────────────────────────
 const ForgotPasswordPage = lazy(() =>
   import("./pages/ForgotPasswordPage").then((m) => ({
     default: m.ForgotPasswordPage,
@@ -59,9 +74,12 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* ─── Public ──────────────────────────────────── */}
-          <Route path="/" element={<TransmissionLanding />} />
+          <Route path="/" element={<TransmissionHome />} />
+          <Route path="join" element={<TransmissionRoleSelector />} />
           <Route path="login" element={<TransmissionLogin />} />
           <Route path="register" element={<TransmissionRegister />} />
+          <Route path="verify-otp" element={<VerifyOtpPage />} />
+
           <Route path="pricing" element={<TransmissionPricing />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="login/callback" element={<AuthCallbackPage />} />
@@ -88,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TransmissionIntegrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute>
+                <TransmissionSettings />
               </ProtectedRoute>
             }
           />

@@ -11,6 +11,8 @@ router.post("/login", authController.login);
 router.post("/refresh", authController.refresh);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
+router.post("/verify-otp", authController.verifyOtp);
+router.post("/resend-otp", authController.resendOtp);
 
 // Protected
 router.get("/me", authenticateToken, authController.me);

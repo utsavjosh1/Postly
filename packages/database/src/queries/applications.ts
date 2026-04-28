@@ -1,10 +1,7 @@
 import { eq, desc, and, ilike } from "drizzle-orm";
 import { db } from "../index";
-import { applications, jobs } from "../schema";
-import type {
-  ApplicationStatus,
-  StatusHistoryEntry,
-} from "@postly/shared-types";
+import { applications, jobs, application_status_history } from "../schema";
+import type { ApplicationStatus } from "@postly/shared-types";
 
 export const applicationQueries = {
   async create(
@@ -13,21 +10,26 @@ export const applicationQueries = {
     resumeId?: string,
     coverLetter?: string,
   ) {
-    const initialHistory: StatusHistoryEntry[] = [
-      { status: "applied", timestamp: new Date().toISOString() },
-    ];
+    const [result] = await db.transaction(async (tx) => {
+      const [app] = await tx
+        .insert(applications)
+        .values({
+          seeker_id: seekerId,
+          job_id: jobId,
+          resume_id: resumeId,
+          cover_letter: coverLetter,
+          status: "applied",
+        })
+        .returning();
 
-    const [result] = await db
-      .insert(applications)
-      .values({
-        seeker_id: seekerId,
-        job_id: jobId,
-        resume_id: resumeId,
-        cover_letter: coverLetter,
-        status: "applied",
-        status_history: initialHistory,
-      })
-      .returning();
+      await tx.insert(application_status_history).values({
+        application_id: app.id,
+        to_status: "applied",
+        changed_by: seekerId,
+      });
+
+      return [app];
+    });
 
     return result;
   },
@@ -55,7 +57,7 @@ export const applicationQueries = {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.job_id, jobs.id))
-      .where(eq(applications.seeker_id, seekerId))
+      .where(and(eq(applications.seeker_id, seekerId)))
       .orderBy(desc(applications.applied_at))
       .limit(limit)
       .offset(offset);
@@ -95,60 +97,48 @@ export const applicationQueries = {
       .offset(offset);
   },
 
-  async updateStatus(id: string, status: ApplicationStatus, note?: string) {
-    const [existing] = await db
-      .select({ status_history: applications.status_history })
-      .from(applications)
-      .where(eq(applications.id, id));
-
-    if (!existing) return null;
-
-    const history = (
-      Array.isArray(existing.status_history) ? existing.status_history : []
-    ) as StatusHistoryEntry[];
-
-    const newEntry: StatusHistoryEntry = {
-      status,
-      timestamp: new Date().toISOString(),
-      ...(note && { note }),
-    };
-
-    const [result] = await db
-      .update(applications)
-      .set({
-        status,
-        status_history: [...history, newEntry],
-        updated_at: new Date(),
-      })
-      .where(eq(applications.id, id))
-      .returning();
-
-    return result ?? null;
-  },
-
-  async updateNotes(id: string, seekerId: string, notes: string) {
-    const [result] = await db
-      .update(applications)
-      .set({ notes, updated_at: new Date() })
-      .where(and(eq(applications.id, id), eq(applications.seeker_id, seekerId)))
-      .returning();
-
-    return result ?? null;
-  },
-
-  async updateMatchScore(
+  async updateStatus(
     id: string,
-    matchScore: number,
-    aiExplanation?: string,
+    status: ApplicationStatus,
+    note?: string,
+    actorId?: string,
   ) {
-    await db
+    const [result] = await db.transaction(async (tx) => {
+      const [app] = await tx
+        .update(applications)
+        .set({
+          status,
+          updated_at: new Date(),
+        })
+        .where(eq(applications.id, id))
+        .returning();
+
+      if (app) {
+        await tx.insert(application_status_history).values({
+          application_id: id,
+          to_status: status,
+          note,
+          changed_by: actorId,
+        });
+      }
+
+      return [app];
+    });
+
+    return result ?? null;
+  },
+
+  async updateNotes(id: string, actorId: string, notes: string) {
+    const [result] = await db
       .update(applications)
       .set({
-        match_score: matchScore.toString(),
-        ai_explanation: aiExplanation,
+        notes,
         updated_at: new Date(),
       })
-      .where(eq(applications.id, id));
+      .where(and(eq(applications.id, id), eq(applications.seeker_id, actorId)))
+      .returning();
+
+    return result ?? null;
   },
 
   async delete(id: string, seekerId: string) {
