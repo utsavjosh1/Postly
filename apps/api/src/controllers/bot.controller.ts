@@ -75,7 +75,14 @@ export class BotController {
   ): Promise<void> => {
     try {
       const user = req.user as JwtPayload;
-      const { platform, target_id, target_name, webhook_url, credentials, filters } = req.body;
+      const {
+        platform,
+        target_id,
+        target_name,
+        webhook_url,
+        credentials,
+        filters,
+      } = req.body;
 
       const result = await botQueries.upsertConfig({
         user_id: user.id,
@@ -113,7 +120,12 @@ export class BotController {
       const [existing] = await db
         .select()
         .from(bot_configs)
-        .where(and(eq(bot_configs.id, id as string), eq(bot_configs.user_id, user.id)))
+        .where(
+          and(
+            eq(bot_configs.id, id as string),
+            eq(bot_configs.user_id, user.id),
+          ),
+        )
         .limit(1);
 
       if (!existing) {
@@ -155,7 +167,12 @@ export class BotController {
       const [config] = await db
         .select()
         .from(bot_configs)
-        .where(and(eq(bot_configs.id, id as string), eq(bot_configs.user_id, user.id)))
+        .where(
+          and(
+            eq(bot_configs.id, id as string),
+            eq(bot_configs.user_id, user.id),
+          ),
+        )
         .limit(1);
 
       if (!config) {

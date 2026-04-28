@@ -57,11 +57,7 @@ export const applicationQueries = {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.job_id, jobs.id))
-      .where(
-        and(
-          eq(applications.seeker_id, seekerId),
-        ),
-      )
+      .where(and(eq(applications.seeker_id, seekerId)))
       .orderBy(desc(applications.applied_at))
       .limit(limit)
       .offset(offset);
@@ -131,10 +127,6 @@ export const applicationQueries = {
 
     return result ?? null;
   },
-
-
-
-
 
   async delete(id: string, seekerId: string) {
     const [result] = await db

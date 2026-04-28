@@ -8,7 +8,11 @@ const botController = new BotController();
 // Some bot platforms might use callbacks (OAuth)
 // We keep them separate and authenticate if possible, but usually these are handled via state/session.
 // Here we assume authenticateToken works for our flow.
-router.get("/discord/callback", authenticateToken, botController.handleDiscordCallback);
+router.get(
+  "/discord/callback",
+  authenticateToken,
+  botController.handleDiscordCallback,
+);
 
 // Protected management routes
 router.use(authenticateToken);

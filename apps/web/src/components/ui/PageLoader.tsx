@@ -108,7 +108,12 @@ export const PageLoader: React.FC = () => {
             strokeLinecap="round"
           />
           {/* Legs */}
-          <g style={{ animation: "leg-left 0.4s infinite", transformOrigin: "45px 70px" }}>
+          <g
+            style={{
+              animation: "leg-left 0.4s infinite",
+              transformOrigin: "45px 70px",
+            }}
+          >
             <path
               d="M45 70 L35 90 L50 90"
               fill="none"
@@ -118,7 +123,12 @@ export const PageLoader: React.FC = () => {
               strokeLinejoin="round"
             />
           </g>
-          <g style={{ animation: "leg-right 0.4s infinite", transformOrigin: "55px 70px" }}>
+          <g
+            style={{
+              animation: "leg-right 0.4s infinite",
+              transformOrigin: "55px 70px",
+            }}
+          >
             <path
               d="M55 70 L65 90 L80 90"
               fill="none"

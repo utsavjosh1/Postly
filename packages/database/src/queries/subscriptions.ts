@@ -50,7 +50,6 @@ export const subscriptionQueries = {
     return result;
   },
 
-
   async updateStatus(
     userId: string,
     status: SubscriptionStatus,

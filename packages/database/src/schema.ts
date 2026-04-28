@@ -109,7 +109,9 @@ export const sessions = pgTable("sessions", {
   token_hash: varchar("token_hash", { length: 255 }).notNull().unique(),
   ip_address: varchar("ip_address", { length: 45 }),
   user_agent: text("user_agent"),
-  last_active_at: timestamp("last_active_at", { withTimezone: true }).defaultNow(),
+  last_active_at: timestamp("last_active_at", {
+    withTimezone: true,
+  }).defaultNow(),
   expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -154,8 +156,14 @@ export const seeker_profiles = pgTable(
     work_history: jsonb("work_history"),
     desired_job_titles: jsonb("desired_job_titles"),
     desired_locations: jsonb("desired_locations"),
-    desired_salary_min: decimal("desired_salary_min", { precision: 10, scale: 2 }),
-    desired_salary_max: decimal("desired_salary_max", { precision: 10, scale: 2 }),
+    desired_salary_min: decimal("desired_salary_min", {
+      precision: 10,
+      scale: 2,
+    }),
+    desired_salary_max: decimal("desired_salary_max", {
+      precision: 10,
+      scale: 2,
+    }),
     desired_job_type: varchar("desired_job_type", { length: 50 }),
     open_to_remote: boolean("open_to_remote").default(true),
     open_to_relocation: boolean("open_to_relocation").default(false),
@@ -364,24 +372,27 @@ export const bot_configs = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     platform: botPlatformEnum("platform").notNull(),
-    
+
     // Detailed Configuration
     is_active: boolean("is_active").default(true),
-    
+
     // Platform Auth (Stored as JSON for flexibility, or encrypted)
-    credentials: jsonb("credentials"), 
-    
+    credentials: jsonb("credentials"),
+
     // Target Destination (e.g. Channel ID for Discord, Subreddit for Reddit)
-    target_id: varchar("target_id", { length: 255 }), 
+    target_id: varchar("target_id", { length: 255 }),
     target_name: varchar("target_name", { length: 255 }),
     webhook_url: text("webhook_url"),
-    
+
     // Filtering Details: "What type of jobs they want"
     filter_keywords: varchar("filter_keywords", { length: 500 }), // comma separated
     filter_locations: varchar("filter_locations", { length: 500 }),
-    filter_min_salary: decimal("filter_min_salary", { precision: 10, scale: 2 }),
+    filter_min_salary: decimal("filter_min_salary", {
+      precision: 10,
+      scale: 2,
+    }),
     filter_job_types: varchar("filter_job_types", { length: 255 }).array(),
-    
+
     last_post_at: timestamp("last_post_at", { withTimezone: true }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -413,7 +424,9 @@ export const subscriptions = pgTable("subscriptions", {
     .references(() => users.id, { onDelete: "cascade" }),
   plan: subscriptionPlanEnum("plan").notNull(),
   status: subscriptionStatusEnum("status").notNull().default("active"),
-  dodo_subscription_id: varchar("dodo_subscription_id", { length: 255 }).unique(),
+  dodo_subscription_id: varchar("dodo_subscription_id", {
+    length: 255,
+  }).unique(),
   dodo_customer_id: varchar("dodo_customer_id", { length: 255 }),
   current_period_end: timestamp("current_period_end", { withTimezone: true }),
   raw_data: jsonb("raw_data"),
@@ -509,20 +522,26 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   token_usage: many(token_usage),
 }));
 
-export const seekerProfilesRelations = relations(seeker_profiles, ({ one }) => ({
-  user: one(users, {
-    fields: [seeker_profiles.user_id],
-    references: [users.id],
+export const seekerProfilesRelations = relations(
+  seeker_profiles,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [seeker_profiles.user_id],
+      references: [users.id],
+    }),
   }),
-}));
+);
 
-export const employerProfilesRelations = relations(employer_profiles, ({ one, many }) => ({
-  user: one(users, {
-    fields: [employer_profiles.user_id],
-    references: [users.id],
+export const employerProfilesRelations = relations(
+  employer_profiles,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [employer_profiles.user_id],
+      references: [users.id],
+    }),
+    jobs: many(jobs),
   }),
-  jobs: many(jobs),
-}));
+);
 
 export const jobsRelations = relations(jobs, ({ one, many }) => ({
   employer: one(users, {
@@ -548,40 +567,49 @@ export const jobMatchesRelations = relations(job_matches, ({ one }) => ({
   }),
 }));
 
-export const applicationsRelations = relations(applications, ({ one, many }) => ({
-  seeker: one(users, {
-    fields: [applications.seeker_id],
-    references: [users.id],
+export const applicationsRelations = relations(
+  applications,
+  ({ one, many }) => ({
+    seeker: one(users, {
+      fields: [applications.seeker_id],
+      references: [users.id],
+    }),
+    job: one(jobs, {
+      fields: [applications.job_id],
+      references: [jobs.id],
+    }),
+    resume: one(resumes, {
+      fields: [applications.resume_id],
+      references: [resumes.id],
+    }),
+    status_history: many(application_status_history),
   }),
-  job: one(jobs, {
-    fields: [applications.job_id],
-    references: [jobs.id],
-  }),
-  resume: one(resumes, {
-    fields: [applications.resume_id],
-    references: [resumes.id],
-  }),
-  status_history: many(application_status_history),
-}));
+);
 
-export const applicationStatusHistoryRelations = relations(application_status_history, ({ one }) => ({
-  application: one(applications, {
-    fields: [application_status_history.application_id],
-    references: [applications.id],
+export const applicationStatusHistoryRelations = relations(
+  application_status_history,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [application_status_history.application_id],
+      references: [applications.id],
+    }),
   }),
-}));
+);
 
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  user: one(users, {
-    fields: [conversations.user_id],
-    references: [users.id],
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [conversations.user_id],
+      references: [users.id],
+    }),
+    resume: one(resumes, {
+      fields: [conversations.resume_id],
+      references: [resumes.id],
+    }),
+    messages: many(messages),
   }),
-  resume: one(resumes, {
-    fields: [conversations.resume_id],
-    references: [resumes.id],
-  }),
-  messages: many(messages),
-}));
+);
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   conversation: one(conversations, {

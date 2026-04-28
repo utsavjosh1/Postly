@@ -47,7 +47,10 @@ export const botQueries = {
       .select()
       .from(bot_configs)
       .where(
-        and(eq(bot_configs.user_id, userId), eq(bot_configs.platform, platform)),
+        and(
+          eq(bot_configs.user_id, userId),
+          eq(bot_configs.platform, platform),
+        ),
       );
 
     return result ?? null;
@@ -60,13 +63,22 @@ export const botQueries = {
     return db
       .select()
       .from(bot_configs)
-      .where(and(eq(bot_configs.platform, platform), eq(bot_configs.is_active, true)));
+      .where(
+        and(
+          eq(bot_configs.platform, platform),
+          eq(bot_configs.is_active, true),
+        ),
+      );
   },
 
   /**
    * Create a record of a job posted by a bot
    */
-  async createPost(botConfigId: string, jobId: string, externalPostId?: string) {
+  async createPost(
+    botConfigId: string,
+    jobId: string,
+    externalPostId?: string,
+  ) {
     const [result] = await db
       .insert(bot_posts)
       .values({
