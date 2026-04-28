@@ -84,6 +84,22 @@ export class QueueService {
     );
     console.log(`✅ Job dispatched for ${config.platform} config: ${configId}`);
   };
+
+  dispatchForGuild = async (guildId: string, channelId: string) => {
+    await this.botQueue.add(
+      "send_discord_message",
+      {
+        guild_id: guildId,
+        channel_id: channelId,
+        type: "test",
+        timestamp: new Date().toISOString(),
+      },
+      {
+        removeOnComplete: true,
+        removeOnFail: 3,
+      },
+    );
+  };
 }
 
 export const queueService = new QueueService();

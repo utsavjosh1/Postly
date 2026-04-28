@@ -9,7 +9,7 @@ export interface CreateBotConfigInput {
   target_id?: string;
   target_name?: string;
   webhook_url?: string;
-  credentials?: any;
+  credentials?: Record<string, unknown>;
   filter_keywords?: string;
   filter_locations?: string;
   filter_min_salary?: string;

@@ -304,6 +304,7 @@ export const applications = pgTable(
     resume_id: uuid("resume_id").references(() => resumes.id),
     status: applicationStatusEnum("status").notNull().default("applied"),
     cover_letter: text("cover_letter"),
+    notes: text("notes"),
     applied_at: timestamp("applied_at", { withTimezone: true }).defaultNow(),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -346,6 +347,8 @@ export const conversations = pgTable("conversations", {
     .references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 255 }),
   resume_id: uuid("resume_id").references(() => resumes.id),
+  model: varchar("model", { length: 100 }),
+  is_archived: boolean("is_archived").default(false),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -402,6 +405,24 @@ export const bot_configs = pgTable(
   }),
 );
 
+export const discord_configs = pgTable(
+  "discord_configs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    guild_id: varchar("guild_id", { length: 255 }).notNull().unique(),
+    channel_id: varchar("channel_id", { length: 255 }),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    is_active: boolean("is_active").default(true),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    guildIdx: index("idx_discord_guild").on(table.guild_id),
+  }),
+);
+
 export const bot_posts = pgTable("bot_posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   bot_config_id: uuid("bot_config_id")
@@ -428,7 +449,11 @@ export const subscriptions = pgTable("subscriptions", {
     length: 255,
   }).unique(),
   dodo_customer_id: varchar("dodo_customer_id", { length: 255 }),
+  current_period_start: timestamp("current_period_start", {
+    withTimezone: true,
+  }),
   current_period_end: timestamp("current_period_end", { withTimezone: true }),
+  cancelled_at: timestamp("cancelled_at", { withTimezone: true }),
   raw_data: jsonb("raw_data"),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow(),

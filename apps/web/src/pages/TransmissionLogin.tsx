@@ -21,8 +21,11 @@ export function TransmissionLogin() {
     try {
       await login({ email, password });
       navigate("/chat?role=seeker");
-    } catch (err: any) {
-      if (err?.response?.data?.error?.code === "EMAIL_NOT_VERIFIED") {
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { error?: { code?: string } } };
+      };
+      if (error?.response?.data?.error?.code === "EMAIL_NOT_VERIFIED") {
         navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
       }
     }

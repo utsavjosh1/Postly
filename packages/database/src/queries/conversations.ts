@@ -1,4 +1,4 @@
-import { eq, asc, and, desc } from "drizzle-orm";
+import { eq, asc, and, desc, ilike } from "drizzle-orm";
 import { db } from "../index";
 import { conversations, messages } from "../schema";
 import type { Conversation, Message } from "@postly/shared-types";
@@ -7,10 +7,14 @@ export const conversationQueries = {
   /**
    * Create a new conversation
    */
-  async create(userId: string, resumeId?: string): Promise<Conversation> {
+  async create(
+    userId: string,
+    resumeId?: string,
+    model?: string,
+  ): Promise<Conversation> {
     const [result] = await db
       .insert(conversations)
-      .values({ user_id: userId, resume_id: resumeId })
+      .values({ user_id: userId, resume_id: resumeId, model })
       .returning();
 
     return result as unknown as Conversation;
@@ -19,11 +23,20 @@ export const conversationQueries = {
   /**
    * Get all conversations for a user
    */
-  async findByUser(userId: string, limit = 50): Promise<Conversation[]> {
+  async findByUser(
+    userId: string,
+    limit = 50,
+    includeArchived = false,
+  ): Promise<Conversation[]> {
     const result = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.user_id, userId))
+      .where(
+        and(
+          eq(conversations.user_id, userId),
+          includeArchived ? undefined : eq(conversations.is_archived, false),
+        ),
+      )
       .orderBy(desc(conversations.updated_at))
       .limit(limit);
 
@@ -74,6 +87,66 @@ export const conversationQueries = {
     return !!result;
   },
 
+  async getActiveThread(conversationId: string, limit = 100) {
+    const result = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversation_id, conversationId))
+      .orderBy(asc(messages.created_at))
+      .limit(limit);
+
+    return result as unknown as Message[];
+  },
+
+  async setArchived(id: string, isArchived: boolean) {
+    await db
+      .update(conversations)
+      .set({ is_archived: isArchived, updated_at: new Date() })
+      .where(eq(conversations.id, id));
+  },
+
+  async editMessage(
+    messageId: string,
+    content: string,
+    conversationId: string,
+  ) {
+    const [result] = await db
+      .insert(messages)
+      .values({
+        conversation_id: conversationId,
+        role: "user",
+        content,
+        metadata: { edited_from: messageId },
+      })
+      .returning();
+
+    return result as unknown as Message;
+  },
+
+  async cancelMessage(messageId: string) {
+    await db
+      .update(messages)
+      .set({
+        metadata: { cancelled: true },
+      })
+      .where(eq(messages.id, messageId));
+  },
+
+  async getMessageVersions(parentMessageId: string, role: string) {
+    const result = await db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.role, role),
+          // This is a simplified versioning logic
+          ilike(messages.content, `%${parentMessageId}%`),
+        ),
+      );
+
+    return result as unknown as Message[];
+  },
+
   // ─── Message Operations ──────────────────────────────────────────────────
 
   /**
@@ -84,7 +157,7 @@ export const conversationQueries = {
     role: string,
     content: string,
     tokensUsed?: number,
-    metadata?: any,
+    metadata?: unknown,
   ): Promise<Message> {
     const [result] = await db
       .insert(messages)

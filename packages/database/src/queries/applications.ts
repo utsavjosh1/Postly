@@ -128,6 +128,19 @@ export const applicationQueries = {
     return result ?? null;
   },
 
+  async updateNotes(id: string, actorId: string, notes: string) {
+    const [result] = await db
+      .update(applications)
+      .set({
+        notes,
+        updated_at: new Date(),
+      })
+      .where(and(eq(applications.id, id), eq(applications.seeker_id, actorId)))
+      .returning();
+
+    return result ?? null;
+  },
+
   async delete(id: string, seekerId: string) {
     const [result] = await db
       .delete(applications)

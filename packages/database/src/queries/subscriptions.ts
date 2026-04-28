@@ -32,7 +32,7 @@ export const subscriptionQueries = {
       user_id: userId,
       dodo_subscription_id: payload.dodo_subscription_id,
       dodo_customer_id: payload.dodo_customer_id,
-      plan: (payload.plan as any) || "seeker",
+      plan: (payload.plan as SubscriptionPlan) || "seeker",
       status: payload.status || "active",
       current_period_end: payload.current_period_end,
       updated_at: new Date(),

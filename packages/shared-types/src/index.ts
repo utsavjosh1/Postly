@@ -1,6 +1,58 @@
-import { JobSearchFilters, BotPlatform } from "./domain";
-export { JobSearchFilters, BotPlatform };
-export type { Notification, SubscriptionPlan } from "./domain";
+import {
+  Notification,
+  SubscriptionPlan,
+  EmbeddingInputType,
+  EmbeddingResult,
+  SingleEmbeddingResult,
+  ChatMetadata,
+  ChatResult,
+  ChatStreamResult,
+  VectorSearchResult,
+  JobSearchFilters,
+  BotPlatform,
+  SeekerProfile,
+  EmployerProfile,
+  ApplicationStatus,
+  CreateEmployerProfileInput,
+  UpdateEmployerProfileInput,
+  NotificationStatus,
+  CreatePaymentInput,
+  SeekerProfileData,
+  SubscriptionStatus,
+  DodoSubscriptionPayload,
+} from "./domain";
+
+export type {
+  Notification,
+  SubscriptionPlan,
+  EmbeddingInputType,
+  EmbeddingResult,
+  SingleEmbeddingResult,
+  ChatMetadata,
+  ChatResult,
+  ChatStreamResult,
+  VectorSearchResult,
+  JobSearchFilters,
+  BotPlatform,
+  SeekerProfile,
+  EmployerProfile,
+  ApplicationStatus,
+  CreateEmployerProfileInput,
+  UpdateEmployerProfileInput,
+  NotificationStatus,
+  CreatePaymentInput,
+  SeekerProfileData,
+  SubscriptionStatus,
+  DodoSubscriptionPayload,
+};
+
+export type ConversationState =
+  | "idle"
+  | "thinking"
+  | "streaming"
+  | "completed"
+  | "error"
+  | "interrupted";
 
 // User types
 export type UserRole = "job_seeker" | "employer" | "admin" | "discord_owner";
@@ -201,7 +253,7 @@ export interface BotConfig {
   target_id?: string;
   target_name?: string;
   webhook_url?: string;
-  credentials?: any;
+  credentials?: Record<string, unknown>;
   filter_keywords?: string;
   filter_locations?: string;
   filter_min_salary?: string;
@@ -228,7 +280,7 @@ export interface MessageMetadata {
     total_tokens?: number;
   };
   job_matches?: OptimizedJobMatch[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export type StreamChatResponse =
@@ -280,6 +332,10 @@ export interface Message {
   role: string;
   content: string;
   tokens_used?: number;
+  status?: "sending" | "completed" | "error";
+  metadata?: MessageMetadata;
+  version?: number;
+  is_active?: boolean;
   created_at: Date;
 }
 

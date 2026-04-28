@@ -57,6 +57,13 @@
       "when": 1777394234644,
       "tag": "0007_tan_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777396102324,
+      "tag": "0008_bumpy_mac_gargan",
+      "breakpoints": true
     }
   ]
 }
