@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PageLoader } from "./components/ui/PageLoader";
 import { ToastContainer } from "./components/ui/Toast";
+import "./styles/transmission.css";
 
 const TransmissionHome = lazy(() =>
   import("@pages/TransmissionHome").then((m) => ({

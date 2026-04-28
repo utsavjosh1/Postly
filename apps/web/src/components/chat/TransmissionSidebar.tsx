@@ -370,7 +370,7 @@ export function TransmissionSidebar({
               }}
             >
               {[
-                { label: "Pricing", path: "/pricing" },
+                // { label: "Pricing", path: "/pricing" },
                 { label: "Account Settings", path: "/settings" },
                 { label: "Integration", path: "/integrations" },
                 { label: "Logout", action: logout, danger: true },

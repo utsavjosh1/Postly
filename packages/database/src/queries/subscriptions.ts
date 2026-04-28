@@ -28,36 +28,39 @@ export const subscriptionQueries = {
 
   // Called by the DodoPayments webhook handler to create or update the subscription record.
   async upsertFromWebhook(userId: string, payload: DodoSubscriptionPayload) {
+    const data = {
+      user_id: userId,
+      dodo_subscription_id: payload.dodo_subscription_id,
+      dodo_customer_id: payload.dodo_customer_id,
+      plan: (payload.plan as any) || "seeker",
+      status: payload.status || "active",
+      current_period_end: payload.current_period_end,
+      updated_at: new Date(),
+    };
+
     const [result] = await db
       .insert(subscriptions)
-      .values({ user_id: userId, ...payload })
+      .values(data)
       .onConflictDoUpdate({
         target: [subscriptions.user_id],
-        set: { ...payload, updated_at: new Date() },
+        set: data,
       })
       .returning();
 
     return result;
   },
 
-  async updatePromoCode(userId: string, promoCodeId: string) {
-    await db
-      .update(subscriptions)
-      .set({ promo_code_id: promoCodeId, updated_at: new Date() })
-      .where(eq(subscriptions.user_id, userId));
-  },
 
   async updateStatus(
     userId: string,
     status: SubscriptionStatus,
-    accessUntil?: Date,
+    currentPeriodEnd?: Date,
   ) {
     const [result] = await db
       .update(subscriptions)
       .set({
         status,
-        ...(accessUntil && { access_until: accessUntil }),
-        ...(status === "cancelled" && { cancelled_at: new Date() }),
+        ...(currentPeriodEnd && { current_period_end: currentPeriodEnd }),
         updated_at: new Date(),
       })
       .where(eq(subscriptions.user_id, userId))
@@ -82,7 +85,7 @@ export const subscriptionQueries = {
     const sub = await this.findByUserId(userId);
     if (!sub) return false;
     if (sub.status !== "active" && sub.status !== "trialing") return false;
-    if (sub.access_until && new Date(sub.access_until) < new Date())
+    if (sub.current_period_end && new Date(sub.current_period_end) < new Date())
       return false;
     return true;
   },

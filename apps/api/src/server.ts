@@ -13,7 +13,7 @@ import userRoutes from "./routes/user.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
-import discordRoutes from "./routes/discord.routes.js";
+import botRoutes from "./routes/bot.routes.js";
 import dodoRoutes from "./routes/dodo.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import { queueService } from "./services/queue.service.js";
@@ -142,12 +142,12 @@ app.use((req, res, next) => {
 });
 
 // API routes
-app.use("/api/v1/auth", authRoutes); // apiRateLimiter is global
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/resumes", aiRateLimiter, resumeRoutes);
 app.use("/api/v1/chat", aiRateLimiter, chatRoutes);
-app.use("/api/v1/discord", discordRoutes);
+app.use("/api/v1/bots", botRoutes);
 app.use("/api/v1/payments", dodoRoutes);
 app.use("/api/v1/applications", applicationRoutes);
 
@@ -163,11 +163,11 @@ app.listen(API_PORT, "0.0.0.0", async () => {
   console.log(`🚀 API server running on http://0.0.0.0:${API_PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
 
-  // Initialize Discord Job Queue
+  // Initialize Bot Job Queue
   try {
     await queueService.initDailyCron();
   } catch (err) {
-    console.error("Failed to initialize Discord Queue:", err);
+    console.error("Failed to initialize Bot Queue:", err);
   }
 });
 

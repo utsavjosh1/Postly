@@ -1,3 +1,7 @@
+import { JobSearchFilters, BotPlatform } from "./domain";
+export { JobSearchFilters, BotPlatform };
+export type { Notification, SubscriptionPlan } from "./domain";
+
 // User types
 export type UserRole = "job_seeker" | "employer" | "admin" | "discord_owner";
 
@@ -102,6 +106,8 @@ export interface Job {
   expires_at?: Date;
   is_active: boolean;
   employer_id?: string;
+  external_job_id?: string;
+  fingerprint?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -118,7 +124,6 @@ export interface CreateJobInput {
   skills_required?: string[];
   experience_required?: string;
   expires_at?: Date;
-  scrape_source_id?: string;
   external_job_id?: string;
   fingerprint?: string;
 }
@@ -140,7 +145,6 @@ export interface ScrapedJobInput {
   posted_at?: Date;
   expires_at?: Date;
   embedding?: number[];
-  scrape_source_id?: string;
   external_job_id?: string;
   fingerprint?: string;
 }
@@ -188,43 +192,50 @@ export interface MatchJobsInput {
   limit?: number;
 }
 
-export interface JobSearchFilters {
-  location?: string;
-  job_type?: JobType;
-  remote?: boolean;
-  salary_min?: number;
-  skills?: string[];
-}
-
-// Bot Subscription types
-export type CommunityType = "discord" | "reddit";
-export type SubscriptionTier = "basic" | "premium";
-
-export interface BotSubscription {
+// Bots & Social types
+export interface BotConfig {
   id: string;
-  community_type: CommunityType;
-  community_id: string;
-  admin_user_id: string;
-  filter_criteria?: JobSearchFilters;
+  user_id: string;
+  platform: BotPlatform;
   is_active: boolean;
-  subscription_tier: SubscriptionTier;
-  expires_at?: Date;
+  target_id?: string;
+  target_name?: string;
+  webhook_url?: string;
+  credentials?: any;
+  filter_keywords?: string;
+  filter_locations?: string;
+  filter_min_salary?: string;
+  filter_job_types?: string[];
+  last_post_at?: Date;
   created_at: Date;
+  updated_at: Date;
 }
 
-// Scraping types
-export type ScrapingStatus = "pending" | "running" | "completed" | "failed";
-
-export interface ScrapingJob {
+export interface BotPost {
   id: string;
-  source: JobSource;
-  status: ScrapingStatus;
-  jobs_scraped: number;
+  bot_config_id: string;
+  job_id: string;
+  external_post_id?: string;
+  status: "sent" | "failed";
   error_message?: string;
-  started_at?: Date;
-  completed_at?: Date;
-  created_at: Date;
+  posted_at: Date;
 }
+
+export interface MessageMetadata {
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  job_matches?: OptimizedJobMatch[];
+  [key: string]: any;
+}
+
+export type StreamChatResponse =
+  | { type: "chunk"; content: string }
+  | { type: "metadata"; metadata: MessageMetadata }
+  | { type: "complete"; message_id: string; metadata: MessageMetadata }
+  | { type: "error"; error: string };
 
 // AI Chat types
 export interface ChatMessage {
@@ -259,65 +270,17 @@ export interface Conversation {
   title: string;
   resume_id: string | null;
   model?: string;
-  is_archived: boolean;
-  state?: ConversationState;
   created_at: Date;
   updated_at: Date;
 }
 
-export type ConversationState =
-  | "idle"
-  | "typing"
-  | "thinking"
-  | "streaming"
-  | "completed"
-  | "error"
-  | "interrupted";
-
 export interface Message {
   id: string;
   conversation_id: string;
-  role: "user" | "assistant" | "system" | "tool";
+  role: string;
   content: string;
-
-  /** Self-referencing — forms a message tree for branching */
-  parent_message_id?: string | null;
-  /** Edit version number (1 = original, 2+ = edits) */
-  version: number;
-  /** Only the active branch is rendered in the UI */
-  is_active: boolean;
-  /** Streaming lifecycle: sending → streaming → completed / cancelled / error */
-  status: MessageStreamStatus;
-
-  metadata?: MessageMetadata;
+  tokens_used?: number;
   created_at: Date;
-}
-
-/** Streaming lifecycle status stored in DB */
-export type MessageStreamStatus =
-  | "sending"
-  | "streaming"
-  | "completed"
-  | "cancelled"
-  | "error";
-
-/** @deprecated Use MessageStreamStatus instead */
-export type MessageStatus = "sending" | "sent" | "delivered" | "error";
-
-export interface MessageMetadata {
-  job_matches?: OptimizedJobMatch[];
-  resume_feedback?: ResumeFeedback;
-  error?: string;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-  timing?: {
-    start: number;
-    end: number;
-    duration: number;
-  };
 }
 
 export interface CreateConversationRequest {
@@ -328,14 +291,6 @@ export interface CreateConversationRequest {
 export interface SendMessageRequest {
   message: string;
   conversation_id: string;
-}
-
-export interface StreamChatResponse {
-  type: "chunk" | "complete" | "error" | "metadata";
-  content?: string;
-  metadata?: MessageMetadata;
-  message_id?: string;
-  error?: string;
 }
 
 // API Response types
@@ -367,4 +322,3 @@ export const AI_ERROR_CODES = {
 export type AIErrorCode = (typeof AI_ERROR_CODES)[keyof typeof AI_ERROR_CODES];
 
 export * from "./schemas.js";
-export * from "./domain.js";

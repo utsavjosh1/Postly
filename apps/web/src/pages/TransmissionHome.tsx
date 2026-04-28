@@ -75,6 +75,7 @@ export function TransmissionHome() {
             </>
           ) : (
             <Link
+              target="_blank"
               to="/chat"
               className="tx-btn"
               style={{
@@ -104,18 +105,6 @@ export function TransmissionHome() {
           borderBottom: "2px solid var(--tx-border)",
         }}
       >
-        <div
-          style={{
-            fontSize: "clamp(12px, 2vw, 16px)",
-            fontWeight: 700,
-            letterSpacing: "4px",
-            textTransform: "uppercase",
-            color: "var(--tx-seeker)",
-            marginBottom: "24px",
-          }}
-        >
-          [ TRANSMISSION ACTIVE ]
-        </div>
         <h1
           style={{
             fontSize: "clamp(48px, 10vw, 120px)",
@@ -169,31 +158,6 @@ export function TransmissionHome() {
         </Link>
       </header>
 
-      {/* ─── Features ────────────────────────────────────────────────── */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          borderBottom: "2px solid var(--tx-border)",
-        }}
-      >
-        <FeatureCard
-          title="SIGNAL MATCHING"
-          description="Identify high-bandwidth opportunities with our AI-powered signal processing."
-          color="var(--tx-seeker)"
-        />
-        <FeatureCard
-          title="DIRECT TRANSMISSION"
-          description="Bypass the noise. Connect directly with hiring signals without the middleman."
-          color="var(--tx-recruiter)"
-        />
-        <FeatureCard
-          title="NEO-BRUTALIST UX"
-          description="A terminal-grade interface designed for speed, clarity, and raw efficiency."
-          color="var(--tx-ink)"
-        />
-      </section>
-
       {/* ─── Footer ──────────────────────────────────────────────────── */}
       <footer
         style={{
@@ -206,7 +170,7 @@ export function TransmissionHome() {
           letterSpacing: "1px",
         }}
       >
-        © 2026 POSTLY TERMINAL // ALL RIGHTS RESERVED // BROADCASTING WORLDWIDE
+        © {new Date().getFullYear()} POSTLY
       </footer>
     </div>
   );
