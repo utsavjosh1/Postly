@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import { REDIS_URL } from "../config/secrets.js";
+import { logger } from "@postly/logger";
 
 /**
  * Shared Redis client for the API.
@@ -14,7 +15,7 @@ export const redis = new Redis(REDIS_URL || "redis://localhost:6379", {
 
 redis.on("error", (err) => {
   // We log but don't crash — features should "fail open" if Redis is down
-  console.error("Shared Redis connection error:", err);
+  logger.error("Shared Redis connection error", { error: err.message });
 });
 
 export default redis;

@@ -22,6 +22,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
 
           script: |
+            set -e  # Exit immediately on any error
+
             # Navigate to project directory
             cd /var/www/postly
 
@@ -29,11 +31,36 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
-            # Rebuild and start services
-            docker compose -f docker-compose.prod.yml up -d --build
+            # Rebuild and start services (--no-deps prevents cascading restarts)
+            docker compose -f docker-compose.prod.yml build --no-cache api
+            docker compose -f docker-compose.prod.yml up -d --no-deps api
 
-            # Run database migrations
-            docker exec postly-api npm run migrate:up
+            # Wait for API to become healthy
+            echo "Waiting for API health check..."
+            RETRIES=10
+            DELAY=5
+            for i in $(seq 1 $RETRIES); do
+              if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+                echo "✅ API is healthy (attempt $i/$RETRIES)"
+                break
+              fi
+              if [ $i -eq $RETRIES ]; then
+                echo "❌ API health check failed after $RETRIES attempts"
+                echo "--- Last 50 lines of API logs ---"
+                docker compose -f docker-compose.prod.yml logs api --tail=50
+                exit 1
+              fi
+              echo "⏳ Attempt $i/$RETRIES failed, retrying in ${DELAY}s..."
+              sleep $DELAY
+            done
+
+            # Run database migrations (if any)
+            docker exec postly-api npm run migrate:up || echo "No migrations to run"
+
+            # Rebuild other services if needed
+            docker compose -f docker-compose.prod.yml up -d --build scraper bot
 
             # Cleanup old images
             docker image prune -f
+
+            echo "🚀 Deployment complete"

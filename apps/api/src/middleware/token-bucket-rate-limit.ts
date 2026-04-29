@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/secrets.js";
 import { Redis } from "ioredis";
 
 interface RateLimitConfig {
@@ -89,20 +90,19 @@ export const tokenBucketRateLimiter = (config: RateLimitConfig) => {
       // Identifier: Start with IP Address
       let identifier = req.ip || "unknown-ip";
 
-      // Attempt to decode the JWT to use User ID as identifier
+      // Attempt to verify the JWT to use User ID as identifier.
+      // We use jwt.verify() (NOT jwt.decode()) to prevent identity spoofing.
+      // An attacker could craft a JWT with any user ID to bypass per-user rate limits.
       const authHeader = req.headers["authorization"];
       if (authHeader && authHeader.startsWith("Bearer ")) {
         const token = authHeader.split(" ")[1];
         try {
-          // We decode instead of verifying here because
-          // this middleware might run before the auth middleware
-          // and decoding is faster for identifying rate limits per user
-          const decoded = jwt.decode(token) as { id?: string };
+          const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
           if (decoded && decoded.id) {
             identifier = decoded.id;
           }
         } catch {
-          // ignore invalid tokens, fallback to IP
+          // Invalid or expired token — fallback to IP-based rate limiting
         }
       }
 
