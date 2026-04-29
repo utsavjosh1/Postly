@@ -7,6 +7,7 @@ import type {
   EducationEntry,
 } from "@postly/shared-types";
 import { pool } from "@postly/database";
+import { logger } from "@postly/logger";
 
 interface MatchedJob extends Job {
   match_score: number;
@@ -80,10 +81,10 @@ export class MatchingService {
           const explanation = await this.generateMatchExplanation(resume, job);
           return { ...job, ai_explanation: explanation };
         } catch (error) {
-          console.error(
-            `Failed to generate explanation for job ${job.id}:`,
-            error,
-          );
+          logger.error("Failed to generate match explanation", {
+            jobId: job.id,
+            error: error instanceof Error ? error.message : "Unknown",
+          });
           return job;
         }
       }),

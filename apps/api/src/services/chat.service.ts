@@ -13,6 +13,7 @@ import type {
   Job,
   OptimizedJobMatch,
 } from "@postly/shared-types";
+import { logger } from "@postly/logger";
 
 interface MatchedJob extends Job {
   match_score: number;
@@ -90,6 +91,59 @@ function getJobIntent(message: string): JobIntent {
     techKeywords: [], // Deprecated: keep for type compatibility
     allKeywords: foundKeywords,
   };
+}
+
+// ─── Context Window Budget Management ─────────────────────────────────────
+
+const MAX_CONTEXT_TOKENS = 8000; // conservative budget for conversation history
+
+/**
+ * Trims conversation history to fit within a token budget.
+ * Works backwards from most recent messages (which are most relevant).
+ * Uses a rough estimate of 1 token ≈ 4 characters.
+ */
+function trimHistory(messages: Message[], maxTokens: number): string {
+  let budget = maxTokens;
+  const included: string[] = [];
+
+  // Work backwards — most recent messages are most important
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const entry = `${messages[i].role}: ${messages[i].content}`;
+    const estimatedTokens = Math.ceil(entry.length / 4);
+    if (budget - estimatedTokens < 0) break;
+    budget -= estimatedTokens;
+    included.unshift(entry);
+  }
+
+  return included.join("\n");
+}
+
+// ─── Prompt Injection Defense ─────────────────────────────────────────────
+
+const BLOCKED_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+a/i,
+  /pretend\s+(to\s+be|you\s+are)/i,
+  /reveal\s+(your|the)\s+(system\s+)?prompt/i,
+  /what\s+(are|is)\s+your\s+(system\s+)?instructions/i,
+  /disregard\s+(all|any)\s+(prior|previous)/i,
+];
+
+/**
+ * Filters user messages for common prompt injection patterns.
+ * Returns a sanitized version or the original message if clean.
+ */
+function sanitizeUserInput(message: string): string {
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(message)) {
+      logger.warn("Prompt injection attempt detected", {
+        pattern: pattern.source,
+        messageLength: message.length,
+      });
+      return "[Message filtered for policy compliance. Please rephrase your question about jobs or career advice.]";
+    }
+  }
+  return message;
 }
 // ... (omitting helper for brevity in diff)
 
@@ -277,13 +331,16 @@ ${userRole !== "employer" ? "3. DO NOT hallucinate job listings. Only mention jo
 
 Be professional, encouraging, and concise.${resumeContext}${userRole !== "employer" ? jobContext : ""}`;
 
-      // 6. Prepare conversation history
-      const conversationHistory = messages
-        .filter((m: Message) => m.role !== "system")
-        .map((m: Message) => `${m.role}: ${m.content}`)
-        .join("\n");
+      // 5b. Sanitize user input against prompt injection
+      const sanitizedMessage = sanitizeUserInput(userMessage);
 
-      const fullPrompt = `${systemPrompt}\n\nConversation:\n${conversationHistory}\nuser: ${userMessage}\nassistant:`;
+      // 6. Prepare conversation history with token budget
+      const conversationHistory = trimHistory(
+        messages.filter((m: Message) => m.role !== "system"),
+        MAX_CONTEXT_TOKENS,
+      );
+
+      const fullPrompt = `${systemPrompt}\n\nConversation:\n${conversationHistory}\nuser: ${sanitizedMessage}\nassistant:`;
 
       // 7. Stream AI response
       let fullResponse = "";

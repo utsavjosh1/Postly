@@ -19,17 +19,31 @@ if (envPath) dotenv.config({ path: envPath });
 export const DATABASE_URL = process.env.DATABASE_URL || "";
 
 export const DB_POOL = {
-  max: parseInt(process.env.DB_POOL_MAX || "10", 10),
+  max: parseInt(process.env.DB_POOL_MAX || "8", 10),
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || "10000", 10),
   connectionTimeoutMillis: parseInt(process.env.DB_CONN_TIMEOUT || "2000", 10),
 } as const;
 
 // ─── JWT / Auth ──────────────────────────────────────────────────────────────
 
-export const JWT_SECRET =
-  process.env.JWT_SECRET || "postly-secure-secret-key-2024";
-export const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "postly-secure-refresh-secret-2024";
+export const JWT_SECRET: string =
+  process.env.JWT_SECRET ||
+  (() => {
+    if (process.env.NODE_ENV === "production" && !process.env.CI) {
+      throw new Error("FATAL: JWT_SECRET must be set in production");
+    }
+    return "postly-dev-only-secret-DO-NOT-USE-IN-PROD";
+  })();
+
+export const JWT_REFRESH_SECRET: string =
+  process.env.JWT_REFRESH_SECRET ||
+  (() => {
+    if (process.env.NODE_ENV === "production" && !process.env.CI) {
+      throw new Error("FATAL: JWT_REFRESH_SECRET must be set in production");
+    }
+    return "postly-dev-only-refresh-secret-DO-NOT-USE-IN-PROD";
+  })();
+
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 export const JWT_REFRESH_EXPIRES_IN =
   process.env.JWT_REFRESH_EXPIRES_IN || "30d";
