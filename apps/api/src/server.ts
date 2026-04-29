@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -31,6 +32,9 @@ const __dirname = path.dirname(__filename);
 
 // Request correlation ID — must be first for tracing
 app.use(requestIdMiddleware);
+
+// Response compression — critical for high-latency links
+app.use(compression());
 
 // Security middleware
 app.use(
@@ -68,6 +72,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    maxAge: 86400, // Cache preflight for 24h — saves ~300ms per cross-origin request
   }),
 );
 
