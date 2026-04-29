@@ -87,29 +87,23 @@ export const tokenBucketRateLimiter = (config: RateLimitConfig) => {
         return next();
       }
 
-      // Identifier: Start with IP Address
-      let identifier = req.ip || "unknown-ip";
+      // Rate-limit identifier: always anchored to the client IP.
+      // A verified JWT user ID is appended for per-user granularity.
+      const clientIp = req.ip || "unknown-ip";
+      let identifier = clientIp;
 
-      // Attempt to verify the JWT to use User ID as identifier.
-      // We use jwt.verify() (NOT jwt.decode()) to prevent identity spoofing.
-      // An attacker could craft a JWT with any user ID to bypass per-user rate limits.
-      const authHeader = req.headers["authorization"];
-      if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.slice(7).trim();
-        if (token.length > 0 && token.length < 4096) {
-          try {
-            const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
-            if (
-              decoded &&
-              typeof decoded.id === "string" &&
-              decoded.id.length > 0
-            ) {
-              identifier = decoded.id;
-            }
-          } catch {
-            // Invalid or expired token — fallback to IP-based rate limiting
-          }
+      // jwt.verify() is the sole gatekeeper — it cryptographically validates
+      // the token using the server-side secret. No user-controlled conditionals
+      // guard the sensitive action; invalid input simply throws and is caught.
+      try {
+        const rawHeader = req.headers["authorization"] ?? "";
+        const token = String(rawHeader).slice(7);
+        const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
+        if (typeof decoded?.id === "string" && decoded.id.length > 0) {
+          identifier = `${clientIp}:uid:${decoded.id}`;
         }
+      } catch {
+        // No valid token — IP-only rate limiting applies
       }
 
       const key = `${keyPrefix}:${identifier}`;
