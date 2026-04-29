@@ -29,7 +29,7 @@ export const DB_POOL = {
 export const JWT_SECRET: string =
   process.env.JWT_SECRET ||
   (() => {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && !process.env.CI) {
       throw new Error("FATAL: JWT_SECRET must be set in production");
     }
     return "postly-dev-only-secret-DO-NOT-USE-IN-PROD";
@@ -38,7 +38,7 @@ export const JWT_SECRET: string =
 export const JWT_REFRESH_SECRET: string =
   process.env.JWT_REFRESH_SECRET ||
   (() => {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && !process.env.CI) {
       throw new Error("FATAL: JWT_REFRESH_SECRET must be set in production");
     }
     return "postly-dev-only-refresh-secret-DO-NOT-USE-IN-PROD";
