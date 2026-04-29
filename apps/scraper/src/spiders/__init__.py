@@ -1,4 +1,19 @@
-"""Hiring cafe spider package."""
-from .hiring_cafe import HiringCafeSpider
+"""Postly job spiders package."""
+from .base import BaseSpider
+from .remotive import RemotiveSpider
+from .arbeitnow import ArbeitnowSpider
+from .greenhouse import GreenhouseSpider
 
-__all__ = ["HiringCafeSpider"]
+# HiringCafeSpider requires playwright — import conditionally
+try:
+    from .hiring_cafe import HiringCafeSpider
+except ImportError:
+    HiringCafeSpider = None
+
+__all__ = [
+    "BaseSpider",
+    "RemotiveSpider",
+    "ArbeitnowSpider",
+    "GreenhouseSpider",
+    "HiringCafeSpider",
+]

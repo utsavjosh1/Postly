@@ -18,7 +18,12 @@ export const userService = {
     return response.data.data;
   },
 
-  async updateProfile(data: { full_name?: string }): Promise<User> {
+  async updateProfile(data: {
+    full_name?: string;
+    avatar_url?: string;
+    timezone?: string;
+    locale?: string;
+  }): Promise<User> {
     const response = await apiClient.patch<ApiResponse<User>>(
       "/users/profile",
       data,
@@ -88,8 +93,8 @@ export const userService = {
   },
 
   // Security
-  async changePassword(data: any): Promise<void> {
-    const response = await apiClient.post<ApiResponse<any>>(
+  async changePassword(data: Record<string, string>): Promise<void> {
+    const response = await apiClient.post<ApiResponse<unknown>>(
       "/users/change-password",
       data,
     );

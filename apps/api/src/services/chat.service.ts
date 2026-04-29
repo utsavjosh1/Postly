@@ -30,47 +30,10 @@ interface JobIntent {
  * More precise intent detection for job-related queries
  */
 function getJobIntent(message: string): JobIntent {
-  const techKeywords = [
-    "react",
-    "frontend",
-    "backend",
-    "fullstack",
-    "node",
-    "python",
-    "java",
-    "typescript",
-    "javascript",
-    "html",
-    "css",
-    "vue",
-    "angular",
-    "aws",
-    "cloud",
-    "devops",
-    "structural",
-    "environmental",
-    "civil",
-    "mechanical",
-    "electrical",
-  ];
-  const levelKeywords = [
-    "software",
-    "engineer",
-    "developer",
-    "designer",
-    "architect",
-    "manager",
-    "lead",
-    "senior",
-    "junior",
-    "intern",
-    "graduate",
-    "entry",
-    "level",
-    "remote",
-    "hybrid",
-  ];
-  const generalKeywords = [
+  const lowercaseMsg = message.toLowerCase();
+
+  // Universal job related terms (not just tech)
+  const jobKeywords = [
     "job",
     "career",
     "hiring",
@@ -79,7 +42,6 @@ function getJobIntent(message: string): JobIntent {
     "position",
     "vacancy",
     "work",
-    "stack",
     "hire",
     "recruiting",
     "talent",
@@ -89,27 +51,44 @@ function getJobIntent(message: string): JobIntent {
     "cv",
     "salary",
     "role",
-    "brief",
     "looking for",
     "hunting",
     "find",
     "search",
+    "offer",
+    "interview",
+    "employer",
+    "company",
+    "staff",
+    "manager",
+    "engineer",
+    "designer",
+    "architect",
+    "developer",
+    "sales",
+    "marketing",
+    "doctor",
+    "nurse",
+    "teacher",
+    "driver",
+    "chef",
+    "accounting",
+    "legal",
+    "retail",
+    "remote",
+    "hybrid",
+    "fullstack",
+    "frontend",
+    "backend",
   ];
-  const lowercaseMsg = message.toLowerCase();
 
-  const foundTech = techKeywords.filter((kw) => lowercaseMsg.includes(kw));
-  const foundLevel = levelKeywords.filter((kw) => lowercaseMsg.includes(kw));
-  const hasGeneral = generalKeywords.some((kw) => lowercaseMsg.includes(kw));
+  const foundKeywords = jobKeywords.filter((kw) => lowercaseMsg.includes(kw));
 
   return {
-    isRelated:
-      foundTech.length > 0 ||
-      foundLevel.length > 0 ||
-      hasGeneral ||
-      message.length > 50,
-    isSpecific: foundTech.length > 0 || foundLevel.length > 0,
-    techKeywords: foundTech,
-    allKeywords: [...foundTech, ...foundLevel],
+    isRelated: foundKeywords.length > 0 || message.length > 50,
+    isSpecific: foundKeywords.length > 2, // A heuristic for specific queries
+    techKeywords: [], // Deprecated: keep for type compatibility
+    allKeywords: foundKeywords,
   };
 }
 // ... (omitting helper for brevity in diff)
@@ -334,7 +313,8 @@ Be professional, encouraging, and concise.${resumeContext}${userRole !== "employ
         conversationId,
         "assistant",
         fullResponse,
-        metadata as Record<string, unknown>,
+        metadata.usage?.total_tokens,
+        metadata,
       );
 
       // 9. Auto-generate conversation title if this is the first message

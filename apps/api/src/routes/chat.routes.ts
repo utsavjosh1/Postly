@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth.js";
-import { chatRateLimiter } from "../middleware/strict-rate-limit.js";
 import { ChatController } from "../controllers/chat.controller.js";
 
 const router = Router();
@@ -21,7 +20,7 @@ router.post("/messages/:id/edit", chatController.editMessage);
 router.post("/messages/:id/cancel", chatController.cancelMessage);
 router.get("/messages/:id/versions", chatController.getMessageVersions);
 
-// AI streaming (rate limited)
-router.post("/stream", chatRateLimiter, chatController.streamResponse);
+// AI streaming
+router.post("/stream", chatController.streamResponse);
 
 export default router;

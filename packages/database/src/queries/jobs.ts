@@ -30,7 +30,6 @@ export const jobQueries = {
         experience_required: input.experience_required,
         expires_at: input.expires_at,
         employer_id: employerId,
-        scrape_source_id: input.scrape_source_id,
         external_job_id: input.external_job_id,
         fingerprint: input.fingerprint,
       })
@@ -77,7 +76,6 @@ export const jobQueries = {
           updated_at: new Date(),
           expires_at: expiresAt,
           is_active: true,
-          scrape_source_id: input.scrape_source_id,
           external_job_id: input.external_job_id,
           fingerprint: input.fingerprint,
         })
@@ -106,7 +104,6 @@ export const jobQueries = {
         embedding: input.embedding,
         expires_at: expiresAt,
         is_active: true,
-        scrape_source_id: input.scrape_source_id,
         external_job_id: input.external_job_id,
         fingerprint: input.fingerprint,
       })

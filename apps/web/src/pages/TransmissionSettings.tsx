@@ -51,7 +51,7 @@ export function TransmissionSettings() {
     role === "seeker" ? "var(--tx-seeker)" : "var(--tx-recruiter)";
 
   // Form state
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<Record<string, any>>({
     full_name: user?.full_name || "",
     avatar_url: user?.avatar_url || "",
     timezone: user?.timezone || "UTC",
@@ -77,7 +77,7 @@ export function TransmissionSettings() {
   // Sync form data once profile is loaded
   useEffect(() => {
     if (profileData) {
-      setFormData((prev: any) => ({
+      setFormData((prev) => ({
         ...prev,
         ...profileData,
         skills: profileData.skills?.join(", ") || "",
@@ -89,7 +89,8 @@ export function TransmissionSettings() {
 
   // Mutations
   const updateBaseProfile = useMutation({
-    mutationFn: (data: any) => userService.updateProfile(data),
+    mutationFn: (data: Parameters<typeof userService.updateProfile>[0]) =>
+      userService.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });
       addToast({
@@ -97,7 +98,7 @@ export function TransmissionSettings() {
         message: "General broadcast identity updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addToast({
         type: "error",
         message: error.message || "Failed to update profile.",
@@ -117,7 +118,7 @@ export function TransmissionSettings() {
         message: "Professional broadcast profile updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addToast({
         type: "error",
         message: error.message || "Failed to update profile.",
@@ -126,7 +127,8 @@ export function TransmissionSettings() {
   });
 
   const changePassword = useMutation({
-    mutationFn: (data: any) => userService.changePassword(data),
+    mutationFn: (data: Parameters<typeof userService.changePassword>[0]) =>
+      userService.changePassword(data),
     onSuccess: () => {
       addToast({
         type: "success",
@@ -138,7 +140,7 @@ export function TransmissionSettings() {
         confirm_password: "",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addToast({
         type: "error",
         message: error.message || "Failed to change password.",
@@ -207,7 +209,7 @@ export function TransmissionSettings() {
     const { name, value, type } = e.target;
     const val =
       type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
-    setFormData((prev: any) => ({ ...prev, [name]: val }));
+    setFormData((prev) => ({ ...prev, [name]: val }));
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,7 +228,7 @@ export function TransmissionSettings() {
     try {
       setIsUploading(true);
       const url = await userService.uploadAvatar(file);
-      setFormData((prev: any) => ({ ...prev, avatar_url: url }));
+      setFormData((prev) => ({ ...prev, avatar_url: url }));
       addToast({
         type: "success",
         message: "Cipher image uploaded to broadcast node.",

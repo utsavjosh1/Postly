@@ -1,4 +1,4 @@
-import { eq, desc, and, ilike, isNull } from "drizzle-orm";
+import { eq, desc, and, ilike } from "drizzle-orm";
 import { db } from "../index";
 import { applications, jobs, application_status_history } from "../schema";
 import type { ApplicationStatus } from "@postly/shared-types";
@@ -38,7 +38,7 @@ export const applicationQueries = {
     const [result] = await db
       .select()
       .from(applications)
-      .where(and(eq(applications.id, id), isNull(applications.deleted_at)));
+      .where(eq(applications.id, id));
 
     return result ?? null;
   },
@@ -57,12 +57,7 @@ export const applicationQueries = {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.job_id, jobs.id))
-      .where(
-        and(
-          eq(applications.seeker_id, seekerId),
-          isNull(applications.deleted_at),
-        ),
-      )
+      .where(and(eq(applications.seeker_id, seekerId)))
       .orderBy(desc(applications.applied_at))
       .limit(limit)
       .offset(offset);
@@ -133,29 +128,17 @@ export const applicationQueries = {
     return result ?? null;
   },
 
-  async updateNotes(id: string, seekerId: string, notes: string) {
+  async updateNotes(id: string, actorId: string, notes: string) {
     const [result] = await db
       .update(applications)
-      .set({ notes, updated_at: new Date() })
-      .where(and(eq(applications.id, id), eq(applications.seeker_id, seekerId)))
+      .set({
+        notes,
+        updated_at: new Date(),
+      })
+      .where(and(eq(applications.id, id), eq(applications.seeker_id, actorId)))
       .returning();
 
     return result ?? null;
-  },
-
-  async updateMatchScore(
-    id: string,
-    matchScore: number,
-    aiExplanation?: string,
-  ) {
-    await db
-      .update(applications)
-      .set({
-        match_score: matchScore.toString(),
-        ai_explanation: aiExplanation,
-        updated_at: new Date(),
-      })
-      .where(eq(applications.id, id));
   },
 
   async delete(id: string, seekerId: string) {

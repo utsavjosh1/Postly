@@ -198,7 +198,7 @@ export const userQueries = {
       with: {
         seeker_profile: true,
         employer_profile: true,
-        discord_configs: true,
+        bot_configs: true,
         subscription: true,
       },
     });
