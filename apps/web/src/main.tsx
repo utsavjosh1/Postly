@@ -8,7 +8,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // Keep cached data 30 min (default 5) — avoids re-fetch over slow link
       retry: 1,
+      refetchOnWindowFocus: false, // Don't refetch on tab switch — saves ~300ms RTT each time
     },
   },
 });

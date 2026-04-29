@@ -75,6 +75,9 @@ services:
   # ─── API Server ────────────────────────────────────────────
   api:
     image: ${API_IMAGE:-utsavjoshi/postly-api:latest}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     container_name: postly-api
     restart: unless-stopped
     environment:
@@ -127,6 +130,9 @@ services:
   # ─── Scraper (Python + Playwright) ────────────────────────
   scraper:
     image: ${SCRAPER_IMAGE:-utsavjoshi/postly-scraper:latest}
+    build:
+      context: .
+      dockerfile: apps/scraper/Dockerfile
     container_name: postly-scraper
     restart: unless-stopped
     environment:
@@ -165,6 +171,9 @@ services:
   # ─── Discord Bot ───────────────────────────────────────────
   bot:
     image: ${BOT_IMAGE:-utsavjoshi/postly-bot:latest}
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
     container_name: postly-bot
     restart: unless-stopped
     environment:
