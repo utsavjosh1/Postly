@@ -1,6 +1,7 @@
 import { Queue } from "bullmq";
 import { REDIS_URL } from "../config/secrets.js";
 import { db, bot_configs, eq } from "@postly/database";
+import { logger } from "@postly/logger";
 
 const BOT_QUEUE_NAME = "bot_notifications";
 
@@ -32,7 +33,9 @@ export class QueueService {
         removeOnFail: 5,
       },
     );
-    console.log("📅 Bot daily job dispatch cron initialized (9:00 AM)");
+    logger.info("Bot daily job dispatch cron initialized", {
+      schedule: "9:00 AM UTC",
+    });
   };
 
   /**
@@ -50,9 +53,7 @@ export class QueueService {
       await this.dispatchForPlatform(config.id);
       queued++;
     }
-    console.log(
-      `✅ Queued job alerts for ${queued}/${activeConfigs.length} bot integrations.`,
-    );
+    logger.info("Job alerts queued", { queued, total: activeConfigs.length });
     return queued;
   };
 
@@ -82,7 +83,10 @@ export class QueueService {
         removeOnFail: 3,
       },
     );
-    console.log(`✅ Job dispatched for ${config.platform} config: ${configId}`);
+    logger.info("Job dispatched for bot", {
+      platform: config.platform,
+      configId,
+    });
   };
 
   dispatchForGuild = async (guildId: string, channelId: string) => {

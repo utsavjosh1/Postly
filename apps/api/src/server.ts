@@ -1,8 +1,11 @@
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import promBundle from "express-prom-bundle";
 import { tokenBucketRateLimiter } from "./middleware/token-bucket-rate-limit.js";
+import { requestIdMiddleware } from "./middleware/request-id.js";
 import { pool } from "@postly/database";
 import { logger } from "@postly/logger";
 import { API_PORT, WEB_URL, NODE_ENV } from "./config/secrets.js";
@@ -28,6 +31,25 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Request correlation ID — must be first for tracing
+app.use(requestIdMiddleware);
+
+// Response compression — critical for high-latency links
+app.use(compression());
+
+// Prometheus Metrics Middleware
+// Exposes /metrics endpoint for VictoriaMetrics/Prometheus to scrape
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  includeUp: true,
+  promClient: {
+    collectDefaultMetrics: {},
+  },
+});
+app.use(metricsMiddleware);
+
 // Security middleware
 app.use(
   helmet({
@@ -42,9 +64,7 @@ const allowedOrigins = WEB_URL
   : [];
 
 if (allowedOrigins.length === 0) {
-  console.warn(
-    "⚠️  WEB_URL is not set — CORS will block all browser requests!",
-  );
+  logger.warn("WEB_URL is not set — CORS will block all browser requests");
 }
 
 app.use(
@@ -60,12 +80,13 @@ app.use(
         return callback(null, true);
       }
 
-      console.error(`CORS Blocked: origin '${origin}' not in allowed list`);
+      logger.warn("CORS blocked request", { origin });
       callback(new Error(`CORS: origin '${origin}' not allowed`));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    maxAge: 86400, // Cache preflight for 24h — saves ~300ms per cross-origin request
   }),
 );
 
@@ -172,14 +193,19 @@ app.use(errorHandler);
 
 // Start server
 app.listen(API_PORT, "0.0.0.0", async () => {
-  console.log(`🚀 API server running on http://0.0.0.0:${API_PORT}`);
-  console.log(`📝 Environment: ${NODE_ENV}`);
+  logger.info("API server started", {
+    port: API_PORT,
+    environment: NODE_ENV,
+    url: `http://0.0.0.0:${API_PORT}`,
+  });
 
   // Initialize Bot Job Queue
   try {
     await queueService.initDailyCron();
   } catch (err) {
-    console.error("Failed to initialize Bot Queue:", err);
+    logger.error("Failed to initialize Bot Queue", {
+      error: err instanceof Error ? err.message : "Unknown",
+    });
   }
 });
 

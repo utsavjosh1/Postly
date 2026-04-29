@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { NODE_ENV, WEB_URL } from "../config/secrets.js";
+import { logger } from "@postly/logger";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -16,7 +17,11 @@ export function errorHandler(
   const message = err.message || "Internal Server Error";
 
   if (NODE_ENV !== "production") {
-    console.error("Error:", err);
+    logger.error("Unhandled error", {
+      message: err.message,
+      stack: err.stack,
+      statusCode,
+    });
   }
 
   // Ensure CORS headers are present even in error responses, but ONLY for trusted origins

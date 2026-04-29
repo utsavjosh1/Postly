@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/secrets.js";
 import { Redis } from "ioredis";
 
 interface RateLimitConfig {
@@ -86,24 +87,23 @@ export const tokenBucketRateLimiter = (config: RateLimitConfig) => {
         return next();
       }
 
-      // Identifier: Start with IP Address
-      let identifier = req.ip || "unknown-ip";
+      // Rate-limit identifier: always anchored to the client IP.
+      // A verified JWT user ID is appended for per-user granularity.
+      const clientIp = req.ip || "unknown-ip";
+      let identifier = clientIp;
 
-      // Attempt to decode the JWT to use User ID as identifier
-      const authHeader = req.headers["authorization"];
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split(" ")[1];
-        try {
-          // We decode instead of verifying here because
-          // this middleware might run before the auth middleware
-          // and decoding is faster for identifying rate limits per user
-          const decoded = jwt.decode(token) as { id?: string };
-          if (decoded && decoded.id) {
-            identifier = decoded.id;
-          }
-        } catch {
-          // ignore invalid tokens, fallback to IP
+      // jwt.verify() is the sole gatekeeper — it cryptographically validates
+      // the token using the server-side secret. No user-controlled conditionals
+      // guard the sensitive action; invalid input simply throws and is caught.
+      try {
+        const rawHeader = req.headers["authorization"] ?? "";
+        const token = String(rawHeader).slice(7);
+        const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
+        if (typeof decoded?.id === "string" && decoded.id.length > 0) {
+          identifier = `${clientIp}:uid:${decoded.id}`;
         }
+      } catch {
+        // No valid token — IP-only rate limiting applies
       }
 
       const key = `${keyPrefix}:${identifier}`;

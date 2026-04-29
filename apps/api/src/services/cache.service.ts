@@ -1,4 +1,5 @@
 import { redis } from "../lib/redis.js";
+import { logger } from "@postly/logger";
 
 /**
  * Standardized Cache Service
@@ -44,7 +45,7 @@ export class CacheService {
       }
     } catch (error) {
       // Log warning but DO NOT crash (Graceful Degradation)
-      console.warn(`[CacheService] Redis GET failed for key "${key}":`, error);
+      logger.warn("Redis GET failed", { key, error: String(error) });
     }
 
     // 2. On miss (or Redis failure), execute the source DB query
@@ -56,17 +57,17 @@ export class CacheService {
       if (freshData !== undefined && freshData !== null) {
         // Run SET asynchronously to not block returning the response
         redis.setex(key, ttlSeconds, JSON.stringify(freshData)).catch((err) => {
-          console.warn(
-            `[CacheService] Background Redis SETEX failed for key "${key}":`,
-            err,
-          );
+          logger.warn("Background Redis SETEX failed", {
+            key,
+            error: String(err),
+          });
         });
       }
     } catch (error) {
-      console.warn(
-        `[CacheService] Redis SETEX synchronous error for key "${key}":`,
-        error,
-      );
+      logger.warn("Redis SETEX synchronous error", {
+        key,
+        error: String(error),
+      });
     }
 
     // 4. Return data immediately
@@ -80,7 +81,7 @@ export class CacheService {
     try {
       await redis.del(key);
     } catch (error) {
-      console.warn(`[CacheService] Redis DEL failed for key "${key}":`, error);
+      logger.warn("Redis DEL failed", { key, error: String(error) });
     }
   }
 
@@ -107,10 +108,10 @@ export class CacheService {
         }
       } while (cursor !== "0");
     } catch (error) {
-      console.warn(
-        `[CacheService] Redis pattern invalidation failed for "${pattern}":`,
-        error,
-      );
+      logger.warn("Redis pattern invalidation failed", {
+        pattern,
+        error: String(error),
+      });
     }
   }
 }

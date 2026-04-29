@@ -1,12 +1,10 @@
 import { generateText, generateVoyageEmbedding } from "@postly/ai-utils";
 import { resumeQueries } from "@postly/database";
-import type {
-  Resume,
-  ResumeAnalysis,
-  EducationEntry,
-} from "@postly/shared-types";
+import type { Resume, ResumeAnalysis } from "@postly/shared-types";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
+import { z } from "zod";
+import { logger } from "@postly/logger";
 
 export class ResumeService {
   /**
@@ -53,7 +51,27 @@ export class ResumeService {
   }
 
   /**
-   * Analyze resume text using Gemini AI
+   * Zod schema for validating structured LLM output.
+   * Prevents malformed AI responses from corrupting downstream data.
+   */
+  private static ResumeAnalysisSchema = z.object({
+    skills: z.array(z.string()).default([]),
+    experience_years: z.number().default(0),
+    education: z
+      .array(
+        z.object({
+          degree: z.string().default("Unknown"),
+          institution: z.string().default("Unknown"),
+          year: z.number().optional(),
+          field_of_study: z.string().optional(),
+        }),
+      )
+      .default([]),
+    summary: z.string().default(""),
+  });
+
+  /**
+   * Analyze resume text using AI with Zod-validated output.
    */
   async analyzeResume(text: string): Promise<ResumeAnalysis> {
     const prompt = `Analyze the following resume and extract structured information.
@@ -83,31 +101,30 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
       }
       cleanJson = cleanJson.trim();
 
-      const parsed = JSON.parse(cleanJson);
+      const rawParsed = JSON.parse(cleanJson);
+      const validated = ResumeService.ResumeAnalysisSchema.safeParse(rawParsed);
 
-      return {
-        skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-        experience_years:
-          typeof parsed.experience_years === "number"
-            ? parsed.experience_years
-            : 0,
-        education: Array.isArray(parsed.education)
-          ? parsed.education.map((e: Partial<EducationEntry>) => ({
-              degree: e.degree || "Unknown",
-              institution: e.institution || "Unknown",
-              year: e.year,
-              field_of_study: e.field_of_study,
-            }))
-          : [],
-        summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      };
+      if (!validated.success) {
+        logger.warn("LLM output validation failed", {
+          errors: validated.error.issues,
+          rawKeys: Object.keys(rawParsed),
+        });
+        return {
+          skills: [],
+          experience_years: 0,
+          education: [],
+          summary: "Unable to fully analyze resume. Please try again.",
+        };
+      }
+
+      return validated.data;
     } catch (error) {
-      console.error(
-        "Failed to parse AI response:",
-        error instanceof Error
-          ? this.sanitizeForLog(error.message)
-          : "Unknown error",
-      );
+      logger.error("Failed to parse AI response", {
+        error:
+          error instanceof Error
+            ? this.sanitizeForLog(error.message)
+            : "Unknown error",
+      });
       // Return default analysis if parsing fails
       return {
         skills: [],
