@@ -94,15 +94,24 @@ export const tokenBucketRateLimiter = (config: RateLimitConfig) => {
       // We use jwt.verify() (NOT jwt.decode()) to prevent identity spoofing.
       // An attacker could craft a JWT with any user ID to bypass per-user rate limits.
       const authHeader = req.headers["authorization"];
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split(" ")[1];
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
-          if (decoded && decoded.id) {
-            identifier = decoded.id;
+      if (
+        typeof authHeader === "string" &&
+        authHeader.startsWith("Bearer ")
+      ) {
+        const token = authHeader.slice(7).trim();
+        if (token.length > 0 && token.length < 4096) {
+          try {
+            const decoded = jwt.verify(token, JWT_SECRET) as { id?: string };
+            if (
+              decoded &&
+              typeof decoded.id === "string" &&
+              decoded.id.length > 0
+            ) {
+              identifier = decoded.id;
+            }
+          } catch {
+            // Invalid or expired token — fallback to IP-based rate limiting
           }
-        } catch {
-          // Invalid or expired token — fallback to IP-based rate limiting
         }
       }
 
