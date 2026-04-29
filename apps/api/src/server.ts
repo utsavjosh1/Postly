@@ -3,6 +3,7 @@ import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import promBundle from "express-prom-bundle";
 import { tokenBucketRateLimiter } from "./middleware/token-bucket-rate-limit.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { pool } from "@postly/database";
@@ -35,6 +36,19 @@ app.use(requestIdMiddleware);
 
 // Response compression — critical for high-latency links
 app.use(compression());
+
+// Prometheus Metrics Middleware
+// Exposes /metrics endpoint for VictoriaMetrics/Prometheus to scrape
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  includeUp: true,
+  promClient: {
+    collectDefaultMetrics: {},
+  },
+});
+app.use(metricsMiddleware);
 
 // Security middleware
 app.use(
