@@ -169,14 +169,9 @@ Return ONLY the JSON object, no markdown formatting or explanation.`;
       );
 
       return updatedResume || resume;
-    } catch (error) {
-      // Safe error logging to avoid log injection
-      console.error(
-        "Error processing resume:",
-        error instanceof Error
-          ? this.sanitizeForLog(error.message)
-          : "Unknown error",
-      );
+    } catch (_error) {
+      // Avoid logging user-influenced error content to prevent log injection
+      console.error("Error processing resume");
       // The user can retry analysis later
       return resume;
     }
